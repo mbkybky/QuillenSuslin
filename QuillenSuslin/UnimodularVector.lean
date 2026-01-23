@@ -16,6 +16,21 @@ def UnimodularVectorEquiv (v w : s → R) : Prop :=
 /-- `UnimodularVectorEquiv` is an equivalence relation. -/
 theorem unimodularVectorEquiv_equivalence :
     Equivalence (UnimodularVectorEquiv (R := R) (s := s)) := by
+  refine ⟨fun v ↦ ⟨1, by simp⟩, ?_, ?_⟩
+  · intro v w h
+    rcases h with ⟨M, hM⟩
+    refine ⟨M⁻¹, ?_⟩
+    calc _ = (M⁻¹).1.mulVec (M.1.mulVec v) := by simp [hM]
+      _ = v := by simp
+  · intro a b c ⟨M, hM⟩ ⟨N, hN⟩
+    refine ⟨N * M, ?_⟩
+    calc _ = N.1.mulVec (M.1.mulVec a) := by simp
+      _ = c := by simp [hM, hN]
+
+/-- Over a principal ideal domain, any two unimodular vectors are equivalent. -/
+theorem unimodularVectorEquiv_of_pid [IsDomain R] [IsPrincipalIdealRing R]
+    {v w : s → R} (hv : IsUnimodular v) (hw : IsUnimodular w) :
+    UnimodularVectorEquiv v w := by
   sorry
 
 end
