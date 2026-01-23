@@ -15,7 +15,4 @@ import Mathlib
 	In fact, unimodular vectors $v \in R^m$ correspond to imbeddings $R \rightarrow R^m$ which are split injections. But if we have a split injection in this way, the cokernel is free (as we are over a PID), and consequently there is a basis for $R^m$ one of whose elements is $v$. This implies that $v$ is conjugate to $e_1 = (1, 0, \dots, 0)$.
 \end{proof}
 
-\begin{theorem}[Horrocks]\label{thm:8}
-	Let $A = R[x]$ for $(R, \mathfrak{m})$ a local ring. Then any unimodular vector in $A^s$ one of whose elements has leading coefficient one is equivalent to $e_1$.
-\end{theorem}
 -/
