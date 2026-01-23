@@ -1,5 +1,25 @@
 import Mathlib
 
+section
+
+variable {R : Type*} [CommRing R]
+variable {s : Type*} [Fintype s] [DecidableEq s]
+
+/-- A vector `v : s → R` is *unimodular* if its components generate the unit ideal. -/
+def IsUnimodular (v : s → R) : Prop := Ideal.span (Set.range v) = ⊤
+
+/-- Two vectors `v w : s → R` are equivalent if they differ by left multiplication by an element
+of `GL s R`. -/
+def UnimodularVectorEquiv (v w : s → R) : Prop :=
+  ∃ M : Matrix.GeneralLinearGroup s R, M.1.mulVec v = w
+
+/-- `UnimodularVectorEquiv` is an equivalence relation. -/
+theorem unimodularVectorEquiv_equivalence :
+    Equivalence (UnimodularVectorEquiv (R := R) (s := s)) := by
+  sorry
+
+end
+
 /-
 \begin{definition}
 	Let $A$ be any ring. A vector ${v} \in A^s$ is unimodular if its components generate the unit ideal in $A$. For two unimodular vectors ${v}, {w}$, we write
