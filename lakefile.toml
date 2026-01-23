@@ -4,10 +4,10 @@ keywords = ["math"]
 defaultTargets = ["QuillenSuslin"]
 
 [leanOptions]
-pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+pp.unicode.fun = true                  # pretty-prints `fun a ↦ b`
 autoImplicit = false
 relaxedAutoImplicit = false
-weak.linter.mathlibStandardSet = true
+weak.linter.mathlibStandardSet = false
 maxSynthPendingDepth = 3
 
 [[require]]
