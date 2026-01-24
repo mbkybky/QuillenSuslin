@@ -124,10 +124,13 @@ theorem unimodularVectorEquiv_of_pid [IsDomain R] [IsPrincipalIdealRing R]
 
 section horrocks
 
-/-- Let `A = R[X]` for a local ring `R`. Then any unimodular vector in `A^s` with a monic component
-  is equivalent to `e₁`. -/
-theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
-    (h : ∃ i : s, (v i).Monic) : UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
+/-- If we have two polynomials $a(x), b(x) \in R[x]$, with $\deg a = d$ and $a$ monic,
+  and $b$ of degree $\leq d-1$ containing at least one coefficient which is a unit, there is a
+  polynomial $a(x) e(x) + b(x) f(x) \in (a(x), b(x))$ of degree $\leq d-1$ whose leading coefficient
+  is one. -/
+theorem degree_lowering (a b : R[X]) (ha : a.Monic) (hb : b.natDegree < a.natDegree)
+    (h : ∃ i : ℕ, IsUnit (b.coeff i)) :
+    ∃ e f : R[X], (a * e + b * f).Monic ∧ (a * e + b * f).natDegree < a.natDegree := by
   sorry
 
 end horrocks
