@@ -1,6 +1,6 @@
 import Mathlib
 
-open Module
+open Module Polynomial
 
 section
 
@@ -122,7 +122,15 @@ theorem unimodularVectorEquiv_of_pid [IsDomain R] [IsPrincipalIdealRing R]
     simp [htoLin, g, heLin]
   simpa [Matrix.mulVecLin_apply] using (by simpa [Matrix.GeneralLinearGroup.coe_toLin] using hlin)
 
-end
+section horrocks
+
+/-- Let `A = R[X]` for a local ring `R`. Then any unimodular vector in `A^s` with a monic component
+  is equivalent to `e₁`. -/
+theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
+    (h : ∃ i : s, (v i).Monic) : UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
+  sorry
+
+end horrocks
 
 /-
 \begin{definition}
