@@ -838,6 +838,12 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
 
 end horrocks
 
+/-- If $R$ is local and $v(x) \in R[x]^s$ is a unimodular vector one of whose elements is monic,
+  then $v(x) \sim v(0)$. -/
+theorem cor9 [IsLocalRing R] (v : s → R[X]) (hv : IsUnimodular v)
+    (h : ∃ i : s, (v i).Monic) : UnimodularVectorEquiv v (fun i => C ((v i).eval 0)) := by
+  sorry
+
 /-
 \begin{definition}
 	Let $A$ be any ring. A vector ${v} \in A^s$ is unimodular if its components generate the unit ideal in $A$. For two unimodular vectors ${v}, {w}$, we write
