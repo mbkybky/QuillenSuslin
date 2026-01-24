@@ -138,7 +138,7 @@ lemma X_pow_modByMonic_eq_self [Nontrivial R] {a : R[X]} (ha : a.Monic) {n : ℕ
   is one. -/
 theorem degree_lowering (a b : R[X]) (ha : a.Monic) (hb : b.natDegree < a.natDegree)
     (h : ∃ i : ℕ, IsUnit (b.coeff i)) :
-    ∃ e f : R[X], (a * e + b * f).Monic ∧ (a * e + b * f).natDegree < a.natDegree := by
+    ∃ e f : R[X], (a * e + b * f).Monic ∧ (a * e + b * f).natDegree = a.natDegree - 1 := by
   rcases subsingleton_or_nontrivial R with hR | hR
   · have hab : a = b := Subsingleton.elim _ _
     have : ¬ b.natDegree < a.natDegree := by simp [hab]
@@ -253,19 +253,651 @@ theorem degree_lowering (a b : R[X]) (ha : a.Monic) (hb : b.natDegree < a.natDeg
     rcases (Ideal.mem_span_pair).1 hg_mem_I with ⟨e, f, hef⟩
     have hcomb : a * e + b * f = g := by
       simpa [mul_comm, add_comm, add_left_comm, add_assoc] using hef
+    have hg_natDegree : g.natDegree = d - 1 := by
+      have hge : d - 1 ≤ g.natDegree := by
+        refine le_natDegree_of_ne_zero ?_
+        simpa [hg_coeff] using (one_ne_zero : (1 : R) ≠ 0)
+      have hle : g.natDegree ≤ d - 1 := Nat.le_pred_of_lt hg_deg
+      exact le_antisymm hle hge
     refine ⟨e, f, ?_, ?_⟩
     · simpa [hcomb] using hg_monic
-    · simpa [hcomb, d] using hg_deg
+    · simpa [hcomb, d] using hg_natDegree
 
 end degree
 
 section horrocks
 
+/-- An elementary `GL` operation: add `c` times component `j` to component `i`. -/
+theorem unimodularVectorEquiv_update_add (i j : s) (hij : i ≠ j) (c : R[X]) (v : s → R[X]) :
+    UnimodularVectorEquiv v (Function.update v i (v i + c * v j)) := by
+  classical
+  let A : Matrix s s R[X] := Matrix.transvection i j c
+  have hdet : IsUnit (Matrix.det A) := by
+    have : Matrix.det A = 1 := by
+      simpa [A] using Matrix.det_transvection_of_ne (i := i) (j := j) hij c
+    simpa [this] using (isUnit_one : IsUnit (1 : R[X]))
+  refine ⟨Matrix.GeneralLinearGroup.mk'' A hdet, ?_⟩
+  ext k n
+  by_cases hk : k = i
+  · subst hk
+    simp [A, Matrix.transvection, Matrix.mulVec, dotProduct, Matrix.one_apply, Matrix.single_apply,
+      Function.update, Finset.sum_add_distrib, add_mul, mul_add]
+  · simp [A, Matrix.transvection, Matrix.mulVec, dotProduct, Matrix.one_apply, Matrix.single_apply, hk,
+      Ne.symm hk, Function.update, Finset.sum_add_distrib, add_mul, mul_add]
+
+/-- An elementary `GL` operation: replace component `j` by `v j %ₘ v i` when `v i` is monic. -/
+theorem unimodularVectorEquiv_update_modByMonic (i j : s) (hij : j ≠ i)
+    (v : s → R[X]) (hi : (v i).Monic) :
+    UnimodularVectorEquiv v (Function.update v j (v j %ₘ v i)) := by
+  classical
+  have hmod : v j %ₘ v i = v j + (-(v j /ₘ v i)) * v i := by
+    simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc] using
+      (Polynomial.modByMonic_eq_sub_mul_div (v j) hi)
+  simpa [hmod] using
+    unimodularVectorEquiv_update_add (i := j) (j := i) hij (-(v j /ₘ v i)) v
+
+/-- Swapping two coordinates is a `GL`-equivalence. -/
+theorem unimodularVectorEquiv_swap (i j : s) (v : s → R[X]) :
+    UnimodularVectorEquiv v (v ∘ Equiv.swap i j) := by
+  classical
+  let σ : Equiv.Perm s := Equiv.swap i j
+  let A : Matrix s s R[X] := σ.permMatrix R[X]
+  have hdet : IsUnit (Matrix.det A) := by
+    have hsign : IsUnit (σ.sign : R[X]) := by
+      simpa using
+        (Units.isUnit (Units.map (Int.castRingHom (α := R[X])).toMonoidHom σ.sign))
+    simpa [A, Matrix.det_permutation] using hsign
+  refine ⟨Matrix.GeneralLinearGroup.mk'' A hdet, ?_⟩
+  simpa [A, σ] using (Matrix.permMatrix_mulVec (σ := σ) (v := v))
+
+/-- If a polynomial is nonzero, then some coefficient is nonzero. -/
+theorem exists_coeff_ne_zero_of_ne_zero {S : Type*} [Semiring S] {p : S[X]} (hp : p ≠ 0) :
+    ∃ n : ℕ, p.coeff n ≠ 0 := by
+  classical
+  by_contra h
+  apply hp
+  ext n
+  have : ¬ p.coeff n ≠ 0 := by
+    intro hn
+    exact h ⟨n, hn⟩
+  simpa using Classical.not_not.mp this
+
+/-- An elementary `GL` operation: scale component `i` by a unit `u`. -/
+theorem unimodularVectorEquiv_update_mul_isUnit (i : s) (u : R[X]) (hu : IsUnit u)
+    (v : s → R[X]) :
+    UnimodularVectorEquiv v (Function.update v i (u * v i)) := by
+  classical
+  let d : s → R[X] := fun j => if j = i then u else 1
+  let D : Matrix s s R[X] := Matrix.diagonal d
+  have hdet : IsUnit (Matrix.det D) := by
+    -- `det (diagonal d) = ∏ j, d j = u`.
+    have : Matrix.det D = u := by
+      simp [D, d, Matrix.det_diagonal, Finset.prod_ite_eq, Finset.prod_ite_eq']
+    simpa [this] using hu
+  refine ⟨Matrix.GeneralLinearGroup.mk'' D hdet, ?_⟩
+  ext j
+  by_cases hji : j = i
+  · subst hji
+    simp [D, d, Matrix.mulVec_diagonal, Function.update]
+  · simp [D, d, Matrix.mulVec_diagonal, Function.update, hji]
+
+/-- A convenient transitivity lemma for `UnimodularVectorEquiv`. -/
+theorem unimodularVectorEquiv_trans {v w u : s → R[X]}
+    (hvw : UnimodularVectorEquiv v w) (hwu : UnimodularVectorEquiv w u) :
+    UnimodularVectorEquiv v u :=
+  (unimodularVectorEquiv_equivalence (R := R[X]) (s := s)).trans hvw hwu
+
+/-- A convenient reflexivity lemma for `UnimodularVectorEquiv`. -/
+theorem unimodularVectorEquiv_refl (v : s → R[X]) : UnimodularVectorEquiv v v :=
+  (unimodularVectorEquiv_equivalence (R := R[X]) (s := s)).refl v
+
+/-- The ideal generated by the coordinates of `M.mulVec v` agrees with the ideal generated by the
+coordinates of `v` when `M ∈ GL`. -/
+theorem ideal_span_range_mulVec (M : Matrix.GeneralLinearGroup s R[X]) (v : s → R[X]) :
+    Ideal.span (Set.range (M.1.mulVec v)) = Ideal.span (Set.range v) := by
+  classical
+  -- First show `span (range (M.mulVec v)) ≤ span (range v)` for all `M`.
+  have span_mulVec_le (N : Matrix.GeneralLinearGroup s R[X]) (v : s → R[X]) :
+      Ideal.span (Set.range (N.1.mulVec v)) ≤ Ideal.span (Set.range v) := by
+    classical
+    let I : Ideal R[X] := Ideal.span (Set.range v)
+    refine Ideal.span_le.2 ?_
+    rintro _ ⟨i, rfl⟩
+    have hvj (j : s) : v j ∈ I := Ideal.subset_span ⟨j, rfl⟩
+    have hterm (j : s) : N.1 i j * v j ∈ I := by
+      simpa [mul_comm] using I.mul_mem_left (N.1 i j) (hvj j)
+    simpa [Matrix.mulVec, dotProduct, I] using I.sum_mem (fun j _ => hterm j)
+  refine le_antisymm (span_mulVec_le M v) ?_
+  -- Apply the inequality to `M⁻¹` and the vector `M.mulVec v`.
+  have hle' :
+      Ideal.span (Set.range ((M⁻¹).1.mulVec (M.1.mulVec v))) ≤
+        Ideal.span (Set.range (M.1.mulVec v)) :=
+    span_mulVec_le (N := M⁻¹) (v := M.1.mulVec v)
+  simpa using hle'
+
+/-- `IsUnimodular` is invariant under `UnimodularVectorEquiv`. -/
+theorem isUnimodular_iff_of_unimodularVectorEquiv {v w : s → R[X]}
+    (hvw : UnimodularVectorEquiv v w) : IsUnimodular v ↔ IsUnimodular w := by
+  rcases hvw with ⟨M, rfl⟩
+  unfold IsUnimodular
+  simpa [ideal_span_range_mulVec (M := M) (v := v)]
+
+/-- If `2 < Fintype.card s` and `i ≠ o`, there exists `k` different from both `o` and `i`. -/
+theorem exists_ne_ne_of_two_lt_card (o i : s) (hio : i ≠ o) (hcard : 2 < Fintype.card s) :
+    ∃ k : s, k ≠ o ∧ k ≠ i := by
+  classical
+  -- Consider `((univ.erase o).erase i)`.
+  have ho_mem : o ∈ (Finset.univ : Finset s) := Finset.mem_univ o
+  have hi_mem : i ∈ (Finset.univ.erase o : Finset s) := by
+    simp [Finset.mem_erase, hio]
+  have hcard_erase_o : (Finset.univ.erase o : Finset s).card = Fintype.card s - 1 := by
+    simpa [Finset.card_univ] using Finset.card_erase_of_mem ho_mem
+  have hcard_erase_oi :
+      ((Finset.univ.erase o).erase i : Finset s).card = Fintype.card s - 2 := by
+    calc
+      ((Finset.univ.erase o).erase i : Finset s).card
+          = (Finset.univ.erase o : Finset s).card - 1 := by
+            simpa using Finset.card_erase_of_mem hi_mem
+      _ = (Fintype.card s - 1) - 1 := by simp [hcard_erase_o]
+      _ = Fintype.card s - 2 := by simp [Nat.sub_sub]
+  have hnonempty : ((Finset.univ.erase o).erase i : Finset s).Nonempty := by
+    have : 0 < ((Finset.univ.erase o).erase i : Finset s).card := by
+      have : 0 < Fintype.card s - 2 := Nat.sub_pos_of_lt hcard
+      simpa [hcard_erase_oi] using this
+    exact Finset.card_pos.1 this
+  rcases hnonempty with ⟨k, hk⟩
+  refine ⟨k, ?_, ?_⟩
+  · have hk' : k ≠ o := (Finset.mem_erase.1 (Finset.mem_of_mem_erase hk)).1
+    exact hk'
+  · have hk' : k ≠ i := (Finset.mem_erase.1 hk).1
+    exact hk'
+
+/-- If `v o = 1`, then `v` is `GL`-equivalent to the standard basis vector supported at `o`. -/
+theorem unimodularVectorEquiv_stdBasis_of_eq_one (o : s) (v : s → R[X]) (ho : v o = 1) :
+    UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
+  classical
+  -- Clear all coordinates (except `o`) by iterating over `Finset.univ`.
+  let P : Finset s → Prop := fun t =>
+    ∃ w : s → R[X], UnimodularVectorEquiv v w ∧ w o = 1 ∧
+      (∀ i : s, i ∈ t → i ≠ o → w i = 0) ∧ (∀ i : s, i ∉ t → w i = v i)
+  have hP : P (Finset.univ : Finset s) := by
+    classical
+    refine (Finset.univ : Finset s).induction_on ?_ ?_
+    · refine ⟨v, unimodularVectorEquiv_refl v, by simpa [ho], ?_, ?_⟩
+      · intro i hi; simpa using hi
+      · intro i hi; rfl
+    · intro a t ha_not_mem ih
+      rcases ih with ⟨w, hvw, hwo, hw_clear, hw_keep⟩
+      by_cases hao : a = o
+      · subst hao
+        refine ⟨w, hvw, hwo, ?_, ?_⟩
+        · intro i hi hio
+          have hit : i ∈ t := by
+            simpa [Finset.mem_insert, hio] using hi
+          exact hw_clear i hit hio
+        · intro i hi
+          have hit : i ∉ t := by
+            intro hit
+            exact hi (Finset.mem_insert_of_mem hit)
+          exact hw_keep i hit
+      ·
+        let w' : s → R[X] := Function.update w a (w a + (-(w a)) * w o)
+        have hw' : UnimodularVectorEquiv w w' :=
+          unimodularVectorEquiv_update_add (i := a) (j := o) hao (-(w a)) w
+        refine ⟨w', unimodularVectorEquiv_trans hvw hw', ?_, ?_, ?_⟩
+        · -- `w' o = 1`
+          have hoa : o ≠ a := by simpa [eq_comm] using hao
+          simp [w', Function.update, hwo, hoa]
+        · -- Cleared coordinates in `insert a t`.
+          intro i hi hio
+          by_cases hia : i = a
+          · subst hia
+            simp [w', Function.update, hwo]
+          ·
+            have hit : i ∈ t := by
+              simpa [Finset.mem_insert, hia] using hi
+            simpa [w', Function.update, hia] using hw_clear i hit hio
+        · -- Coordinates not in `insert a t` are unchanged.
+          intro i hi
+          by_cases hia : i = a
+          · subst hia
+            exact (hi (Finset.mem_insert_self i t)).elim
+          ·
+            have hit : i ∉ t := by
+              intro hit
+              exact hi (Finset.mem_insert_of_mem hit)
+            simpa [w', Function.update, hia] using hw_keep i hit
+  rcases hP with ⟨w, hvw, hwo, hw_clear, _hw_keep⟩
+  have hw : w = fun i => if i = o then 1 else 0 := by
+    funext i
+    by_cases hio : i = o
+    · subst hio
+      simpa [hwo]
+    · have hi_univ : i ∈ (Finset.univ : Finset s) := Finset.mem_univ i
+      simpa [hio] using hw_clear i hi_univ hio
+  simpa [hw] using hvw
+
+/-- Reduce every coordinate `i ≠ o` modulo the monic polynomial `v o`, using elementary `GL`
+operations. -/
+theorem unimodularVectorEquiv_modByMonic_all (o : s) (v : s → R[X]) (ho : (v o).Monic) :
+    ∃ w : s → R[X], UnimodularVectorEquiv v w ∧ w o = v o ∧
+      (∀ i : s, i ≠ o → w i = v i %ₘ v o) := by
+  classical
+  let w : s → R[X] := fun i => if i = o then v o else v i %ₘ v o
+  let P : Finset s → Prop := fun t =>
+    ∃ u : s → R[X], UnimodularVectorEquiv v u ∧ u o = v o ∧
+      (∀ i : s, i ∈ t → i ≠ o → u i = v i %ₘ v o) ∧ (∀ i : s, i ∉ t → u i = v i)
+  have hP : P (Finset.univ : Finset s) := by
+    classical
+    refine (Finset.univ : Finset s).induction_on ?_ ?_
+    · refine ⟨v, unimodularVectorEquiv_refl v, rfl, ?_, ?_⟩
+      · intro i hi; simpa using hi
+      · intro i hi; rfl
+    · intro a t ha_not_mem ih
+      rcases ih with ⟨u, hvu, huo, hu_mod, hu_keep⟩
+      by_cases hao : a = o
+      · subst hao
+        refine ⟨u, hvu, huo, ?_, ?_⟩
+        · intro i hi hio
+          have hit : i ∈ t := by
+            simpa [Finset.mem_insert, hio] using hi
+          exact hu_mod i hit hio
+        · intro i hi
+          have hit : i ∉ t := by
+            intro hit
+            exact hi (Finset.mem_insert_of_mem hit)
+          exact hu_keep i hit
+      ·
+        let u' : s → R[X] := Function.update u a (u a %ₘ u o)
+        have hu' : UnimodularVectorEquiv u u' :=
+          unimodularVectorEquiv_update_modByMonic (i := o) (j := a) (by simpa [eq_comm] using hao)
+            u (by simpa [huo] using ho)
+        refine ⟨u', unimodularVectorEquiv_trans hvu hu', ?_, ?_, ?_⟩
+        · -- `u' o = v o`
+          have hoa : o ≠ a := by simpa [eq_comm] using hao
+          simp [u', Function.update, huo, hoa]
+        · -- Updated coordinates.
+          intro i hi hio
+          by_cases hia : i = a
+          · subst hia
+            have hua : u i = v i := hu_keep i ha_not_mem
+            simp [u', Function.update, huo, hua]
+          ·
+            have hit : i ∈ t := by
+              simpa [Finset.mem_insert, hia] using hi
+            simpa [u', Function.update, hia] using hu_mod i hit hio
+        · -- Unchanged coordinates.
+          intro i hi
+          by_cases hia : i = a
+          · subst hia
+            exact (hi (Finset.mem_insert_self i t)).elim
+          ·
+            have hit : i ∉ t := by
+              intro hit
+              exact hi (Finset.mem_insert_of_mem hit)
+            simpa [u', Function.update, hia] using hu_keep i hit
+  rcases hP with ⟨u, hvu, huo, hu_mod, _hu_keep⟩
+  refine ⟨w, ?_, ?_, ?_⟩
+  · -- `v` is equivalent to `w`.
+    have huw : u = w := by
+      funext i
+      by_cases hio : i = o
+      · subst hio
+        simpa [w, huo]
+      · have hi_univ : i ∈ (Finset.univ : Finset s) := Finset.mem_univ i
+        simpa [w, hio, huo] using hu_mod i hi_univ hio
+    simpa [huw] using hvu
+  · simp [w]
+  · intro i hio
+    simp [w, hio]
+
+/-- Over a local ring, a unimodular vector with a monic component of positive degree has another
+component with a coefficient that is a unit. -/
+theorem exists_unit_coeff_of_isUnimodular [IsLocalRing R] (o : s) (v : s → R[X])
+    (huv : IsUnimodular v) (ho : (v o).Monic) (hd : 0 < (v o).natDegree) :
+    ∃ i : s, i ≠ o ∧ ∃ n : ℕ, IsUnit ((v i).coeff n) := by
+  classical
+  let m : Ideal R := IsLocalRing.maximalIdeal R
+  let k := R ⧸ m
+  let f : R →+* k := Ideal.Quotient.mk _
+  let F : R[X] →+* k[X] := Polynomial.mapRingHom f
+  -- Get an explicit unimodularity certificate.
+  have h1 : (1 : R[X]) ∈ Ideal.span (Set.range v) := by
+    rw [huv]
+    exact Submodule.mem_top
+  rcases (Ideal.mem_span_range_iff_exists_fun).1 h1 with ⟨c, hc⟩
+  have hc' : (∑ i : s, F (c i) * F (v i)) = 1 := by
+    simpa [map_sum, map_mul] using congrArg F hc
+  have h_not_all_zero : ¬ (∀ i : s, i ≠ o → F (v i) = 0) := by
+    intro hzero
+    have hsum :
+        (∑ i : s, F (c i) * F (v i)) = F (c o) * F (v o) := by
+      classical
+      -- In the sum, all terms except `o` vanish.
+      have :=
+        (Finset.sum_eq_single (s := (Finset.univ : Finset s)) (f := fun i => F (c i) * F (v i)) o
+          (h₀ := by
+            intro i _ hi
+            simp [hzero i hi])
+          (h₁ := by
+            intro ho'
+            exact (ho' (Finset.mem_univ o)).elim))
+      simpa using this
+    have hunit : IsUnit (F (v o)) := by
+      refine ⟨⟨F (v o), F (c o), ?_, ?_⟩, rfl⟩
+      · -- `F (v o) * F (c o) = 1`
+        have : F (c o) * F (v o) = 1 := by
+          simpa [hsum] using hc'
+        simpa [mul_comm] using this
+      · -- `F (c o) * F (v o) = 1`
+        simpa [hsum] using hc'
+    -- But `F (v o)` has positive degree, hence is not a unit.
+    have hdeg' : 0 < (F (v o)).natDegree := by
+      have hcoeff : (F (v o)).coeff (v o).natDegree = 1 := by
+        simpa [F, Polynomial.coeff_map, ho.coeff_natDegree] using congrArg (fun x => f x) rfl
+      have hne : (F (v o)).coeff (v o).natDegree ≠ 0 := by
+        simpa [hcoeff] using (one_ne_zero : (1 : k) ≠ 0)
+      have hle : (v o).natDegree ≤ (F (v o)).natDegree := le_natDegree_of_ne_zero hne
+      exact lt_of_lt_of_le hd hle
+    exact (Polynomial.not_isUnit_of_natDegree_pos (F (v o)) hdeg') hunit
+  rcases not_forall.1 h_not_all_zero with ⟨i, hi⟩
+  have hio : i ≠ o := by
+    by_contra h'
+    subst h'
+    exact hi (by simp)
+  have hne : F (v i) ≠ 0 := by
+    intro h0
+    apply hi
+    intro _hio
+    exact h0
+  rcases exists_coeff_ne_zero_of_ne_zero (S := k) (p := F (v i)) hne with ⟨n, hn⟩
+  have hn' : (v i).coeff n ∉ m := by
+    intro hmem
+    have : f ((v i).coeff n) = 0 := by
+      -- `mk` is zero iff the element is in the ideal.
+      exact (Ideal.Quotient.eq_zero_iff_mem).2 hmem
+    have : (F (v i)).coeff n = 0 := by simpa [F, Polynomial.coeff_map] using this
+    exact hn this
+  refine ⟨i, hio, n, ?_⟩
+  simpa [m] using (IsLocalRing.notMem_maximalIdeal (R := R) (x := (v i).coeff n)).1 hn'
+
 /-- Let `A = R[X]` for a local ring `R`. Then any unimodular vector in `A^s` with a monic component
   is equivalent to `e₁`. -/
 theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
     (h : ∃ i : s, (v i).Monic) : UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
-  sorry
+  classical
+  rcases subsingleton_or_nontrivial R with hR | hR
+  · have hv : v = fun i => if i = o then 1 else 0 := by
+      funext i
+      exact Subsingleton.elim _ _
+    simpa [hv] using unimodularVectorEquiv_refl (v := v)
+  ·
+    rcases h with ⟨i0, hi0⟩
+    let v0 : s → R[X] := v ∘ Equiv.swap i0 o
+    have hv0 : UnimodularVectorEquiv v v0 := unimodularVectorEquiv_swap (i := i0) (j := o) v
+    have huv0 : IsUnimodular v0 :=
+      (isUnimodular_iff_of_unimodularVectorEquiv hv0).1 huv
+    have ho0 : (v0 o).Monic := by
+      simpa [v0] using hi0
+    have main : UnimodularVectorEquiv v0 (fun i => if i = o then 1 else 0) := by
+      -- Split by the cardinality of `s`.
+      by_cases hcard1 : Fintype.card s = 1
+      ·
+        haveI : Subsingleton s :=
+          (Fintype.card_le_one_iff_subsingleton).1 (le_of_eq hcard1)
+        have hrange : Set.range v0 = ({v0 o} : Set R[X]) := by
+          ext x
+          constructor
+          · rintro ⟨i, rfl⟩
+            simpa using congrArg v0 (Subsingleton.elim i o)
+          · intro hx
+            refine ⟨o, ?_⟩
+            simpa using hx.symm
+        have hunit : IsUnit (v0 o) := by
+          have : Ideal.span ({v0 o} : Set R[X]) = ⊤ := by
+            simpa [IsUnimodular, hrange] using huv0
+          simpa using (Ideal.span_singleton_eq_top).1 this
+        rcases hunit with ⟨u, hu⟩
+        -- Scale by `u⁻¹` to make the distinguished coordinate equal to `1`.
+        have hscale :
+            UnimodularVectorEquiv v0
+              (Function.update v0 o ((↑(u⁻¹) : R[X]) * v0 o)) :=
+          unimodularVectorEquiv_update_mul_isUnit (i := o) (u := (↑(u⁻¹) : R[X])) (by simpa) v0
+        have hone : (Function.update v0 o ((↑(u⁻¹) : R[X]) * v0 o)) o = 1 := by
+          have hu' : v0 o = (u : R[X]) := hu.symm
+          simp [Function.update, hu', Units.mul_inv, mul_assoc]
+        exact
+          unimodularVectorEquiv_trans hscale
+            (unimodularVectorEquiv_stdBasis_of_eq_one (o := o)
+              (v := Function.update v0 o ((↑(u⁻¹) : R[X]) * v0 o)) hone)
+      ·
+        by_cases hcard2 : Fintype.card s = 2
+        ·
+          -- In dimension `2`, any unimodular vector is equivalent to a basis vector.
+          have hNat : Nat.card s = 2 := by
+            simpa [Nat.card_eq_fintype_card] using hcard2
+          rcases (Nat.card_eq_two_iff' o).1 hNat with ⟨i, hio, hi_unique⟩
+          have hoi : o ≠ i := Ne.symm hio
+          have huniv : (Finset.univ : Finset s) = ({o, i} : Finset s) := by
+            ext j
+            constructor
+            · intro _
+              by_cases hj : j = o
+              · subst hj
+                simp
+              · have : j = i := hi_unique j hj
+                subst this
+                simp [hio]
+            · intro _
+              simp
+          -- Get a unimodularity certificate `∑ c j * v0 j = 1`.
+          have h1 : (1 : R[X]) ∈ Ideal.span (Set.range v0) := by
+            rw [huv0]
+            exact Submodule.mem_top
+          rcases (Ideal.mem_span_range_iff_exists_fun).1 h1 with ⟨c, hc⟩
+          have hc' : c o * v0 o + c i * v0 i = 1 := by
+            -- Rewrite the sum over `s` using `univ = {o, i}`.
+            simpa [huniv, hoi, add_comm, add_left_comm, add_assoc, mul_assoc] using hc
+          -- Build the classical `SL₂` matrix sending `v0` to `e_o`.
+          let A : Matrix s s R[X] := fun r s' =>
+            if r = o then c s' else if s' = o then -(v0 i) else v0 o
+          let B : Matrix s s R[X] := fun r s' =>
+            if r = o then if s' = o then v0 o else -(c i) else if s' = o then v0 i else c o
+          have hAB : A * B = 1 := by
+            classical
+            apply Matrix.ext
+            intro r s'
+            by_cases hr : r = o
+            · subst r
+              by_cases hs : s' = o
+              · subst s'
+                -- (row o, col o)
+                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, hc', Finset.sum_insert, Finset.sum_singleton,
+                  add_comm, add_left_comm, add_assoc, mul_add, add_mul, mul_assoc]
+              ·
+                have hs' : s' = i := hi_unique s' (by simpa using hs)
+                subst s'
+                -- (row o, col i)
+                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, Finset.sum_insert, Finset.sum_singleton,
+                  add_comm, add_left_comm, add_assoc, mul_assoc]
+                ring
+            ·
+              have hr' : r = i := hi_unique r hr
+              subst r
+              by_cases hs : s' = o
+              · subst s'
+                -- (row i, col o)
+                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, Finset.sum_insert, Finset.sum_singleton,
+                  add_comm, add_left_comm, add_assoc, mul_assoc]
+                ring
+              ·
+                have hs' : s' = i := hi_unique s' (by simpa using hs)
+                subst s'
+                -- (row i, col i)
+                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, hc', Finset.sum_insert, Finset.sum_singleton,
+                  add_comm, add_left_comm, add_assoc, mul_add, add_mul, mul_assoc]
+                simpa [mul_comm, add_comm, add_left_comm, add_assoc] using hc'
+          have hdet : IsUnit (Matrix.det A) := by
+            have hdet_mul : Matrix.det A * Matrix.det B = 1 := by
+              simpa [Matrix.det_mul, Matrix.det_one] using congrArg Matrix.det hAB
+            refine ⟨⟨Matrix.det A, Matrix.det B, hdet_mul, ?_⟩, rfl⟩
+            simpa [mul_comm] using hdet_mul
+          have hmul : A.mulVec v0 = (fun j => if j = o then 1 else 0) := by
+            classical
+            funext r
+            by_cases hr : r = o
+            · subst r
+              -- The first row is the certificate.
+              have : (∑ j : s, A o j * v0 j) = 1 := by
+                -- `A o j = c j`.
+                simpa [A] using hc
+              simpa [Matrix.mulVec, dotProduct, this]
+            ·
+              have hr' : r = i := hi_unique r hr
+              subst r
+              have : (∑ j : s, A i j * v0 j) = 0 := by
+                -- `A i o * v0 o + A i i * v0 i = 0`.
+                simp [huniv, A, hio, hoi, mul_assoc, mul_left_comm, mul_comm,
+                  add_comm, add_left_comm, add_assoc]
+              simpa [Matrix.mulVec, dotProduct, hr, this]
+          refine ⟨Matrix.GeneralLinearGroup.mk'' A hdet, ?_⟩
+          simpa [hmul]
+        ·
+          -- The main Horrocks induction for `2 < card s`.
+          have hcard_pos : 0 < Fintype.card s := Fintype.card_pos_iff.2 ⟨o⟩
+          have hcard_ne0 : Fintype.card s ≠ 0 := Nat.ne_of_gt hcard_pos
+          have hcard_gt1 : 1 < Fintype.card s :=
+            Nat.one_lt_iff_ne_zero_and_ne_one.2 ⟨hcard_ne0, hcard1⟩
+          have hcard_ge2 : 2 ≤ Fintype.card s := Nat.succ_le_iff.2 hcard_gt1
+          have hcard : 2 < Fintype.card s := lt_of_le_of_ne hcard_ge2 (Ne.symm hcard2)
+          -- Induct on `n = natDegree (v0 o)`.
+          let P : ℕ → Prop := fun n =>
+            ∀ u : s → R[X], IsUnimodular u → (u o).Monic → (u o).natDegree = n →
+              UnimodularVectorEquiv u (fun i => if i = o then 1 else 0)
+          have hP : ∀ n : ℕ, P n := by
+            intro n
+            induction n with
+            | zero =>
+                intro u huu huo hdeg
+                have huo' : u o = 1 := Polynomial.eq_one_of_monic_natDegree_zero huo hdeg
+                simpa [huo'] using unimodularVectorEquiv_stdBasis_of_eq_one (o := o) (v := u) huo'
+            | succ n ih =>
+                intro u huu huo hdeg
+                have hdpos : 0 < (u o).natDegree := by
+                  simpa [hdeg] using Nat.succ_pos n
+                have huo_ne_one : u o ≠ 1 :=
+                  ne_one_of_natDegree_pos hdpos
+                -- First reduce all other coordinates modulo the monic entry `u o`.
+                rcases unimodularVectorEquiv_modByMonic_all (o := o) (v := u) huo with
+                  ⟨w, huw, hwo, hwmod⟩
+                have hwu : IsUnimodular w :=
+                  (isUnimodular_iff_of_unimodularVectorEquiv huw).1 huu
+                have hwo_monic : (w o).Monic := by simpa [hwo] using huo
+                have hdegw : (w o).natDegree = n + 1 := by simpa [hwo, hdeg]
+                -- Find an index with a unit coefficient.
+                rcases exists_unit_coeff_of_isUnimodular (o := o) (v := w) hwu hwo_monic
+                    (by simpa [hdegw] using Nat.succ_pos n) with ⟨i, hio, m, hm_unit⟩
+                rcases exists_ne_ne_of_two_lt_card (o := o) (i := i) hio hcard with ⟨k, hko, hki⟩
+                let a : R[X] := w o
+                let b : R[X] := w i
+                have ha_ne_one : a ≠ 1 := by
+                  apply ne_one_of_natDegree_pos
+                  simpa [a, hdegw] using Nat.succ_pos n
+                have hbdeg : b.natDegree < a.natDegree := by
+                  have := Polynomial.natDegree_modByMonic_lt (u i) huo huo_ne_one
+                  -- `b = u i %ₘ u o` and `a = u o`.
+                  have hb : b = u i %ₘ u o := by
+                    simp [b, hwmod i hio, hwo]
+                  have ha : a = u o := by simp [a, hwo]
+                  simpa [hb, ha] using this
+                rcases degree_lowering a b hwo_monic hbdeg ⟨m, hm_unit⟩ with ⟨e, f, hg_monic, hg_deg⟩
+                let g : R[X] := a * e + b * f
+                have hg_nat : g.natDegree = a.natDegree - 1 := hg_deg
+                have hg_coeff : g.coeff (a.natDegree - 1) = 1 := by
+                  -- `g` is monic and has natDegree `a.natDegree - 1`.
+                  simpa [g, hg_nat] using hg_monic.coeff_natDegree
+                let r0 : R := 1 - (w k).coeff (a.natDegree - 1)
+                let r : R[X] := C r0
+                -- Add `r*e` times `w o` and `r*f` times `w i` to coordinate `k`.
+                let w1 : s → R[X] := Function.update w k (w k + (r * e) * w o)
+                have hw_w1 :
+                    UnimodularVectorEquiv w w1 :=
+                  unimodularVectorEquiv_update_add (i := k) (j := o) hko (r * e) w
+                let w2 : s → R[X] := Function.update w1 k (w1 k + (r * f) * w1 i)
+                have hw1_w2 :
+                    UnimodularVectorEquiv w1 w2 :=
+                  unimodularVectorEquiv_update_add (i := k) (j := i) hki (r * f) w1
+                have hw_w2 : UnimodularVectorEquiv w w2 := unimodularVectorEquiv_trans hw_w1 hw1_w2
+                have hw2k : w2 k = w k + r * g := by
+                  -- Unfold the two updates.
+                  have hki' : i ≠ k := Ne.symm hki
+                  have hko' : o ≠ k := Ne.symm hko
+                  simp [w2, w1, Function.update, hki', hko', g, a, b, mul_add, add_mul, mul_assoc,
+                    add_assoc, add_left_comm, add_comm]
+                  ring
+                have hdeg_wk : (w k).natDegree ≤ a.natDegree - 1 := by
+                  have hklt : (w k).natDegree < a.natDegree := by
+                    have := Polynomial.natDegree_modByMonic_lt (u k) huo huo_ne_one
+                    have hk : w k = u k %ₘ u o := by
+                      simp [hwmod k hko, hwo]
+                    have ha : a = u o := by simp [a, hwo]
+                    simpa [hk, ha] using this
+                  exact Nat.le_pred_of_lt hklt
+                have hrdeg : r.natDegree = 0 := by simp [r]
+                have hdeg_rg : (r * g).natDegree ≤ a.natDegree - 1 := by
+                  have : (r * g).natDegree ≤ r.natDegree + g.natDegree := Polynomial.natDegree_mul_le
+                  have hg_le : g.natDegree ≤ a.natDegree - 1 := by
+                    simpa [g, hg_nat] using le_rfl
+                  have : (r * g).natDegree ≤ 0 + (a.natDegree - 1) := by
+                    simpa [hrdeg, hg_nat, add_comm, add_left_comm, add_assoc] using this
+                  simpa using this
+                have hdeg_t : (w2 k).natDegree ≤ a.natDegree - 1 := by
+                  -- Use the degree bounds for `w k` and `r*g`.
+                  have : (w k + r * g).natDegree ≤ max (w k).natDegree (r * g).natDegree :=
+                    Polynomial.natDegree_add_le _ _
+                  have hmax :
+                      max (w k).natDegree (r * g).natDegree ≤ a.natDegree - 1 :=
+                    max_le_iff.2 ⟨hdeg_wk, hdeg_rg⟩
+                  simpa [hw2k] using le_trans this hmax
+                have hcoeff_t : (w2 k).coeff (a.natDegree - 1) = 1 := by
+                  -- Coefficient computation: force the top coefficient to be `1`.
+                  have hg' : g.coeff (a.natDegree - 1) = 1 := hg_coeff
+                  -- Keep `r` as `C r0` to use `coeff_C_mul` cleanly.
+                  have hrcoeff :
+                      (r * g).coeff (a.natDegree - 1) = r0 * g.coeff (a.natDegree - 1) := by
+                    simp [r, Polynomial.coeff_C_mul]
+                  -- Now compute the top coefficient of `w k + r * g`.
+                  simp [hw2k, Polynomial.coeff_add, hrcoeff, hg', r0]
+                have hdeg_eq : (w2 k).natDegree = a.natDegree - 1 := by
+                  have hge : a.natDegree - 1 ≤ (w2 k).natDegree := by
+                    refine le_natDegree_of_ne_zero ?_
+                    simpa [hcoeff_t] using (one_ne_zero : (1 : R) ≠ 0)
+                  exact le_antisymm hdeg_t hge
+                have hmonic_k : (w2 k).Monic := by
+                  -- Use `coeff = 1` at the top degree.
+                  have hle : (w2 k).natDegree ≤ a.natDegree - 1 := by simpa [hdeg_eq] using le_rfl
+                  exact monic_of_natDegree_le_of_coeff_eq_one (a.natDegree - 1) hle (by simpa [hcoeff_t])
+                -- Swap `k` and `o` to move the new monic polynomial to coordinate `o`.
+                let w3 : s → R[X] := w2 ∘ Equiv.swap o k
+                have hw2_w3 : UnimodularVectorEquiv w2 w3 :=
+                  unimodularVectorEquiv_swap (i := o) (j := k) w2
+                have hwu3 : IsUnimodular w3 :=
+                  (isUnimodular_iff_of_unimodularVectorEquiv (unimodularVectorEquiv_trans hw_w2 hw2_w3)).1 hwu
+                have hdeg3 : (w3 o).natDegree = n := by
+                  have ha_deg : a.natDegree = n + 1 := by
+                    simpa [a] using hdegw
+                  calc
+                    (w3 o).natDegree = (w2 k).natDegree := by simp [w3]
+                    _ = n := by simpa [ha_deg] using hdeg_eq
+                have hmonic3 : (w3 o).Monic := by
+                  simpa [w3] using hmonic_k
+                have hw3 : UnimodularVectorEquiv w3 (fun i => if i = o then 1 else 0) :=
+                  ih w3 hwu3 hmonic3 hdeg3
+                exact
+                  unimodularVectorEquiv_trans huw <|
+                    unimodularVectorEquiv_trans (unimodularVectorEquiv_trans hw_w2 hw2_w3) hw3
+          exact hP (v0 o).natDegree v0 huv0 ho0 rfl
+    exact unimodularVectorEquiv_trans hv0 main
 
 end horrocks
 
