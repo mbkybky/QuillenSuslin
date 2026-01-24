@@ -256,7 +256,7 @@ theorem degree_lowering (a b : R[X]) (ha : a.Monic) (hb : b.natDegree < a.natDeg
     have hg_natDegree : g.natDegree = d - 1 := by
       have hge : d - 1 ≤ g.natDegree := by
         refine le_natDegree_of_ne_zero ?_
-        simpa [hg_coeff] using (one_ne_zero : (1 : R) ≠ 0)
+        simp [hg_coeff]
       have hle : g.natDegree ≤ d - 1 := Nat.le_pred_of_lt hg_deg
       exact le_antisymm hle hge
     refine ⟨e, f, ?_, ?_⟩
@@ -270,26 +270,24 @@ section horrocks
 /-- An elementary `GL` operation: add `c` times component `j` to component `i`. -/
 theorem unimodularVectorEquiv_update_add (i j : s) (hij : i ≠ j) (c : R[X]) (v : s → R[X]) :
     UnimodularVectorEquiv v (Function.update v i (v i + c * v j)) := by
-  classical
   let A : Matrix s s R[X] := Matrix.transvection i j c
   have hdet : IsUnit (Matrix.det A) := by
     have : Matrix.det A = 1 := by
       simpa [A] using Matrix.det_transvection_of_ne (i := i) (j := j) hij c
-    simpa [this] using (isUnit_one : IsUnit (1 : R[X]))
+    simp [this]
   refine ⟨Matrix.GeneralLinearGroup.mk'' A hdet, ?_⟩
   ext k n
   by_cases hk : k = i
   · subst hk
     simp [A, Matrix.transvection, Matrix.mulVec, dotProduct, Matrix.one_apply, Matrix.single_apply,
-      Function.update, Finset.sum_add_distrib, add_mul, mul_add]
-  · simp [A, Matrix.transvection, Matrix.mulVec, dotProduct, Matrix.one_apply, Matrix.single_apply, hk,
-      Ne.symm hk, Function.update, Finset.sum_add_distrib, add_mul, mul_add]
+      Function.update, Finset.sum_add_distrib, add_mul]
+  ·
+    simp [A, Matrix.transvection, Matrix.mulVec, dotProduct, Matrix.one_apply, hk, Ne.symm hk, Function.update]
 
 /-- An elementary `GL` operation: replace component `j` by `v j %ₘ v i` when `v i` is monic. -/
 theorem unimodularVectorEquiv_update_modByMonic (i j : s) (hij : j ≠ i)
     (v : s → R[X]) (hi : (v i).Monic) :
     UnimodularVectorEquiv v (Function.update v j (v j %ₘ v i)) := by
-  classical
   have hmod : v j %ₘ v i = v j + (-(v j /ₘ v i)) * v i := by
     simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc] using
       (Polynomial.modByMonic_eq_sub_mul_div (v j) hi)
@@ -299,7 +297,6 @@ theorem unimodularVectorEquiv_update_modByMonic (i j : s) (hij : j ≠ i)
 /-- Swapping two coordinates is a `GL`-equivalence. -/
 theorem unimodularVectorEquiv_swap (i j : s) (v : s → R[X]) :
     UnimodularVectorEquiv v (v ∘ Equiv.swap i j) := by
-  classical
   let σ : Equiv.Perm s := Equiv.swap i j
   let A : Matrix s s R[X] := σ.permMatrix R[X]
   have hdet : IsUnit (Matrix.det A) := by
@@ -313,7 +310,6 @@ theorem unimodularVectorEquiv_swap (i j : s) (v : s → R[X]) :
 /-- If a polynomial is nonzero, then some coefficient is nonzero. -/
 theorem exists_coeff_ne_zero_of_ne_zero {S : Type*} [Semiring S] {p : S[X]} (hp : p ≠ 0) :
     ∃ n : ℕ, p.coeff n ≠ 0 := by
-  classical
   by_contra h
   apply hp
   ext n
@@ -326,13 +322,12 @@ theorem exists_coeff_ne_zero_of_ne_zero {S : Type*} [Semiring S] {p : S[X]} (hp 
 theorem unimodularVectorEquiv_update_mul_isUnit (i : s) (u : R[X]) (hu : IsUnit u)
     (v : s → R[X]) :
     UnimodularVectorEquiv v (Function.update v i (u * v i)) := by
-  classical
   let d : s → R[X] := fun j => if j = i then u else 1
   let D : Matrix s s R[X] := Matrix.diagonal d
   have hdet : IsUnit (Matrix.det D) := by
     -- `det (diagonal d) = ∏ j, d j = u`.
     have : Matrix.det D = u := by
-      simp [D, d, Matrix.det_diagonal, Finset.prod_ite_eq, Finset.prod_ite_eq']
+      simp [D, d, Matrix.det_diagonal, Finset.prod_ite_eq']
     simpa [this] using hu
   refine ⟨Matrix.GeneralLinearGroup.mk'' D hdet, ?_⟩
   ext j
@@ -355,11 +350,9 @@ theorem unimodularVectorEquiv_refl (v : s → R[X]) : UnimodularVectorEquiv v v 
 coordinates of `v` when `M ∈ GL`. -/
 theorem ideal_span_range_mulVec (M : Matrix.GeneralLinearGroup s R[X]) (v : s → R[X]) :
     Ideal.span (Set.range (M.1.mulVec v)) = Ideal.span (Set.range v) := by
-  classical
   -- First show `span (range (M.mulVec v)) ≤ span (range v)` for all `M`.
   have span_mulVec_le (N : Matrix.GeneralLinearGroup s R[X]) (v : s → R[X]) :
       Ideal.span (Set.range (N.1.mulVec v)) ≤ Ideal.span (Set.range v) := by
-    classical
     let I : Ideal R[X] := Ideal.span (Set.range v)
     refine Ideal.span_le.2 ?_
     rintro _ ⟨i, rfl⟩
@@ -380,18 +373,17 @@ theorem isUnimodular_iff_of_unimodularVectorEquiv {v w : s → R[X]}
     (hvw : UnimodularVectorEquiv v w) : IsUnimodular v ↔ IsUnimodular w := by
   rcases hvw with ⟨M, rfl⟩
   unfold IsUnimodular
-  simpa [ideal_span_range_mulVec (M := M) (v := v)]
+  simp [ideal_span_range_mulVec (M := M) (v := v)]
 
 /-- If `2 < Fintype.card s` and `i ≠ o`, there exists `k` different from both `o` and `i`. -/
 theorem exists_ne_ne_of_two_lt_card (o i : s) (hio : i ≠ o) (hcard : 2 < Fintype.card s) :
     ∃ k : s, k ≠ o ∧ k ≠ i := by
-  classical
   -- Consider `((univ.erase o).erase i)`.
   have ho_mem : o ∈ (Finset.univ : Finset s) := Finset.mem_univ o
   have hi_mem : i ∈ (Finset.univ.erase o : Finset s) := by
     simp [Finset.mem_erase, hio]
   have hcard_erase_o : (Finset.univ.erase o : Finset s).card = Fintype.card s - 1 := by
-    simpa [Finset.card_univ] using Finset.card_erase_of_mem ho_mem
+    simp [Finset.card_univ]
   have hcard_erase_oi :
       ((Finset.univ.erase o).erase i : Finset s).card = Fintype.card s - 2 := by
     calc
@@ -415,16 +407,16 @@ theorem exists_ne_ne_of_two_lt_card (o i : s) (hio : i ≠ o) (hcard : 2 < Finty
 /-- If `v o = 1`, then `v` is `GL`-equivalent to the standard basis vector supported at `o`. -/
 theorem unimodularVectorEquiv_stdBasis_of_eq_one (o : s) (v : s → R[X]) (ho : v o = 1) :
     UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
-  classical
   -- Clear all coordinates (except `o`) by iterating over `Finset.univ`.
   let P : Finset s → Prop := fun t =>
     ∃ w : s → R[X], UnimodularVectorEquiv v w ∧ w o = 1 ∧
       (∀ i : s, i ∈ t → i ≠ o → w i = 0) ∧ (∀ i : s, i ∉ t → w i = v i)
   have hP : P (Finset.univ : Finset s) := by
-    classical
     refine (Finset.univ : Finset s).induction_on ?_ ?_
-    · refine ⟨v, unimodularVectorEquiv_refl v, by simpa [ho], ?_, ?_⟩
-      · intro i hi; simpa using hi
+    · refine ⟨v, unimodularVectorEquiv_refl v, by simp [ho], ?_, ?_⟩
+      ·
+        intro i hi _hio
+        simp at hi
       · intro i hi; rfl
     · intro a t ha_not_mem ih
       rcases ih with ⟨w, hvw, hwo, hw_clear, hw_keep⟩
@@ -447,12 +439,12 @@ theorem unimodularVectorEquiv_stdBasis_of_eq_one (o : s) (v : s → R[X]) (ho : 
         refine ⟨w', unimodularVectorEquiv_trans hvw hw', ?_, ?_, ?_⟩
         · -- `w' o = 1`
           have hoa : o ≠ a := by simpa [eq_comm] using hao
-          simp [w', Function.update, hwo, hoa]
+          simp [w', hwo, hoa]
         · -- Cleared coordinates in `insert a t`.
           intro i hi hio
           by_cases hia : i = a
           · subst hia
-            simp [w', Function.update, hwo]
+            simp [w', hwo]
           ·
             have hit : i ∈ t := by
               simpa [Finset.mem_insert, hia] using hi
@@ -472,7 +464,7 @@ theorem unimodularVectorEquiv_stdBasis_of_eq_one (o : s) (v : s → R[X]) (ho : 
     funext i
     by_cases hio : i = o
     · subst hio
-      simpa [hwo]
+      simp [hwo]
     · have hi_univ : i ∈ (Finset.univ : Finset s) := Finset.mem_univ i
       simpa [hio] using hw_clear i hi_univ hio
   simpa [hw] using hvw
@@ -482,16 +474,16 @@ operations. -/
 theorem unimodularVectorEquiv_modByMonic_all (o : s) (v : s → R[X]) (ho : (v o).Monic) :
     ∃ w : s → R[X], UnimodularVectorEquiv v w ∧ w o = v o ∧
       (∀ i : s, i ≠ o → w i = v i %ₘ v o) := by
-  classical
   let w : s → R[X] := fun i => if i = o then v o else v i %ₘ v o
   let P : Finset s → Prop := fun t =>
     ∃ u : s → R[X], UnimodularVectorEquiv v u ∧ u o = v o ∧
       (∀ i : s, i ∈ t → i ≠ o → u i = v i %ₘ v o) ∧ (∀ i : s, i ∉ t → u i = v i)
   have hP : P (Finset.univ : Finset s) := by
-    classical
     refine (Finset.univ : Finset s).induction_on ?_ ?_
     · refine ⟨v, unimodularVectorEquiv_refl v, rfl, ?_, ?_⟩
-      · intro i hi; simpa using hi
+      ·
+        intro i hi _hio
+        simp at hi
       · intro i hi; rfl
     · intro a t ha_not_mem ih
       rcases ih with ⟨u, hvu, huo, hu_mod, hu_keep⟩
@@ -515,13 +507,13 @@ theorem unimodularVectorEquiv_modByMonic_all (o : s) (v : s → R[X]) (ho : (v o
         refine ⟨u', unimodularVectorEquiv_trans hvu hu', ?_, ?_, ?_⟩
         · -- `u' o = v o`
           have hoa : o ≠ a := by simpa [eq_comm] using hao
-          simp [u', Function.update, huo, hoa]
+          simp [u', huo, hoa]
         · -- Updated coordinates.
           intro i hi hio
           by_cases hia : i = a
           · subst hia
             have hua : u i = v i := hu_keep i ha_not_mem
-            simp [u', Function.update, huo, hua]
+            simp [u', huo, hua]
           ·
             have hit : i ∈ t := by
               simpa [Finset.mem_insert, hia] using hi
@@ -543,7 +535,7 @@ theorem unimodularVectorEquiv_modByMonic_all (o : s) (v : s → R[X]) (ho : (v o
       funext i
       by_cases hio : i = o
       · subst hio
-        simpa [w, huo]
+        simp [w, huo]
       · have hi_univ : i ∈ (Finset.univ : Finset s) := Finset.mem_univ i
         simpa [w, hio, huo] using hu_mod i hi_univ hio
     simpa [huw] using hvu
@@ -551,12 +543,12 @@ theorem unimodularVectorEquiv_modByMonic_all (o : s) (v : s → R[X]) (ho : (v o
   · intro i hio
     simp [w, hio]
 
+omit [DecidableEq s] in
 /-- Over a local ring, a unimodular vector with a monic component of positive degree has another
 component with a coefficient that is a unit. -/
 theorem exists_unit_coeff_of_isUnimodular [IsLocalRing R] (o : s) (v : s → R[X])
     (huv : IsUnimodular v) (ho : (v o).Monic) (hd : 0 < (v o).natDegree) :
     ∃ i : s, i ≠ o ∧ ∃ n : ℕ, IsUnit ((v i).coeff n) := by
-  classical
   let m : Ideal R := IsLocalRing.maximalIdeal R
   let k := R ⧸ m
   let f : R →+* k := Ideal.Quotient.mk _
@@ -572,7 +564,6 @@ theorem exists_unit_coeff_of_isUnimodular [IsLocalRing R] (o : s) (v : s → R[X
     intro hzero
     have hsum :
         (∑ i : s, F (c i) * F (v i)) = F (c o) * F (v o) := by
-      classical
       -- In the sum, all terms except `o` vanish.
       have :=
         (Finset.sum_eq_single (s := (Finset.univ : Finset s)) (f := fun i => F (c i) * F (v i)) o
@@ -594,9 +585,9 @@ theorem exists_unit_coeff_of_isUnimodular [IsLocalRing R] (o : s) (v : s → R[X
     -- But `F (v o)` has positive degree, hence is not a unit.
     have hdeg' : 0 < (F (v o)).natDegree := by
       have hcoeff : (F (v o)).coeff (v o).natDegree = 1 := by
-        simpa [F, Polynomial.coeff_map, ho.coeff_natDegree] using congrArg (fun x => f x) rfl
+        simp [F, Polynomial.coeff_map, ho.coeff_natDegree]
       have hne : (F (v o)).coeff (v o).natDegree ≠ 0 := by
-        simpa [hcoeff] using (one_ne_zero : (1 : k) ≠ 0)
+        simp [hcoeff]
       have hle : (v o).natDegree ≤ (F (v o)).natDegree := le_natDegree_of_ne_zero hne
       exact lt_of_lt_of_le hd hle
     exact (Polynomial.not_isUnit_of_natDegree_pos (F (v o)) hdeg') hunit
@@ -625,7 +616,6 @@ theorem exists_unit_coeff_of_isUnimodular [IsLocalRing R] (o : s) (v : s → R[X
   is equivalent to `e₁`. -/
 theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
     (h : ∃ i : s, (v i).Monic) : UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
-  classical
   rcases subsingleton_or_nontrivial R with hR | hR
   · have hv : v = fun i => if i = o then 1 else 0 := by
       funext i
@@ -643,7 +633,7 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
       -- Split by the cardinality of `s`.
       by_cases hcard1 : Fintype.card s = 1
       ·
-        haveI : Subsingleton s :=
+        have : Subsingleton s :=
           (Fintype.card_le_one_iff_subsingleton).1 (le_of_eq hcard1)
         have hrange : Set.range v0 = ({v0 o} : Set R[X]) := by
           ext x
@@ -662,10 +652,10 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
         have hscale :
             UnimodularVectorEquiv v0
               (Function.update v0 o ((↑(u⁻¹) : R[X]) * v0 o)) :=
-          unimodularVectorEquiv_update_mul_isUnit (i := o) (u := (↑(u⁻¹) : R[X])) (by simpa) v0
+          unimodularVectorEquiv_update_mul_isUnit (i := o) (u := (↑(u⁻¹) : R[X])) (by simp) v0
         have hone : (Function.update v0 o ((↑(u⁻¹) : R[X]) * v0 o)) o = 1 := by
           have hu' : v0 o = (u : R[X]) := hu.symm
-          simp [Function.update, hu', Units.mul_inv, mul_assoc]
+          simp [Function.update, hu']
         exact
           unimodularVectorEquiv_trans hscale
             (unimodularVectorEquiv_stdBasis_of_eq_one (o := o)
@@ -704,7 +694,6 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
           let B : Matrix s s R[X] := fun r s' =>
             if r = o then if s' = o then v0 o else -(c i) else if s' = o then v0 i else c o
           have hAB : A * B = 1 := by
-            classical
             apply Matrix.ext
             intro r s'
             by_cases hr : r = o
@@ -712,14 +701,12 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
               by_cases hs : s' = o
               · subst s'
                 -- (row o, col o)
-                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, hc', Finset.sum_insert, Finset.sum_singleton,
-                  add_comm, add_left_comm, add_assoc, mul_add, add_mul, mul_assoc]
+                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, hc', Finset.sum_insert, Finset.sum_singleton]
               ·
                 have hs' : s' = i := hi_unique s' (by simpa using hs)
                 subst s'
                 -- (row o, col i)
-                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, Finset.sum_insert, Finset.sum_singleton,
-                  add_comm, add_left_comm, add_assoc, mul_assoc]
+                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, Finset.sum_insert, Finset.sum_singleton]
                 ring
             ·
               have hr' : r = i := hi_unique r hr
@@ -727,15 +714,13 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
               by_cases hs : s' = o
               · subst s'
                 -- (row i, col o)
-                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, Finset.sum_insert, Finset.sum_singleton,
-                  add_comm, add_left_comm, add_assoc, mul_assoc]
+                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, Finset.sum_insert, Finset.sum_singleton]
                 ring
               ·
                 have hs' : s' = i := hi_unique s' (by simpa using hs)
                 subst s'
                 -- (row i, col i)
-                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, hc', Finset.sum_insert, Finset.sum_singleton,
-                  add_comm, add_left_comm, add_assoc, mul_add, add_mul, mul_assoc]
+                simp [Matrix.mul_apply, huniv, A, B, hio, hoi, Finset.sum_insert, Finset.sum_singleton]
                 simpa [mul_comm, add_comm, add_left_comm, add_assoc] using hc'
           have hdet : IsUnit (Matrix.det A) := by
             have hdet_mul : Matrix.det A * Matrix.det B = 1 := by
@@ -743,7 +728,6 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
             refine ⟨⟨Matrix.det A, Matrix.det B, hdet_mul, ?_⟩, rfl⟩
             simpa [mul_comm] using hdet_mul
           have hmul : A.mulVec v0 = (fun j => if j = o then 1 else 0) := by
-            classical
             funext r
             by_cases hr : r = o
             · subst r
@@ -751,17 +735,17 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
               have : (∑ j : s, A o j * v0 j) = 1 := by
                 -- `A o j = c j`.
                 simpa [A] using hc
-              simpa [Matrix.mulVec, dotProduct, this]
+              simp [Matrix.mulVec, dotProduct, this]
             ·
               have hr' : r = i := hi_unique r hr
               subst r
               have : (∑ j : s, A i j * v0 j) = 0 := by
                 -- `A i o * v0 o + A i i * v0 i = 0`.
-                simp [huniv, A, hio, hoi, mul_assoc, mul_left_comm, mul_comm,
-                  add_comm, add_left_comm, add_assoc]
-              simpa [Matrix.mulVec, dotProduct, hr, this]
+                simp [huniv, A, hio, hoi]
+                ring
+              simp [Matrix.mulVec, dotProduct, hr, this]
           refine ⟨Matrix.GeneralLinearGroup.mk'' A hdet, ?_⟩
-          simpa [hmul]
+          simp [hmul]
         ·
           -- The main Horrocks induction for `2 < card s`.
           have hcard_pos : 0 < Fintype.card s := Fintype.card_pos_iff.2 ⟨o⟩
@@ -784,7 +768,7 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
             | succ n ih =>
                 intro u huu huo hdeg
                 have hdpos : 0 < (u o).natDegree := by
-                  simpa [hdeg] using Nat.succ_pos n
+                  simp [hdeg]
                 have huo_ne_one : u o ≠ 1 :=
                   ne_one_of_natDegree_pos hdpos
                 -- First reduce all other coordinates modulo the monic entry `u o`.
@@ -793,21 +777,21 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
                 have hwu : IsUnimodular w :=
                   (isUnimodular_iff_of_unimodularVectorEquiv huw).1 huu
                 have hwo_monic : (w o).Monic := by simpa [hwo] using huo
-                have hdegw : (w o).natDegree = n + 1 := by simpa [hwo, hdeg]
+                have hdegw : (w o).natDegree = n + 1 := by simp [hwo, hdeg]
                 -- Find an index with a unit coefficient.
                 rcases exists_unit_coeff_of_isUnimodular (o := o) (v := w) hwu hwo_monic
-                    (by simpa [hdegw] using Nat.succ_pos n) with ⟨i, hio, m, hm_unit⟩
+                    (by simp [hdegw]) with ⟨i, hio, m, hm_unit⟩
                 rcases exists_ne_ne_of_two_lt_card (o := o) (i := i) hio hcard with ⟨k, hko, hki⟩
                 let a : R[X] := w o
                 let b : R[X] := w i
                 have ha_ne_one : a ≠ 1 := by
                   apply ne_one_of_natDegree_pos
-                  simpa [a, hdegw] using Nat.succ_pos n
+                  simp [a, hdegw]
                 have hbdeg : b.natDegree < a.natDegree := by
                   have := Polynomial.natDegree_modByMonic_lt (u i) huo huo_ne_one
                   -- `b = u i %ₘ u o` and `a = u o`.
                   have hb : b = u i %ₘ u o := by
-                    simp [b, hwmod i hio, hwo]
+                    simp [b, hwmod i hio]
                   have ha : a = u o := by simp [a, hwo]
                   simpa [hb, ha] using this
                 rcases degree_lowering a b hwo_monic hbdeg ⟨m, hm_unit⟩ with ⟨e, f, hg_monic, hg_deg⟩
@@ -832,14 +816,13 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
                   -- Unfold the two updates.
                   have hki' : i ≠ k := Ne.symm hki
                   have hko' : o ≠ k := Ne.symm hko
-                  simp [w2, w1, Function.update, hki', hko', g, a, b, mul_add, add_mul, mul_assoc,
-                    add_assoc, add_left_comm, add_comm]
+                  simp [w2, w1, hki', g, a, b]
                   ring
                 have hdeg_wk : (w k).natDegree ≤ a.natDegree - 1 := by
                   have hklt : (w k).natDegree < a.natDegree := by
                     have := Polynomial.natDegree_modByMonic_lt (u k) huo huo_ne_one
                     have hk : w k = u k %ₘ u o := by
-                      simp [hwmod k hko, hwo]
+                      simp [hwmod k hko]
                     have ha : a = u o := by simp [a, hwo]
                     simpa [hk, ha] using this
                   exact Nat.le_pred_of_lt hklt
@@ -847,7 +830,7 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
                 have hdeg_rg : (r * g).natDegree ≤ a.natDegree - 1 := by
                   have : (r * g).natDegree ≤ r.natDegree + g.natDegree := Polynomial.natDegree_mul_le
                   have hg_le : g.natDegree ≤ a.natDegree - 1 := by
-                    simpa [g, hg_nat] using le_rfl
+                    simp [g, hg_nat]
                   have : (r * g).natDegree ≤ 0 + (a.natDegree - 1) := by
                     simpa [hrdeg, hg_nat, add_comm, add_left_comm, add_assoc] using this
                   simpa using this
@@ -871,12 +854,12 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
                 have hdeg_eq : (w2 k).natDegree = a.natDegree - 1 := by
                   have hge : a.natDegree - 1 ≤ (w2 k).natDegree := by
                     refine le_natDegree_of_ne_zero ?_
-                    simpa [hcoeff_t] using (one_ne_zero : (1 : R) ≠ 0)
+                    simp [hcoeff_t]
                   exact le_antisymm hdeg_t hge
                 have hmonic_k : (w2 k).Monic := by
                   -- Use `coeff = 1` at the top degree.
-                  have hle : (w2 k).natDegree ≤ a.natDegree - 1 := by simpa [hdeg_eq] using le_rfl
-                  exact monic_of_natDegree_le_of_coeff_eq_one (a.natDegree - 1) hle (by simpa [hcoeff_t])
+                  have hle : (w2 k).natDegree ≤ a.natDegree - 1 := by simp [hdeg_eq]
+                  exact monic_of_natDegree_le_of_coeff_eq_one (a.natDegree - 1) hle (by simp [hcoeff_t])
                 -- Swap `k` and `o` to move the new monic polynomial to coordinate `o`.
                 let w3 : s → R[X] := w2 ∘ Equiv.swap o k
                 have hw2_w3 : UnimodularVectorEquiv w2 w3 :=
