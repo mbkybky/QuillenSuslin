@@ -71,6 +71,7 @@ theorem isStablyFree_polynomial_of_isNoetherianRing [IsNoetherianRing R] (hR : â
     (P : Type v) [AddCommGroup P] [Module R[X] P] [Module.Finite R[X] P] [Projective R[X] P] :
     IsStablyFree (Polynomial R) P := by
   sorry
+
 /-
 \begin{definition}
 	A finitely generated module $P$ over a commutative ring $R$ is said to be stably free if there exists a finitely generated free module $F$ such that the direct sum $P \oplus F$ is a free module.
