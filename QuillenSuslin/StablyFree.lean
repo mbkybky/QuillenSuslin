@@ -574,13 +574,15 @@ section polynomial
 
 open Polynomial Module
 
+#check IsNoetherianRing.induction_on_isQuotientEquivQuotientPrime
+
 /-- Let `R` be a noetherian ring such that every finitely generated `R`-module admits a finite
 free resolution. Then the same property holds for finitely generated `R[X]`-modules. -/
 theorem hasFiniteFreeResolution_of_isNoetherianRing [IsNoetherianRing R]
     (hR : ∀ (P : Type v), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P)
     (P : Type v) [AddCommGroup P] [Module R[X] P] [Module.Finite R[X] P] :
-    HasFiniteFreeResolution (Polynomial R) P :=
+    HasFiniteFreeResolution (Polynomial R) P := by
   sorry
 
 end polynomial
