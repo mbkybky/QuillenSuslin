@@ -889,6 +889,16 @@ theorem cor9 [IsLocalRing R] (v : s → R[X]) (hv : IsUnimodular v)
   simpa [v0, ev0] using unimodularVectorEquiv_equivalence.trans (horrocks o v hv h)
     (unimodularVectorEquiv_equivalence.symm hv0_to_e)
 
+open Bivariate in
+/-- Suppose $v(x) \sim v(0)$ over the localization $R_S[x]$. Then there exists a $c \in S$ such
+  that $v(x) \sim v(x + cy)$ over $R[x, y]$. -/
+theorem lem10 (S : Submonoid R) (v : s → R[X])
+    (h : UnimodularVectorEquiv (fun i => (v i).map (algebraMap R (Localization S)))
+      (fun i => C (algebraMap R (Localization S) ((v i).eval 0)))) :
+    ∃ c : S, UnimodularVectorEquiv (R := R[X][Y]) (fun i => C (v i))
+      (fun i => (v i).eval₂ ((C : R[X] →+* R[X][Y]).comp C) (C X + (c : R) • Y)) := by
+  sorry
+
 /-
 \begin{definition}
 	Let $A$ be any ring. A vector ${v} \in A^s$ is unimodular if its components generate the unit ideal in $A$. For two unimodular vectors ${v}, {w}$, we write
