@@ -842,7 +842,52 @@ end horrocks
   then $v(x) \sim v(0)$. -/
 theorem cor9 [IsLocalRing R] (v : s → R[X]) (hv : IsUnimodular v)
     (h : ∃ i : s, (v i).Monic) : UnimodularVectorEquiv v (fun i => C ((v i).eval 0)) := by
-  sorry
+  rcases subsingleton_or_nontrivial R with hR | hR
+  · have hv0 : v = fun i => C ((v i).eval 0) := by
+      funext i
+      exact Subsingleton.elim _ _
+    refine ⟨1, ?_⟩
+    simpa using hv0
+  -- Get an explicit unimodularity certificate `∑ i, c i * v i = 1`.
+  have h1 : (1 : R[X]) ∈ Ideal.span (Set.range v) := by
+    rw [hv]
+    exact Submodule.mem_top
+  rcases (Ideal.mem_span_range_iff_exists_fun).1 h1 with ⟨c, hc⟩
+  -- Evaluate at `0` to get a relation in `R`.
+  let ev0 : R[X] →+* R := Polynomial.evalRingHom (R := R) 0
+  have hc0 : (∑ i : s, ev0 (c i) * ev0 (v i)) = 1 := by
+    simpa [map_sum, map_mul] using congrArg ev0 hc
+  -- Over a local ring, not all `v i` can evaluate into the maximal ideal.
+  let m : Ideal R := IsLocalRing.maximalIdeal R
+  have hex : ∃ o : s, ev0 (v o) ∉ m := by
+    by_contra hno
+    have hall : ∀ i : s, ev0 (v i) ∈ m := by
+      intro i
+      by_contra hi
+      exact hno ⟨i, hi⟩
+    have hsum_mem : (∑ i : s, ev0 (c i) * ev0 (v i)) ∈ m := by
+      refine m.sum_mem ?_
+      intro i _
+      exact m.mul_mem_left _ (hall i)
+    have : (1 : R) ∈ m := by simpa [hc0] using hsum_mem
+    exact (Ideal.ne_top_iff_one m).1 (IsLocalRing.maximalIdeal.isMaximal R).ne_top this
+  rcases hex with ⟨o, ho_not_mem⟩
+  have hunit0 : IsUnit (ev0 (v o)) := by
+    have : ev0 (v o) ∉ IsLocalRing.maximalIdeal R := by simpa [m] using ho_not_mem
+    exact IsLocalRing.notMem_maximalIdeal.1 this
+  -- Let `v(0)` be the constant polynomial vector.
+  let v0 : s → R[X] := fun i => C (ev0 (v i))
+  -- `v(0)` is also equivalent to `e_o` since the `o`-th component is a unit.
+  have hv0_to_e : UnimodularVectorEquiv v0 (fun i => if i = o then 1 else 0) := by
+    have hunitC : IsUnit (v0 o) := by
+      simpa [v0] using hunit0.map Polynomial.C
+    rcases hunitC with ⟨u, hu⟩
+    exact unimodularVectorEquiv_equivalence.trans
+      (unimodularVectorEquiv_update_mul_isUnit o (↑(u⁻¹) : R[X]) (by simp) v0)
+        (unimodularVectorEquiv_stdBasis_of_eq_one o
+          (Function.update v0 o ((↑(u⁻¹) : R[X]) * v0 o)) (by simp [Function.update, hu.symm]))
+  simpa [v0, ev0] using unimodularVectorEquiv_equivalence.trans (horrocks o v hv h)
+    (unimodularVectorEquiv_equivalence.symm hv0_to_e)
 
 /-
 \begin{definition}
@@ -863,8 +908,15 @@ theorem cor9 [IsLocalRing R] (v : s → R[X]) (hv : IsUnimodular v)
 	If $R$ is local and $v(x) \in R[x]^s$ is a unimodular vector one of whose elements is monic, then $v(x) \sim v(0)$.
 \end{corollary}
 
-\begin{proof}
-	In fact, $v(0)$ is a unimodular vector in $R$, hence equivalent to $e_1$. We have also seen [in Theorem \ref{thm:8}] that $v(x)$ is equivalent to $e_1$.
-\end{proof}
+\begin{lemma}\label{lem:10}
+	Suppose $v(x) \sim v(0)$ over the localization $R_S[x]$. Then there exists a $c \in S$ such that $v(x) \sim v(x + cy)$ over $R[x, y]$.
+\end{lemma}
 
+\begin{proof}
+	As before, we can choose a matrix $M(x) \in \mathrm{GL}_s(R_S[x])$ such that $M(x) v(x) = v(0)$, and then the matrix $N(x,y) := M(x)^{-1}M(x+y)$ has the property that
+	\[ \displaystyle N(x,y) v(x+y) = v(x). \]
+	It follows that if we substitute $cy$ for $y$, then we have
+	\[ \displaystyle N(x,cy) v(x+cy) = v(x). \]
+	The claim is that we can choose $c \in S$ such that $N(x,cy)$ actually has $R$-coefficients. In fact, this is because $N(x, 0) = I$, which implies that $N(x,y) = I + y W$ for some matrix $W$ with values in $R_S[x,y]$. If we replace $y$ with $cy$ for $c$ an element of $S$, then we can clear the denominators in $W$ and arrange it so that $N(x,cy) \in R[x, y]$.
+\end{proof}
 -/
