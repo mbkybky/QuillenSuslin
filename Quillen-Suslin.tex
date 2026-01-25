@@ -143,26 +143,26 @@
 	three cases.
 \end{proof}
 
-%\begin{proposition}
-%	Let $M$ be an $A$-module. Then $M$ has a finite free resolution of length $n \geqq 1$ if and only if $M$ has a stably free resolution of length $n$.
-%\end{proposition}
-%
-%\begin{proof}
-%	One direction is trivial, so we suppose given a stably free resolution with the above notation. Let $0 \leqq i < n$ be some integer, and let $F_i, F_{i+1}$ be finite free such that $E_i \oplus F_i$ and $E_{i+1} \oplus F_{i+1}$ are free. Let $F = F_i \oplus F_{i+1}$. Then we can form an exact sequence
-%	$$ 0 \to E_n \to \dots \to E_{i+1} \oplus F \to E_i \oplus F \to \dots \to E_0 \to M \to 0 $$
-%	in the obvious manner. In this way, we have changed two consecutive modules in the resolution to make them free. Proceeding by induction, we can then make $E_0, E_1$ free, then $E_1, E_2$ free, and so on to conclude the proof of the proposition.
-%\end{proof}
+\begin{proposition}
+	Let $M$ be an $A$-module. Then $M$ has a finite free resolution of length $n \geqq 1$ if and only if $M$ has a stably free resolution of length $n$.
+\end{proposition}
 
-\begin{theorem}
-	Let $R$ be a noetherian ring such that every finitely generated projective module over $R$ is stably free. Then the same property holds true for $R[x]$.
-\end{theorem}
+\begin{proof}
+	One direction is trivial, so we suppose given a stably free resolution with the above notation. Let $0 \leqq i < n$ be some integer, and let $F_i, F_{i+1}$ be finite free such that $E_i \oplus F_i$ and $E_{i+1} \oplus F_{i+1}$ are free. Let $F = F_i \oplus F_{i+1}$. Then we can form an exact sequence
+	$$ 0 \to E_n \to \dots \to E_{i+1} \oplus F \to E_i \oplus F \to \dots \to E_0 \to M \to 0 $$
+	in the obvious manner. In this way, we have changed two consecutive modules in the resolution to make them free. Proceeding by induction, we can then make $E_0, E_1$ free, then $E_1, E_2$ free, and so on to conclude the proof of the proposition.
+\end{proof}
+
+\begin{proposition}
+	Let $R$ be a commutative Noetherian ring. Let $x$ be a variable. If every finite $R$-module has a finite free resolution, then every finite $R[x]$-module has a finite free resolution.
+\end{proposition}
 
 \begin{proof}
 	Let $M$ be a finite $R[x]$-module. $M$ has a finite filtration
 	$$M = M_0 \supset M_1 \supset \dots \supset M_n = 0$$
 	such that each factor $M_i/M_{i+1}$ is isomorphic to $R[x]/P_i$ for some prime $P_i$. In light of Lemma \ref{exact_seq}, it suffices to prove the theorem in case $M = R[x]/P$ where $P$ is prime, which we now assume. In light of the exact sequence
 	$$0 \to P \to R[x] \to R[x]/P \to 0$$
-	and Lemma \ref{exact_seq}, we note that $M$ is stably free if and only if $P$ does.
+	and Lemma \ref{exact_seq}, we note that $M$ has a finite free resolution if and only if $P$ does.
 	
 	Let $\mathfrak{p} = P \cap R$. Then $\mathfrak{p}$ is prime in $R$. Suppose there is some $M = R[x]/P$ which does not admit a finite free resolution. Among all such $M$ we select one for which the intersection $\mathfrak{p}$ is maximal in the family of prime ideals obtained as above. This is possible in light of one of the basic properties characterizing Noetherian rings.
 	
@@ -177,16 +177,24 @@
 	
 	Now we view $R_0[x]$ as an $R[x]$-module, via the canonical homomorphism
 	$$R[x] \to R_0[x] = R[x]/\mathfrak{p}R[x].$$
-	By assumption, $\mathfrak{p}$ is stably free as $R$-module, then $\mathfrak{p}[x] = \mathfrak{p}R[x]$ is stably free as $R[x]$-module. From the exact sequence
+	By assumption, $\mathfrak{p}$ has a finite free resolution as $R$-module, say
+	$$0 \to E_n \to \dots \to E_0 \to \mathfrak{p} \to 0.$$
+	Then we may simply form the modules $E_i[x]$ in the obvious sense to obtain a finite free resolution of $\mathfrak{p}[x] = \mathfrak{p}R[x]$. From the exact sequence
 	$$0 \to \mathfrak{p}R[x] \to R[x] \to R_0[x] \to 0$$
-	we conclude that $R_0[x]$ is stably free as $R[x]$-module.
+	we conclude that $R_0[x]$ has a finite free resolution as $R[x]$-module.
 	
-	Since $R_0$ is entire, it follows that the principal ideal $(f)$ in $R_0[x]$ is $R[x]$-isomorphic to $R_0[x]$, and therefore is stably free as $R[x]$-module. Lemma \ref{exact_seq} applied to the exact sequence of $R[x]$-modules
+	Since $R_0$ is entire, it follows that the principal ideal $(f)$ in $R_0[x]$ is $R[x]$-isomorphic to $R_0[x]$, and therefore has a finite free resolution as $R[x]$-module. Lemma \ref{exact_seq} applied to the exact sequence of $R[x]$-modules
 	$$0 \to (f) \to P_0 \to N \to 0$$
 	shows that $P_0$ has a finite free resolution; and further applied to the exact sequence
 	$$0 \to \mathfrak{p}R[x] \to P \to P_0 \to 0$$
 	shows that $P$ has a finite free resolution, thereby concluding the proof.
 \end{proof}
+
+Then we have
+
+\begin{theorem}
+	Let $R$ be a noetherian ring such that every finitely generated projective module over $R$ is stably free. Then the same property holds true for $R[x]$.
+\end{theorem}
 
 By induction, we see:
 
