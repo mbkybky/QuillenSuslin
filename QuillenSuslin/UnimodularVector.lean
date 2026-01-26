@@ -893,12 +893,13 @@ open Bivariate in
 set_option maxHeartbeats 20000000 in
 /-- Suppose $v(x) \sim v(0)$ over the localization $R_S[x]$. Then there exists a $c \in S$ such
   that $v(x) \sim v(x + cy)$ over $R[x, y]$. -/
-theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
+theorem lem10 [IsDomain R] {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
     (h : UnimodularVectorEquiv (fun i => (v i).map (algebraMap R (Localization S)))
       (fun i => C (algebraMap R (Localization S) ((v i).eval 0)))) :
     ∃ c : S, UnimodularVectorEquiv (R := R[X][Y]) (fun i => C (v i))
       (fun i => (v i).eval₂ ((C : R[X] →+* R[X][Y]).comp C) (C X + (c : R) • Y)) := by
   classical
+  have : Nontrivial (Localization S) := OreLocalization.nontrivial_of_nonZeroDivisors hs
   let ι : R →+* Localization S := algebraMap R (Localization S)
   let vA : s → (Localization S)[X] := fun i => (v i).map ι
   let v0A : s → (Localization S)[X] := fun i => C (ι ((v i).eval 0))
@@ -954,8 +955,16 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
       simp only [Units.inv_eq_val_inv, Matrix.coe_units_inv, Matrix.mulVec_mulVec, Units.val_mul, N]
     have hLeft' :
         (N : Matrix s s (Localization S)[X][Y]).mulVec (fun i => φ (vA i)) = fun i => CAY (vA i) := by
-      have := hEq'.trans hRight
-      sorry
+      have h' :
+          (Mx.2 : Matrix s s (Localization S)[X][Y]).mulVec
+              ((Mxy : Matrix s s (Localization S)[X][Y]).mulVec (fun i => φ (vA i))) =
+            fun i => CAY (vA i) := hEq'.trans hRight
+      calc
+        (N : Matrix s s (Localization S)[X][Y]).mulVec (fun i => φ (vA i)) =
+            (Mx.2 : Matrix s s (Localization S)[X][Y]).mulVec
+              ((Mxy : Matrix s s (Localization S)[X][Y]).mulVec (fun i => φ (vA i))) := by
+            simpa using hLeft.symm
+        _ = fun i => CAY (vA i) := h'
     exact hLeft'
   have hNinv :
       (N.2 : Matrix s s (Localization S)[X][Y]).mulVec (fun i => CAY (vA i)) =
@@ -967,13 +976,10 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
       simp only [Matrix.coe_units_inv, Matrix.isUnits_det_units, Matrix.nonsing_inv_mul]
     rw [Matrix.mulVec_mulVec] at h'
     rw [hInvVal] at h'
-    have hOne :
-        (1 : Matrix s s (Localization S)[X][Y]).mulVec (fun i => φ (vA i)) = fun i => φ (vA i) := by
-      simp
     have h'' :
         (fun i => φ (vA i)) =
           (N.2 : Matrix s s (Localization S)[X][Y]).mulVec (fun i => CAY (vA i)) := by
-      simpa [hOne] using h'
+      simpa [Matrix.one_mulVec] using h'
     exact h''.symm
   let Sx : Submonoid R[X] := S.map (C : R →+* R[X])
   let Sxy : Submonoid R[X][Y] := Sx.map (C : R[X] →+* R[X][Y])
@@ -1110,22 +1116,72 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
     simpa using this.symm
   have hbW' (i j : s) :
       IsLocalization.IsInteger (R := R[X][Y]) ((b : R[X][Y]) • σA (W i j)) := by
-    sorry
+    have hsmul :
+        σA ((b : R[X][Y]) • W i j) = (b : R[X][Y]) • σA (W i j) := by
+      simp [Algebra.smul_def, map_mul, hσA_b]
+      sorry
+    have h' : IsLocalization.IsInteger (R := R[X][Y]) (σA ((b : R[X][Y]) • W i j)) :=
+      isInteger_map (hbW i j)
+    simpa [hsmul] using h'
   have hbWinv' (i j : s) :
       IsLocalization.IsInteger (R := R[X][Y]) ((b : R[X][Y]) • σA (Winv i j)) := by
-    sorry
+    have hsmul :
+        σA ((b : R[X][Y]) • Winv i j) = (b : R[X][Y]) • σA (Winv i j) := by
+      simp [Algebra.smul_def, map_mul, hσA_b]
+      sorry
+    have h' : IsLocalization.IsInteger (R := R[X][Y]) (σA ((b : R[X][Y]) • Winv i j)) :=
+      isInteger_map (hbWinv i j)
+    simpa [hsmul] using h'
   let Ncy : Matrix.GeneralLinearGroup s (Localization S)[X][Y] := Matrix.GeneralLinearGroup.map σA N
   let NcyInv : Matrix.GeneralLinearGroup s (Localization S)[X][Y] := Matrix.GeneralLinearGroup.map σA (N⁻¹)
+  let ev0 : (Localization S)[X][Y] →+* (Localization S)[X] := Polynomial.eval₂RingHom (RingHom.id _) 0
+  have hev0C : ev0.comp CAY = RingHom.id (Localization S)[X] := by
+    refine Polynomial.ringHom_ext (R := Localization S) (S := (Localization S)[X])
+      (fun a => by simp [ev0, CAY]) ?_
+    simp [ev0, CAY]
+  have hev0φ : ev0.comp φ = RingHom.id (Localization S)[X] := by
+    refine Polynomial.ringHom_ext (R := Localization S) (S := (Localization S)[X])
+      (fun a => by simp [ev0, φ, CAY]) ?_
+    simp [ev0, φ, CAY, add_assoc, add_comm, add_left_comm]
+  have hmap_ev0_Mx : Matrix.GeneralLinearGroup.map (n := s) ev0 Mx = M := by
+    have hcomp :=
+      congrArg (fun h => h M)
+        (Matrix.GeneralLinearGroup.map_comp (n := s) (f := CAY) (g := ev0))
+    have hcomp' :
+        Matrix.GeneralLinearGroup.map (n := s) ev0 ((Matrix.GeneralLinearGroup.map (n := s) CAY) M) =
+          Matrix.GeneralLinearGroup.map (n := s) (ev0.comp CAY) M := by
+      simp [MonoidHom.comp_apply]
+    calc
+      Matrix.GeneralLinearGroup.map (n := s) ev0 Mx =
+          Matrix.GeneralLinearGroup.map (n := s) ev0 ((Matrix.GeneralLinearGroup.map (n := s) CAY) M) := by
+            simp [Mx]
+      _ = Matrix.GeneralLinearGroup.map (n := s) (ev0.comp CAY) M := hcomp'
+      _ = M := by rw [hev0C]; simp
+  have hmap_ev0_Mxy : Matrix.GeneralLinearGroup.map (n := s) ev0 Mxy = M := by
+    have hcomp :=
+      congrArg (fun h => h M)
+        (Matrix.GeneralLinearGroup.map_comp (n := s) (f := φ) (g := ev0))
+    have hcomp' :
+        Matrix.GeneralLinearGroup.map (n := s) ev0 ((Matrix.GeneralLinearGroup.map (n := s) φ) M) =
+          Matrix.GeneralLinearGroup.map (n := s) (ev0.comp φ) M := by
+      simp [MonoidHom.comp_apply]
+    calc
+      Matrix.GeneralLinearGroup.map (n := s) ev0 Mxy =
+          Matrix.GeneralLinearGroup.map (n := s) ev0 ((Matrix.GeneralLinearGroup.map (n := s) φ) M) := by
+            simp only [Mxy]
+      _ = Matrix.GeneralLinearGroup.map (n := s) (ev0.comp φ) M := hcomp'
+      _ = M := by rw [hev0φ]; simp
+  have hN0g : Matrix.GeneralLinearGroup.map (n := s) ev0 N = 1 := by
+    simp only [map_mul, map_inv, hmap_ev0_Mx, hmap_ev0_Mxy, inv_mul_cancel, N]
+  have hN0m : (Matrix.GeneralLinearGroup.map (n := s) ev0 N : Matrix s s (Localization S)[X]) = 1 := by
+    simpa using
+      congrArg
+        (fun g : Matrix.GeneralLinearGroup s (Localization S)[X] =>
+          (g : Matrix s s (Localization S)[X]))
+        hN0g
   have hcoeff0N :
       ∀ i j : s,
         ((N : Matrix s s (Localization S)[X][Y]) i j).coeff 0 = if i = j then 1 else 0 := by
-    let ev0 : (Localization S)[X][Y] →+* (Localization S)[X] := Polynomial.eval₂RingHom (RingHom.id _) 0
-    have hev0C : ev0.comp CAY = RingHom.id (Localization S)[X] := by
-      refine Polynomial.ringHom_ext (R := Localization S) (S := (Localization S)[X])
-        (fun a => by simp [ev0, CAY]) ?_
-      simp [ev0, CAY]
-    have hN0m : (Matrix.GeneralLinearGroup.map ev0 N : Matrix s s (Localization S)[X]) = 1 := by
-      sorry
     intro i j
     have hij :
         ev0 ((N : Matrix s s (Localization S)[X][Y]) i j) =
@@ -1139,8 +1195,21 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
   have hcoeff0Ninv :
       ∀ i j : s,
         ((N⁻¹ : Matrix s s (Localization S)[X][Y]) i j).coeff 0 = if i = j then 1 else 0 := by
+    have hNinv0g : Matrix.GeneralLinearGroup.map (n := s) ev0 (N⁻¹) = 1 := by
+      simp only [map_inv, hN0g, inv_one]
+    have hNinv0m :
+        (Matrix.GeneralLinearGroup.map (n := s) ev0 (N⁻¹) : Matrix s s (Localization S)[X]) = 1 := by
+      simpa using
+        congrArg
+          (fun g : Matrix.GeneralLinearGroup s (Localization S)[X] =>
+            (g : Matrix s s (Localization S)[X]))
+          hNinv0g
     intro i j
-    sorry
+    have hij :
+        ev0 ((N⁻¹ : Matrix s s (Localization S)[X][Y]) i j) =
+          (1 : Matrix s s (Localization S)[X]) i j := by
+      sorry
+    simpa [ev0, Polynomial.coeff_zero_eq_eval_zero, Matrix.one_apply] using hij
   have hNinv_entry (i j : s) :
       (N⁻¹ : Matrix s s (Localization S)[X][Y]) i j = Y * Winv i j + C (if i = j then 1 else 0) := by
     have h := (Polynomial.X_mul_divX_add (p := (N⁻¹ : Matrix s s (Localization S)[X][Y]) i j))
@@ -1164,9 +1233,44 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
   have hinjMat :
       Function.Injective fun M : Matrix s s R[X][Y] =>
         (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix M := by
-    intro P Q hPQ
+    sorry
+  have hN0mat :
+      (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix N0 = (Ncy : Matrix s s (Localization S)[X][Y]) := by
     ext i j
     sorry
+  have hN0invmat :
+      (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix N0inv =
+        (NcyInv : Matrix s s (Localization S)[X][Y]) := by
+    ext i j
+    sorry
+  have hNcy_mul : Ncy * NcyInv = 1 := by simp [Ncy, NcyInv]
+  have hNcyInv_mul : NcyInv * Ncy = 1 := by simp [Ncy, NcyInv]
+  have hNcy_mul_mat :
+      (Ncy : Matrix s s (Localization S)[X][Y]) * (NcyInv : Matrix s s (Localization S)[X][Y]) = 1 := by
+    simpa using
+      congrArg
+        (fun g : Matrix.GeneralLinearGroup s (Localization S)[X][Y] =>
+          (g : Matrix s s (Localization S)[X][Y]))
+        hNcy_mul
+  have hNcyInv_mul_mat :
+      (NcyInv : Matrix s s (Localization S)[X][Y]) * (Ncy : Matrix s s (Localization S)[X][Y]) = 1 := by
+    simpa using
+      congrArg
+        (fun g : Matrix.GeneralLinearGroup s (Localization S)[X][Y] =>
+          (g : Matrix s s (Localization S)[X][Y]))
+        hNcyInv_mul
+  have hN0_mul : N0 * N0inv = 1 := by
+    refine hinjMat ?_
+    sorry
+  have hN0inv_mul : N0inv * N0 = 1 := by
+    refine hinjMat ?_
+    sorry
+  let U : Matrix.GeneralLinearGroup s R[X][Y] := ⟨N0, N0inv, hN0_mul, hN0inv_mul⟩
+  have hmulVec :
+      (U⁻¹ : Matrix s s R[X][Y]).mulVec (fun i => C (v i)) =
+        fun i => (v i).eval₂ ((C : R[X] →+* R[X][Y]).comp C) (C X + (c : R) • Y) := by
+    sorry
+  refine ⟨U⁻¹, ?_⟩
   sorry
 
 /-
