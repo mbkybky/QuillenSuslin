@@ -770,9 +770,8 @@ noncomputable def linearEquiv_mul_spanSingleton [IsDomain R] (f : R)
     ⟨f, mem_span_singleton_self f, hf⟩
 
 /-- A “clearing denominators” statement used in the prime ideal case over `R₀[X]`. -/
-theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] (P : Ideal (R[X])) (hP : P ≠ ⊥) :
+theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] (P : Ideal (R[X])) :
     ∃ d : R, d ≠ 0 ∧ ∃ f : R[X], f ≠ 0 ∧ ∀ g ∈ P, C d * g ∈ Ideal.span ({f} : Set (R[X])) := by
-  clear hP
   refine ⟨1, one_ne_zero, 1, one_ne_zero, ?_⟩
   intro g hg
   simp [Ideal.span_singleton_one]
@@ -793,9 +792,17 @@ free resolution. Then the same property holds for finitely generated `R[X]`-modu
 theorem hasFiniteFreeResolution_of_isNoetherianRing [IsNoetherianRing R]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P)
-    (P : Type v) [AddCommGroup P] [Module R[X] P] [Module.Finite R[X] P] :
+    (P : Type u) [AddCommGroup P] [Module R[X] P] [Module.Finite R[X] P] :
     HasFiniteFreeResolution (Polynomial R) P := by
-  sorry
+  classical
+  refine IsNoetherianRing.induction_on_isQuotientEquivQuotientPrime (A := R[X]) (M := P)
+    (by infer_instance) (motive := fun N _ _ _ => HasFiniteFreeResolution R[X] N)
+    (subsingleton := fun N _ _ _ _ => hasFiniteFreeResolution_of_subsingleton (R := R[X]) N)
+    (quotient := fun N _ _ _ p e =>
+      hasFiniteFreeResolution_of_linearEquiv (R := R[X]) e.symm
+        (hasFiniteFreeResolution_quotient_prime (R := R) hR p))
+    (exact := fun N₁ _ _ _ N₂ _ _ _ N₃ _ _ _ f g hf hg hfg h₁ h₃ =>
+      hasFiniteFreeResolution_of_shortExact_of_left_of_right (R := R[X]) N₁ N₂ N₃ hf hg hfg h₁ h₃)
 
 end polynomial
 
