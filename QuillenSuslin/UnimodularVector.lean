@@ -58,12 +58,17 @@ theorem lem10 [IsDomain R] {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v :
     have hEq' := congrArg (fun w => (Mx.2 : Matrix s s (Localization S)[X][Y]).mulVec w) hEq
     have hInvVal : (Mx.2 : Matrix s s (Localization S)[X][Y]) * (Mx.1 : Matrix s s _) = 1 := by
       simp
-    have hRight :
-        (Mx.2 : Matrix s s (Localization S)[X][Y]).mulVec
+    have hRight : (Mx.2 : Matrix s s (Localization S)[X][Y]).mulVec
             ((Mx : Matrix s s (Localization S)[X][Y]).mulVec (fun i => CAY (vA i))) =
           fun i => CAY (vA i) := by
-      simp only [Units.inv_eq_val_inv, Matrix.coe_units_inv, Matrix.mulVec_mulVec,
-        Matrix.isUnits_det_units, Matrix.nonsing_inv_mul, Matrix.one_mulVec]
+      calc _ = ((Mx.2 : Matrix s s (Localization S)[X][Y]) * (Mx.1 : Matrix s s _)).mulVec
+                (fun i => CAY (vA i)) := by
+              simp only [Units.inv_eq_val_inv, Matrix.coe_units_inv, Matrix.mulVec_mulVec,
+                Matrix.isUnits_det_units, Matrix.nonsing_inv_mul, Matrix.one_mulVec]
+        _ = (1 : Matrix s s (Localization S)[X][Y]).mulVec (fun i => CAY (vA i)) := by
+            simp only [Units.inv_eq_val_inv, Matrix.coe_units_inv, Matrix.isUnits_det_units,
+              Matrix.nonsing_inv_mul, Matrix.one_mulVec]
+        _ = fun i => CAY (vA i) := by simp only [Matrix.one_mulVec]
     have hLeft :
         (Mx.2 : Matrix s s (Localization S)[X][Y]).mulVec
             ((Mxy : Matrix s s (Localization S)[X][Y]).mulVec (fun i => φ (vA i))) =
@@ -75,27 +80,34 @@ theorem lem10 [IsDomain R] {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v :
           (Mx.2 : Matrix s s (Localization S)[X][Y]).mulVec
               ((Mxy : Matrix s s (Localization S)[X][Y]).mulVec (fun i => φ (vA i))) =
             fun i => CAY (vA i) := hEq'.trans hRight
-      calc
-        (N : Matrix s s (Localization S)[X][Y]).mulVec (fun i => φ (vA i)) =
-            (Mx.2 : Matrix s s (Localization S)[X][Y]).mulVec
+      calc _ = (Mx.2 : Matrix s s (Localization S)[X][Y]).mulVec
               ((Mxy : Matrix s s (Localization S)[X][Y]).mulVec (fun i => φ (vA i))) := by
             simpa using hLeft.symm
         _ = fun i => CAY (vA i) := h'
     exact hLeft'
   have hNinv :
-      (N.2 : Matrix s s (Localization S)[X][Y]).mulVec (fun i => CAY (vA i)) =
+      (↑N⁻¹ : Matrix s s (Localization S)[X][Y]).mulVec (fun i => CAY (vA i)) =
         fun i => φ (vA i) := by
-    have h' := congrArg (fun w => (N.2 : Matrix s s (Localization S)[X][Y]).mulVec w) hN
-    dsimp at h'
+    have h' := congrArg (fun w => (↑N⁻¹ : Matrix s s (Localization S)[X][Y]).mulVec w) hN
     have hInvVal :
         (↑N⁻¹ : Matrix s s (Localization S)[X][Y]) * (↑N : Matrix s s (Localization S)[X][Y]) = 1 := by
-      simp only [Matrix.coe_units_inv, Matrix.isUnits_det_units, Matrix.nonsing_inv_mul]
-    rw [Matrix.mulVec_mulVec] at h'
-    rw [hInvVal] at h'
+      simp
+    have hleft :
+        (↑N⁻¹ : Matrix s s (Localization S)[X][Y]).mulVec
+            ((N : Matrix s s (Localization S)[X][Y]).mulVec (fun i => φ (vA i))) =
+          fun i => φ (vA i) := by
+      rw [Matrix.mulVec_mulVec]
+      rw [hInvVal]
+      simp [Matrix.one_mulVec]
     have h'' :
         (fun i => φ (vA i)) =
-          (N.2 : Matrix s s (Localization S)[X][Y]).mulVec (fun i => CAY (vA i)) := by
-      simpa [Matrix.one_mulVec] using h'
+          (↑N⁻¹ : Matrix s s (Localization S)[X][Y]).mulVec (fun i => CAY (vA i)) := by
+      calc
+        (fun i => φ (vA i)) =
+            (↑N⁻¹ : Matrix s s (Localization S)[X][Y]).mulVec
+              ((N : Matrix s s (Localization S)[X][Y]).mulVec (fun i => φ (vA i))) := by
+            exact hleft.symm
+        _ = (↑N⁻¹ : Matrix s s (Localization S)[X][Y]).mulVec (fun i => CAY (vA i)) := h'
     exact h''.symm
   let Sx : Submonoid R[X] := S.map (C : R →+* R[X])
   let Sxy : Submonoid R[X][Y] := Sx.map (C : R[X] →+* R[X][Y])
@@ -332,7 +344,37 @@ theorem lem10 [IsDomain R] {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v :
     simpa only [MonoidWithZeroHom.map_ite_one_zero, add_comm, hcoeff0Ninv i j] using h.symm
   have hNcyInt (i j : s) :
       IsLocalization.IsInteger (R := R[X][Y]) ((Ncy : Matrix s s (Localization S)[X][Y]) i j) := by
-    sorry
+    rcases hbW' i j with ⟨w, hw⟩
+    refine ⟨Y * w + C (if i = j then 1 else 0 : R[X]), ?_⟩
+    have hbMap :
+        algebraMap R[X][Y] (Localization S)[X][Y] (b : R[X][Y]) =
+          (C (C (ι (c : R))) : (Localization S)[X][Y]) := by
+      sorry
+    have hσA_Y :
+        σA (Y : (Localization S)[X][Y]) =
+          algebraMap R[X][Y] (Localization S)[X][Y] (b : R[X][Y]) * Y := by
+      sorry
+    have hNcy_entry :
+        ((Ncy : Matrix s s (Localization S)[X][Y]) i j) =
+          Y * ((b : R[X][Y]) • σA (W i j)) + C (if i = j then 1 else 0) := by
+      have hNij : (N : Matrix s s (Localization S)[X][Y]) i j = Y * W i j + C (if i = j then 1 else 0) :=
+        hN_entry i j
+      have hNcyij :
+          ((Ncy : Matrix s s (Localization S)[X][Y]) i j) = σA ((N : Matrix s s (Localization S)[X][Y]) i j) := by
+        simp [Ncy, Matrix.GeneralLinearGroup.map_apply]
+      rw [hNcyij, hNij]
+      simp [map_add, map_mul, hσA_Y, Algebra.smul_def, mul_assoc, mul_left_comm, mul_comm,
+        add_assoc, add_left_comm, add_comm]
+    calc
+      algebraMap R[X][Y] (Localization S)[X][Y] (Y * w + C (if i = j then 1 else 0 : R[X])) =
+          Y * algebraMap R[X][Y] (Localization S)[X][Y] w +
+            algebraMap R[X][Y] (Localization S)[X][Y] (C (if i = j then 1 else 0 : R[X])) := by
+          simp [map_add, map_mul, mul_assoc, add_assoc]
+      _ = Y * ((b : R[X][Y]) • σA (W i j)) + C (if i = j then 1 else 0) := by
+          simp [hw, fXY, fX, Algebra.smul_def, mul_assoc, add_assoc]
+          sorry
+      _ = ((Ncy : Matrix s s (Localization S)[X][Y]) i j) := by
+          simp [hNcy_entry, add_assoc, add_comm, add_left_comm]
   have hNcyInvInt (i j : s) :
       IsLocalization.IsInteger (R := R[X][Y]) ((NcyInv : Matrix s s (Localization S)[X][Y]) i j) := by
     sorry
@@ -349,6 +391,8 @@ theorem lem10 [IsDomain R] {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v :
   have hinjMat :
       Function.Injective fun M : Matrix s s R[X][Y] =>
         (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix M := by
+    intro P Q hPQ
+    ext i j
     sorry
   have hN0mat :
       (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix N0 = (Ncy : Matrix s s (Localization S)[X][Y]) := by
@@ -376,18 +420,93 @@ theorem lem10 [IsDomain R] {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v :
           (g : Matrix s s (Localization S)[X][Y]))
         hNcyInv_mul
   have hN0_mul : N0 * N0inv = 1 := by
-    refine hinjMat ?_
-    sorry
+    have hmap :
+        (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix (N0 * N0inv) =
+          (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix (1 : Matrix s s R[X][Y]) := by
+      calc
+        (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix (N0 * N0inv) =
+            (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix N0 *
+              (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix N0inv := by
+            simp [map_mul]
+        _ = (Ncy : Matrix s s (Localization S)[X][Y]) *
+              (NcyInv : Matrix s s (Localization S)[X][Y]) := by
+            simp [hN0mat, hN0invmat]
+            sorry
+        _ = 1 := hNcy_mul_mat
+        _ = (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix (1 : Matrix s s R[X][Y]) := by
+            simp
+    exact hinjMat hmap
   have hN0inv_mul : N0inv * N0 = 1 := by
-    refine hinjMat ?_
-    sorry
+    have hmap :
+        (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix (N0inv * N0) =
+          (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix (1 : Matrix s s R[X][Y]) := by
+      calc
+        (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix (N0inv * N0) =
+            (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix N0inv *
+              (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix N0 := by
+            simp [map_mul]
+        _ = (NcyInv : Matrix s s (Localization S)[X][Y]) *
+              (Ncy : Matrix s s (Localization S)[X][Y]) := by
+            simp [hN0mat, hN0invmat]
+            sorry
+        _ = 1 := hNcyInv_mul_mat
+        _ = (algebraMap R[X][Y] (Localization S)[X][Y]).mapMatrix (1 : Matrix s s R[X][Y]) := by
+            simp
+    exact hinjMat hmap
   let U : Matrix.GeneralLinearGroup s R[X][Y] := ⟨N0, N0inv, hN0_mul, hN0inv_mul⟩
   have hmulVec :
       (U⁻¹ : Matrix s s R[X][Y]).mulVec (fun i => C (v i)) =
         fun i => (v i).eval₂ ((C : R[X] →+* R[X][Y]).comp C) (C X + (c : R) • Y) := by
-    sorry
+    classical
+    let evalXY : R[X] →+* R[X][Y] :=
+      Polynomial.eval₂RingHom ((C : R[X] →+* R[X][Y]).comp C) (C X + (c : R) • Y)
+    let ψ₁ : R[X] →+* (Localization S)[X][Y] := (σA.comp φ).comp fX
+    let ψ₂ : R[X] →+* (Localization S)[X][Y] := fXY.comp evalXY
+    have hψ : ψ₁ = ψ₂ := by
+      refine Polynomial.ringHom_ext (R := R) (S := (Localization S)[X][Y]) ?_ ?_
+      · sorry
+      · sorry
+    have hEval (i : s) :
+        σA (φ (vA i)) =
+          algebraMap R[X][Y] (Localization S)[X][Y]
+            ((v i).eval₂ ((C : R[X] →+* R[X][Y]).comp C) (C X + (c : R) • Y)) := by
+      sorry/- have hψi := congrArg (fun g : R[X] →+* (Localization S)[X][Y] => g (v i)) hψ
+      have hψi' :
+          σA (φ (vA i)) = fXY (evalXY (v i)) := by
+        simpa [ψ₁, ψ₂, vA, evalXY, coe_eval₂RingHom] using hψi
+      simpa [algebraMap_eq] using hψi'.symm -/
+    have hNcyInv_mulVec :
+        (NcyInv : Matrix s s (Localization S)[X][Y]).mulVec (fun j => CAY (vA j)) =
+          fun j => σA (φ (vA j)) := by
+      funext j
+      have hσ := congrArg (fun w => σA (w j)) hNinv
+      -- Rewrite the left-hand side using `RingHom.map_mulVec`.
+      sorry/- have hleft :
+          σA (((N.2 : Matrix s s (Localization S)[X][Y]).mulVec (fun k => CAY (vA k))) j) =
+            ((NcyInv : Matrix s s (Localization S)[X][Y]).mulVec (fun k => CAY (vA k))) j := by
+        simp [NcyInv, RingHom.map_mulVec, σA, CAY]
+      simpa [hleft] using hσ -/
+    funext i
+    refine hinj ?_
+    have hCmap (j : s) :
+        algebraMap R[X][Y] (Localization S)[X][Y] (C (v j)) = CAY (vA j) := by
+      simp [fXY, fX, vA, CAY]
+      sorry
+    have hUmap :
+        algebraMap R[X][Y] (Localization S)[X][Y]
+            (((U⁻¹ : Matrix s s R[X][Y]).mulVec (fun j => C (v j))) i) =
+          ((NcyInv : Matrix s s (Localization S)[X][Y]).mulVec (fun j => CAY (vA j))) i := by
+      sorry--simpa [U, RingHom.map_mulVec, hCmap, hN0invmat]
+    calc
+      algebraMap R[X][Y] (Localization S)[X][Y]
+          (((U⁻¹ : Matrix s s R[X][Y]).mulVec (fun j => C (v j))) i) =
+          σA (φ (vA i)) := by
+            simpa [hNcyInv_mulVec] using hUmap.trans (congrArg (fun w => w i) hNcyInv_mulVec)
+      _ =
+        algebraMap R[X][Y] (Localization S)[X][Y]
+          ((v i).eval₂ ((C : R[X] →+* R[X][Y]).comp C) (C X + (c : R) • Y)) := hEval i
   refine ⟨U⁻¹, ?_⟩
-  sorry
+  simpa only [Matrix.coe_units_inv] using hmulVec
 
 /-
 \begin{definition}
