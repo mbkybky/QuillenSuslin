@@ -655,8 +655,7 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
             intro a
             have hz :
                 ((Finsupp.mapRange.linearMap sub) z) a = sub (z a) := by
-              simpa [Finsupp.mapRange_apply] using
-                congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := sub) z)
+              simp [Finsupp.mapRange.linearMap_apply, Finsupp.mapRange_apply]
             simp [kX, polyMap, PolynomialModule.map]
             refine hz.trans ?_
             simp [z, Finsupp.onFinset_apply, sub]
@@ -667,18 +666,14 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
             dsimp [fX, kX, polyMap, PolynomialModule.map]
             have hz :
                 ((Finsupp.mapRange.linearMap sub) z) a = sub (z a) := by
-              simpa [Finsupp.mapRange_apply] using
-                congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := sub) z)
-            have hzKer : f (sub (z a)) = 0 := by
-              simpa [sub] using (z a).2
+              simp [Finsupp.mapRange.linearMap_apply, Finsupp.mapRange_apply]
+            have hzKer : f (sub (z a)) = 0 := (z a).2
             have hfz : f (((Finsupp.mapRange.linearMap sub) z) a) = 0 :=
               (congrArg f hz).trans hzKer
             have hcoeff :
                 ((Finsupp.mapRange.linearMap f) ((Finsupp.mapRange.linearMap sub) z)) a =
                   f (((Finsupp.mapRange.linearMap sub) z) a) := by
-              simpa [Finsupp.mapRange_apply] using
-                congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := f)
-                  ((Finsupp.mapRange.linearMap sub) z))
+              simp [Finsupp.mapRange.linearMap_apply, Finsupp.mapRange_apply]
             exact hcoeff.trans hfz
         have hkerX : HasFiniteFreeResolutionLength R[X] (LinearMap.ker fX) n := by
           have hkX' : LinearMap.range kX = LinearMap.ker fX := hkX.symm
@@ -690,19 +685,20 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
             have hxy' : (kX x) a = (kX y) a := congrArg (fun g => g a) hxy
             let mx := Finsupp.mapRange.linearMap (α := ℕ) sub
             have hxy0 : (mx x) a = (mx y) a := by
-              simpa [mx, kX, polyMap, PolynomialModule.map] using hxy'
+              have h := hxy'
+              simp [kX, polyMap, PolynomialModule.map] at h
+              exact h
             have hx0 : (mx x) a = sub (x a) := by
-              simpa [mx, Finsupp.mapRange_apply] using
-                congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := sub) x)
+              simp [mx, Finsupp.mapRange.linearMap_apply, Finsupp.mapRange_apply]
             have hy0 : (mx y) a = sub (y a) := by
-              simpa [mx, Finsupp.mapRange_apply] using
-                congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := sub) y)
-            have : sub (x a) = sub (y a) := by
+              simp [mx, Finsupp.mapRange.linearMap_apply, Finsupp.mapRange_apply]
+            have hsub : sub (x a) = sub (y a) := by
               calc
-                sub (x a) = (mx x) a := by simpa [hx0]
+                sub (x a) = (mx x) a := hx0.symm
                 _ = (mx y) a := hxy0
-                _ = sub (y a) := by simpa [hy0]
-            simpa [sub] using this
+                _ = sub (y a) := hy0
+            dsimp [sub] at hsub
+            exact hsub
           let eKer : PolynomialModule R (LinearMap.ker f) ≃ₗ[R[X]] LinearMap.ker fX :=
             (LinearEquiv.ofInjective kX hinj).trans (LinearEquiv.ofEq _ _ hkX')
           exact hasFiniteFreeResolutionLength_of_linearEquiv eKer ih
@@ -713,13 +709,11 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
   let incl : I →ₗ[R] R := I.subtype
   let inclX : PolynomialModule R I →ₗ[R[X]] PolynomialModule R R := polyMap incl
   have inclX_apply (p : PolynomialModule R I) (n : ℕ) : (inclX p) n = (p n : R) := by
-    have hmx : ((Finsupp.mapRange.linearMap (α := ℕ) incl) p) n = incl (p n) := by
-      have := congrArg (fun g => g n) (Finsupp.mapRange.linearMap_apply (f := incl) p)
-      simpa [Finsupp.mapRange_apply] using this
-    have : (inclX p) n = incl (p n) := by
-      dsimp [inclX, polyMap, PolynomialModule.map]
-      exact hmx
-    simpa [incl] using this
+    simp [inclX, polyMap, PolynomialModule.map]
+    change (fun q => q n) ((Finsupp.mapRange.linearMap incl) p) = ↑(p n)
+    have h := congrArg (fun q => q n) (Finsupp.mapRange.linearMap_apply (f := incl) p)
+    rw [h]
+    simp [Finsupp.mapRange_apply, incl]
   let φ0 : PolynomialModule R I →ₗ[R[X]] R[X] :=
     (PolynomialModule.equivPolynomialSelf (R := R)).toLinearMap.comp inclX
   have hφ0inj : Function.Injective φ0 := by
@@ -733,19 +727,20 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
     have hxy0 : (inclX x) a = (inclX y) a := congrArg (fun g => g a) hxy'
     let mx := Finsupp.mapRange.linearMap (α := ℕ) incl
     have hxy1 : (mx x) a = (mx y) a := by
-      simpa [mx, inclX, polyMap, PolynomialModule.map] using hxy0
+      have h := hxy0
+      simp [inclX, polyMap, PolynomialModule.map] at h
+      exact h
     have hx0 : (mx x) a = incl (x a) := by
-      simpa [mx, Finsupp.mapRange_apply] using
-        congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := incl) x)
+      simp [mx, Finsupp.mapRange.linearMap_apply, Finsupp.mapRange_apply]
     have hy0 : (mx y) a = incl (y a) := by
-      simpa [mx, Finsupp.mapRange_apply] using
-        congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := incl) y)
-    have : incl (x a) = incl (y a) := by
+      simp [mx, Finsupp.mapRange.linearMap_apply, Finsupp.mapRange_apply]
+    have hincl : incl (x a) = incl (y a) := by
       calc
-        incl (x a) = (mx x) a := by simpa [hx0]
+        incl (x a) = (mx x) a := hx0.symm
         _ = (mx y) a := hxy1
-        _ = incl (y a) := by simpa [hy0]
-    simpa [incl] using this
+        _ = incl (y a) := hy0
+    dsimp [incl] at hincl
+    exact hincl
   have hφ0range :
       LinearMap.range φ0 = (Ideal.map (Polynomial.C : R →+* R[X]) I : Ideal R[X]) := by
     ext f
@@ -769,7 +764,7 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
               intro h0
               apply hn
               apply Subtype.ext
-              simpa [h0]
+              simp [h0]
             exact (Polynomial.mem_support_iff).2 this)
       refine ⟨p, ?_⟩
       apply Polynomial.ext
