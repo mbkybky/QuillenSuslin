@@ -577,14 +577,212 @@ open Polynomial Module Ideal
 /-- A subsingleton finitely generated module has a finite free resolution. -/
 theorem hasFiniteFreeResolution_of_subsingleton (M : Type v)
     [AddCommGroup M] [Module R M] [Module.Finite R M] [Subsingleton M] :
-    HasFiniteFreeResolution R M := by
-  sorry
+    HasFiniteFreeResolution R M :=
+  hasFiniteFreeResolution_of_finite_of_free M
 
 /-- Push a finite free resolution of an `R`-ideal `I` to a resolution of `I · R[X]`. -/
 theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
     (I : Ideal R) (hI : HasFiniteFreeResolution R I) :
     HasFiniteFreeResolution R[X] (Ideal.map (Polynomial.C : R →+* R[X]) I) := by
-  sorry
+  classical
+  rcases hI with ⟨n, hn⟩
+  let polyMap {P Q : Type u} [AddCommGroup P] [Module R P] [AddCommGroup Q] [Module R Q]
+      (f : P →ₗ[R] Q) : PolynomialModule R P →ₗ[R[X]] PolynomialModule R Q :=
+    { toFun := PolynomialModule.map R f
+      map_add' := by
+        intro x y
+        simp
+      map_smul' := by
+        intro p q
+        simp [PolynomialModule.map_smul (R := R) (R' := R) f p q] }
+  have liftLength :
+      ∀ {P : Type u} [AddCommGroup P] [Module R P] {n : ℕ},
+        HasFiniteFreeResolutionLength R P n →
+          HasFiniteFreeResolutionLength R[X] (PolynomialModule R P) n := by
+    intro P _ _ n hn
+    induction hn with
+    | zero P =>
+        let e := PolynomialModule.polynomialTensorProductLEquivPolynomialModule (R := R) (M := P)
+        letI : Module.Finite R[X] (TensorProduct R R[X] P) := inferInstance
+        letI : Module.Free R[X] (TensorProduct R R[X] P) := inferInstance
+        letI : Module.Finite R[X] (PolynomialModule R P) :=
+          Module.Finite.of_surjective e.toLinearMap e.surjective
+        letI : Module.Free R[X] (PolynomialModule R P) := Module.Free.of_equiv e
+        exact HasFiniteFreeResolutionLength.zero (R := R[X]) (P := PolynomialModule R P)
+    | succ P n F f hf hker ih =>
+        let eF := PolynomialModule.polynomialTensorProductLEquivPolynomialModule (R := R) (M := F)
+        letI : Module.Finite R[X] (TensorProduct R R[X] F) := inferInstance
+        letI : Module.Free R[X] (TensorProduct R R[X] F) := inferInstance
+        letI : Module.Finite R[X] (PolynomialModule R F) :=
+          Module.Finite.of_surjective eF.toLinearMap eF.surjective
+        letI : Module.Free R[X] (PolynomialModule R F) := Module.Free.of_equiv eF
+        let fX : PolynomialModule R F →ₗ[R[X]] PolynomialModule R P := polyMap f
+        have hfX : Function.Surjective fX := by
+          intro y
+          induction y using PolynomialModule.induction_linear with
+          | zero => exact ⟨0, by simp [fX, polyMap]⟩
+          | add y z hy hz =>
+              rcases hy with ⟨y, rfl⟩
+              rcases hz with ⟨z, rfl⟩
+              refine ⟨y + z, by simp [fX, polyMap]⟩
+          | single i m =>
+              rcases hf m with ⟨x, rfl⟩
+              refine ⟨PolynomialModule.single R i x, by simp [fX, polyMap]⟩
+        let sub : LinearMap.ker f →ₗ[R] F := (LinearMap.ker f).subtype
+        let kX : PolynomialModule R (LinearMap.ker f) →ₗ[R[X]] PolynomialModule R F :=
+          polyMap sub
+        have hkX : LinearMap.ker fX = LinearMap.range kX := by
+          ext y
+          constructor
+          · intro hy
+            have hy0 : fX y = 0 := by simpa using hy
+            classical
+            let z : PolynomialModule R (LinearMap.ker f) :=
+              Finsupp.onFinset y.support
+                (fun a => ⟨y a, by
+                  have : (fX y) a = 0 := congrArg (fun g => g a) hy0
+                  simpa [fX, polyMap, PolynomialModule.map, Finsupp.mapRange_apply] using this⟩)
+                (by
+                  intro a ha
+                  have : y a ≠ 0 := by
+                    intro hya
+                    apply ha
+                    apply Subtype.ext
+                    simp [hya]
+                  exact (Finsupp.mem_support_iff).2 this)
+            refine ⟨z, ?_⟩
+            apply Finsupp.ext
+            intro a
+            have hz :
+                ((Finsupp.mapRange.linearMap sub) z) a = sub (z a) := by
+              simpa [Finsupp.mapRange_apply] using
+                congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := sub) z)
+            simp [kX, polyMap, PolynomialModule.map]
+            refine hz.trans ?_
+            simp [z, Finsupp.onFinset_apply, sub]
+          · rintro ⟨z, rfl⟩
+            show fX (kX z) = 0
+            apply Finsupp.ext
+            intro a
+            dsimp [fX, kX, polyMap, PolynomialModule.map]
+            have hz :
+                ((Finsupp.mapRange.linearMap sub) z) a = sub (z a) := by
+              simpa [Finsupp.mapRange_apply] using
+                congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := sub) z)
+            have hzKer : f (sub (z a)) = 0 := by
+              simpa [sub] using (z a).2
+            have hfz : f (((Finsupp.mapRange.linearMap sub) z) a) = 0 :=
+              (congrArg f hz).trans hzKer
+            have hcoeff :
+                ((Finsupp.mapRange.linearMap f) ((Finsupp.mapRange.linearMap sub) z)) a =
+                  f (((Finsupp.mapRange.linearMap sub) z) a) := by
+              simpa [Finsupp.mapRange_apply] using
+                congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := f)
+                  ((Finsupp.mapRange.linearMap sub) z))
+            exact hcoeff.trans hfz
+        have hkerX : HasFiniteFreeResolutionLength R[X] (LinearMap.ker fX) n := by
+          have hkX' : LinearMap.range kX = LinearMap.ker fX := hkX.symm
+          have hinj : Function.Injective kX := by
+            intro x y hxy
+            apply Finsupp.ext
+            intro a
+            apply Subtype.ext
+            have hxy' : (kX x) a = (kX y) a := congrArg (fun g => g a) hxy
+            let mx := Finsupp.mapRange.linearMap (α := ℕ) sub
+            have hxy0 : (mx x) a = (mx y) a := by
+              simpa [mx, kX, polyMap, PolynomialModule.map] using hxy'
+            have hx0 : (mx x) a = sub (x a) := by
+              simpa [mx, Finsupp.mapRange_apply] using
+                congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := sub) x)
+            have hy0 : (mx y) a = sub (y a) := by
+              simpa [mx, Finsupp.mapRange_apply] using
+                congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := sub) y)
+            have : sub (x a) = sub (y a) := by
+              calc
+                sub (x a) = (mx x) a := by simpa [hx0]
+                _ = (mx y) a := hxy0
+                _ = sub (y a) := by simpa [hy0]
+            simpa [sub] using this
+          let eKer : PolynomialModule R (LinearMap.ker f) ≃ₗ[R[X]] LinearMap.ker fX :=
+            (LinearEquiv.ofInjective kX hinj).trans (LinearEquiv.ofEq _ _ hkX')
+          exact hasFiniteFreeResolutionLength_of_linearEquiv eKer ih
+        exact HasFiniteFreeResolutionLength.succ (R := R[X]) (P := PolynomialModule R P) n
+          (F := PolynomialModule R F) fX hfX hkerX
+  have hnPoly : HasFiniteFreeResolutionLength R[X] (PolynomialModule R I) n := liftLength hn
+  have hPoly : HasFiniteFreeResolution R[X] (PolynomialModule R I) := ⟨n, hnPoly⟩
+  let incl : I →ₗ[R] R := I.subtype
+  let inclX : PolynomialModule R I →ₗ[R[X]] PolynomialModule R R := polyMap incl
+  have inclX_apply (p : PolynomialModule R I) (n : ℕ) : (inclX p) n = (p n : R) := by
+    have hmx : ((Finsupp.mapRange.linearMap (α := ℕ) incl) p) n = incl (p n) := by
+      have := congrArg (fun g => g n) (Finsupp.mapRange.linearMap_apply (f := incl) p)
+      simpa [Finsupp.mapRange_apply] using this
+    have : (inclX p) n = incl (p n) := by
+      dsimp [inclX, polyMap, PolynomialModule.map]
+      exact hmx
+    simpa [incl] using this
+  let φ0 : PolynomialModule R I →ₗ[R[X]] R[X] :=
+    (PolynomialModule.equivPolynomialSelf (R := R)).toLinearMap.comp inclX
+  have hφ0inj : Function.Injective φ0 := by
+    intro x y hxy
+    have hxy' : inclX x = inclX y := by
+      have := congrArg (PolynomialModule.equivPolynomialSelf (R := R)).symm hxy
+      simpa [φ0] using this
+    apply Finsupp.ext
+    intro a
+    apply Subtype.ext
+    have hxy0 : (inclX x) a = (inclX y) a := congrArg (fun g => g a) hxy'
+    let mx := Finsupp.mapRange.linearMap (α := ℕ) incl
+    have hxy1 : (mx x) a = (mx y) a := by
+      simpa [mx, inclX, polyMap, PolynomialModule.map] using hxy0
+    have hx0 : (mx x) a = incl (x a) := by
+      simpa [mx, Finsupp.mapRange_apply] using
+        congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := incl) x)
+    have hy0 : (mx y) a = incl (y a) := by
+      simpa [mx, Finsupp.mapRange_apply] using
+        congrArg (fun g => g a) (Finsupp.mapRange.linearMap_apply (f := incl) y)
+    have : incl (x a) = incl (y a) := by
+      calc
+        incl (x a) = (mx x) a := by simpa [hx0]
+        _ = (mx y) a := hxy1
+        _ = incl (y a) := by simpa [hy0]
+    simpa [incl] using this
+  have hφ0range :
+      LinearMap.range φ0 = (Ideal.map (Polynomial.C : R →+* R[X]) I : Ideal R[X]) := by
+    ext f
+    constructor
+    · rintro ⟨p, rfl⟩
+      refine (Ideal.mem_map_C_iff (I := I)).2 fun n => ?_
+      have : (φ0 p).coeff n = (inclX p) n := by
+        simp [φ0, PolynomialModule.equivPolynomialSelf, Polynomial.toFinsuppIso,
+          Polynomial.coeff_ofFinsupp]
+      have hp : (inclX p) n = (p n : R) := inclX_apply p n
+      rw [this, hp]
+      exact (p n).2
+    · intro hf
+      have hf' : ∀ n, f.coeff n ∈ I := (Ideal.mem_map_C_iff (I := I)).1 hf
+      classical
+      let p : PolynomialModule R I :=
+        Finsupp.onFinset f.support (fun n => ⟨f.coeff n, hf' n⟩)
+          (by
+            intro n hn
+            have : f.coeff n ≠ 0 := by
+              intro h0
+              apply hn
+              apply Subtype.ext
+              simpa [h0]
+            exact (Polynomial.mem_support_iff).2 this)
+      refine ⟨p, ?_⟩
+      apply Polynomial.ext
+      intro n
+      have hφ : (φ0 p).coeff n = (inclX p) n := by
+        simp [φ0, PolynomialModule.equivPolynomialSelf, Polynomial.toFinsuppIso,
+          Polynomial.coeff_ofFinsupp]
+      rw [hφ, inclX_apply p n]
+      simp [p, Finsupp.onFinset_apply]
+  let eIdeal :
+      PolynomialModule R I ≃ₗ[R[X]] (Ideal.map (Polynomial.C : R →+* R[X]) I : Ideal R[X]) :=
+    (LinearEquiv.ofInjective φ0 hφ0inj).trans (LinearEquiv.ofEq _ _ hφ0range)
+  exact hasFiniteFreeResolution_of_linearEquiv eIdeal hPoly
 
 /-- The canonical `R`-algebra equivalence `(R ⧸ I)[X] ≃ R[X] ⧸ I·R[X]`. -/
 noncomputable def polynomialQuotientEquiv (I : Ideal R) :
@@ -605,7 +803,10 @@ noncomputable def linearEquiv_mul_spanSingleton [IsDomain R] (f : R)
 /-- A “clearing denominators” statement used in the prime ideal case over `R₀[X]`. -/
 theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] (P : Ideal (R[X])) (hP : P ≠ ⊥) :
     ∃ d : R, d ≠ 0 ∧ ∃ f : R[X], f ≠ 0 ∧ ∀ g ∈ P, C d * g ∈ Ideal.span ({f} : Set (R[X])) := by
-  sorry
+  clear hP
+  refine ⟨1, one_ne_zero, 1, one_ne_zero, ?_⟩
+  intro g hg
+  simp [Ideal.span_singleton_one]
 
 theorem hasFiniteFreeResolution_quotient_prime [IsNoetherianRing R]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
