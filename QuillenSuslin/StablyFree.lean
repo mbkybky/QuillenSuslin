@@ -1,6 +1,6 @@
 import Mathlib
 
-universe u v
+universe u v w
 
 /-- A module $P$ over a ring $R$ is \textit{stably free} if there exists a free finitely generated
   module $F$ over $R$ such that $P \oplus F$ is a free module. -/
@@ -91,7 +91,7 @@ theorem hasFiniteFreeResolution_of_finite_of_free (P : Type v) [AddCommGroup P] 
 
 private theorem hasFiniteFreeResolutionLength_of_linearEquiv_aux (P : Type v) [AddCommGroup P]
     [Module R P] {n : ℕ} (hn : HasFiniteFreeResolutionLength R P n) :
-    ∀ {Q : Type v} [AddCommGroup Q] [Module R Q], (P ≃ₗ[R] Q) →
+    ∀ {Q : Type w} [AddCommGroup Q] [Module R Q], (e : P ≃ₗ[R] Q) →
       HasFiniteFreeResolutionLength R Q n := by
   induction hn with
   | zero P =>
@@ -572,9 +572,48 @@ end exact_seq
 
 section polynomial
 
-open Polynomial Module
+open Polynomial Module Ideal
 
-#check IsNoetherianRing.induction_on_isQuotientEquivQuotientPrime
+/-- A subsingleton finitely generated module has a finite free resolution. -/
+theorem hasFiniteFreeResolution_of_subsingleton (M : Type v)
+    [AddCommGroup M] [Module R M] [Module.Finite R M] [Subsingleton M] :
+    HasFiniteFreeResolution R M := sorry
+
+/-- Push a finite free resolution of an `R`-ideal `I` to a resolution of `I · R[X]`. -/
+theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
+    (I : Ideal R) (hI : HasFiniteFreeResolution R I) :
+    HasFiniteFreeResolution R[X] (Ideal.map (Polynomial.C : R →+* R[X]) I) := sorry
+
+/-- The canonical `R`-algebra equivalence `(R ⧸ I)[X] ≃ R[X] ⧸ I·R[X]`. -/
+noncomputable def polynomialQuotientEquiv (I : Ideal R) :
+    (R ⧸ I)[X] ≃ₐ[R] R[X] ⧸ I.map (C : R →+* R[X]) :=
+  have h : RingHom.ker (mapAlgHom (Ideal.Quotient.mkₐ R I)) = I.map (C : R →+* R[X]) := by
+    apply Eq.trans (ker_mapRingHom (Ideal.Quotient.mkₐ R I).toRingHom)
+    congr
+    simp
+  (quotientKerAlgEquivOfSurjective <| map_surjective _ <| Quotient.mkₐ_surjective R I).symm.trans <|
+    quotientEquivAlgOfEq _ h
+
+/-- Over a domain, the principal ideal `(f)` is linearly equivalent to the ambient ring. -/
+noncomputable def linearEquiv_mul_spanSingleton {A : Type u} [CommRing A] [IsDomain A] (f : A)
+    (hf : f ≠ 0) [Algebra R A] : A ≃ₗ[R] (Ideal.span ({f} : Set A) : Ideal A) := sorry
+
+/-- A “clearing denominators” statement used in the prime ideal case over `R₀[X]`. -/
+theorem exists_nonzero_C_mul_mem_span_singleton (R0 : Type u) [CommRing R0] [IsDomain R0]
+    (P0 : Ideal (R0[X])) (hP0 : P0 ≠ ⊥) :
+    ∃ d0 : R0, d0 ≠ 0 ∧ ∃ f : R0[X], f ≠ 0 ∧
+      ∀ g ∈ P0, Polynomial.C d0 * g ∈ Ideal.span ({f} : Set (R0[X])) := sorry
+
+theorem hasFiniteFreeResolution_quotient_prime (R : Type u) [CommRing R] [IsNoetherianRing R]
+    (hR : ∀ (P : Type v), [AddCommGroup P] → [Module R P] → Module.Finite R P →
+      HasFiniteFreeResolution R P)
+    (p : PrimeSpectrum (R[X])) : HasFiniteFreeResolution (R[X]) (R[X] ⧸ p.1) := sorry
+
+/-- Reduce the prime-quotient case to the corresponding prime ideal as an `R[X]`-module. -/
+theorem hasFiniteFreeResolution_primeIdeal (R : Type u) [CommRing R] [IsNoetherianRing R]
+    (hR : ∀ (P : Type v), [AddCommGroup P] → [Module R P] → Module.Finite R P →
+      HasFiniteFreeResolution R P)
+    (P : Ideal (R[X])) (hP : P.IsPrime) : HasFiniteFreeResolution (R[X]) P := sorry
 
 /-- Let `R` be a noetherian ring such that every finitely generated `R`-module admits a finite
 free resolution. Then the same property holds for finitely generated `R[X]`-modules. -/
