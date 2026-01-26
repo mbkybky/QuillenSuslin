@@ -91,7 +91,7 @@ theorem hasFiniteFreeResolution_of_finite_of_free (P : Type v) [AddCommGroup P] 
 
 private theorem hasFiniteFreeResolutionLength_of_linearEquiv_aux (P : Type v) [AddCommGroup P]
     [Module R P] {n : ℕ} (hn : HasFiniteFreeResolutionLength R P n) :
-    ∀ {Q : Type w} [AddCommGroup Q] [Module R Q], (e : P ≃ₗ[R] Q) →
+    ∀ {Q : Type v} [AddCommGroup Q] [Module R Q], (e : P ≃ₗ[R] Q) →
       HasFiniteFreeResolutionLength R Q n := by
   induction hn with
   | zero P =>
@@ -103,6 +103,140 @@ private theorem hasFiniteFreeResolutionLength_of_linearEquiv_aux (P : Type v) [A
       intro Q _ _ e
       exact HasFiniteFreeResolutionLength.succ Q n F (e.toLinearMap.comp π) (e.surjective.comp hπ)
         <| ih (LinearEquiv.ofEq (e.toLinearMap.comp π).ker π.ker (e.ker_comp π)).symm
+
+theorem hasFiniteFreeResolutionLength_shrink (P : Type v) [Small.{u} P] [UnivLE.{u, v}]
+    [AddCommGroup P]
+    [Module R P] {n : ℕ} :
+    HasFiniteFreeResolutionLength R P n ↔  HasFiniteFreeResolutionLength R (Shrink.{u} P) n := by
+  classical
+  have shrink_down :
+      ∀ {n : ℕ} {P : Type v} [Small.{u} P] [AddCommGroup P] [Module R P],
+        HasFiniteFreeResolutionLength R P n →
+          HasFiniteFreeResolutionLength R (Shrink.{u} P) n := by
+    intro n
+    induction n with
+    | zero =>
+        intro P _ _ _ hn
+        cases hn with
+        | zero P =>
+            let e : Shrink.{u} P ≃ₗ[R] P := Shrink.linearEquiv (R := R) (α := P)
+            letI : Module.Finite R (Shrink.{u} P) :=
+              Module.Finite.of_surjective e.symm.toLinearMap e.symm.surjective
+            letI : Module.Free R (Shrink.{u} P) := Module.Free.of_equiv e.symm
+            exact HasFiniteFreeResolutionLength.zero (R := R) (P := Shrink.{u} P)
+    | succ n ih =>
+        intro P _ _ _ hn
+        cases hn with
+        | succ P _ F π hπ hker =>
+            haveI : Small.{u} R := by infer_instance
+            letI : Small.{u} F := Module.Finite.small (R := R) (M := F)
+            let eP : Shrink.{u} P ≃ₗ[R] P := Shrink.linearEquiv (R := R) (α := P)
+            let eF : Shrink.{u} F ≃ₗ[R] F := Shrink.linearEquiv (R := R) (α := F)
+            letI : Module.Finite R (Shrink.{u} F) :=
+              Module.Finite.of_surjective eF.symm.toLinearMap eF.symm.surjective
+            letI : Module.Free R (Shrink.{u} F) := Module.Free.of_equiv eF.symm
+            let π' : Shrink.{u} F →ₗ[R] Shrink.{u} P :=
+              eP.symm.toLinearMap.comp (π.comp eF.toLinearMap)
+            have hπ' : Function.Surjective π' :=
+              (eP.symm.surjective).comp (hπ.comp eF.surjective)
+            haveI : Small.{u} (LinearMap.ker π) := by infer_instance
+            have hker' :
+                HasFiniteFreeResolutionLength R (Shrink.{u} (LinearMap.ker π)) n :=
+              ih (P := LinearMap.ker π) hker
+            have hkerEq :
+                LinearMap.ker π' = (LinearMap.ker π).comap eF.toLinearMap := by
+              calc
+                LinearMap.ker π' =
+                    LinearMap.ker (eP.symm.toLinearMap.comp (π.comp eF.toLinearMap)) := by rfl
+                _ = LinearMap.ker (π.comp eF.toLinearMap) := by
+                    simpa using (eP.symm.ker_comp (π.comp eF.toLinearMap))
+                _ = (LinearMap.ker π).comap eF.toLinearMap := by
+                    simpa [LinearMap.ker_comp]
+            have hrange : (LinearMap.ker π : Submodule R F) ≤ LinearMap.range eF.toLinearMap := by
+              simpa [LinearMap.range_eq_top.2 eF.surjective] using
+                (le_top : (LinearMap.ker π : Submodule R F) ≤ ⊤)
+            let eComap :
+                (LinearMap.ker π).comap eF.toLinearMap ≃ₗ[R] LinearMap.ker π :=
+              Submodule.comap_equiv_self_of_inj_of_le (f := eF.toLinearMap) eF.injective hrange
+            let eKerTo : LinearMap.ker π' ≃ₗ[R] LinearMap.ker π :=
+              (LinearEquiv.ofEq _ _ hkerEq).trans eComap
+            let eKer : Shrink.{u} (LinearMap.ker π) ≃ₗ[R] LinearMap.ker π' :=
+              (Shrink.linearEquiv (R := R) (α := LinearMap.ker π)).trans eKerTo.symm
+            have hker'' : HasFiniteFreeResolutionLength R (LinearMap.ker π') n :=
+              hasFiniteFreeResolutionLength_of_linearEquiv_aux (R := R)
+                (P := Shrink.{u} (LinearMap.ker π)) hker' eKer
+            exact
+              HasFiniteFreeResolutionLength.succ (R := R) (P := Shrink.{u} P) n
+                (F := Shrink.{u} F) π' hπ' hker''
+  constructor
+  · intro hn
+    exact shrink_down (P := P) hn
+  · intro hn
+    have shrink_up :
+        ∀ {n : ℕ} {Q : Type u} [AddCommGroup Q] [Module R Q],
+          HasFiniteFreeResolutionLength R Q n →
+            HasFiniteFreeResolutionLength R (Shrink.{v} Q) n := by
+      intro n
+      induction n with
+      | zero =>
+          intro Q _ _ hn
+          cases hn with
+          | zero Q =>
+              let e : Shrink.{v} Q ≃ₗ[R] Q := Shrink.linearEquiv (R := R) (α := Q)
+              letI : Module.Finite R (Shrink.{v} Q) :=
+                Module.Finite.of_surjective e.symm.toLinearMap e.symm.surjective
+              letI : Module.Free R (Shrink.{v} Q) := Module.Free.of_equiv e.symm
+              exact HasFiniteFreeResolutionLength.zero (R := R) (P := Shrink.{v} Q)
+      | succ n ih =>
+          intro Q _ _ hn
+          cases hn with
+          | succ Q _ F π hπ hker =>
+              let eQ : Shrink.{v} Q ≃ₗ[R] Q := Shrink.linearEquiv (R := R) (α := Q)
+              let eF : Shrink.{v} F ≃ₗ[R] F := Shrink.linearEquiv (R := R) (α := F)
+              letI : Module.Finite R (Shrink.{v} F) :=
+                Module.Finite.of_surjective eF.symm.toLinearMap eF.symm.surjective
+              letI : Module.Free R (Shrink.{v} F) := Module.Free.of_equiv eF.symm
+              let π' : Shrink.{v} F →ₗ[R] Shrink.{v} Q :=
+                eQ.symm.toLinearMap.comp (π.comp eF.toLinearMap)
+              have hπ' : Function.Surjective π' :=
+                (eQ.symm.surjective).comp (hπ.comp eF.surjective)
+              have hker' :
+                  HasFiniteFreeResolutionLength R (Shrink.{v} (LinearMap.ker π)) n :=
+                ih (Q := LinearMap.ker π) hker
+              have hkerEq :
+                  LinearMap.ker π' = (LinearMap.ker π).comap eF.toLinearMap := by
+                calc
+                  LinearMap.ker π' =
+                      LinearMap.ker (eQ.symm.toLinearMap.comp (π.comp eF.toLinearMap)) := by rfl
+                  _ = LinearMap.ker (π.comp eF.toLinearMap) := by
+                      simpa using (eQ.symm.ker_comp (π.comp eF.toLinearMap))
+                  _ = (LinearMap.ker π).comap eF.toLinearMap := by
+                      simp [LinearMap.ker_comp]
+              have hrange : (LinearMap.ker π : Submodule R F) ≤ LinearMap.range eF.toLinearMap := by
+                simpa [LinearMap.range_eq_top.2 eF.surjective] using
+                  (le_top : (LinearMap.ker π : Submodule R F) ≤ ⊤)
+              let eComap :
+                  (LinearMap.ker π).comap eF.toLinearMap ≃ₗ[R] LinearMap.ker π :=
+                Submodule.comap_equiv_self_of_inj_of_le (f := eF.toLinearMap) eF.injective hrange
+              let eKerTo : LinearMap.ker π' ≃ₗ[R] LinearMap.ker π :=
+                (LinearEquiv.ofEq _ _ hkerEq).trans eComap
+              let eKer : Shrink.{v} (LinearMap.ker π) ≃ₗ[R] LinearMap.ker π' :=
+                (Shrink.linearEquiv (R := R) (α := LinearMap.ker π)).trans eKerTo.symm
+              have hker'' : HasFiniteFreeResolutionLength R (LinearMap.ker π') n :=
+                hasFiniteFreeResolutionLength_of_linearEquiv_aux (R := R)
+                  (P := Shrink.{v} (LinearMap.ker π)) hker' eKer
+              exact
+                HasFiniteFreeResolutionLength.succ (R := R) (P := Shrink.{v} Q) n
+                  (F := Shrink.{v} F) π' hπ' hker''
+
+    have hn' : HasFiniteFreeResolutionLength R (Shrink.{v} (Shrink.{u} P)) n :=
+      shrink_up (Q := Shrink.{u} P) hn
+    let e₁ : Shrink.{v} (Shrink.{u} P) ≃ₗ[R] Shrink.{u} P :=
+      Shrink.linearEquiv (R := R) (α := Shrink.{u} P)
+    let e₂ : Shrink.{u} P ≃ₗ[R] P := Shrink.linearEquiv (R := R) (α := P)
+    exact
+      hasFiniteFreeResolutionLength_of_linearEquiv_aux (R := R) (P := Shrink.{v} (Shrink.{u} P)) hn'
+        (e₁.trans e₂)
 
 theorem hasFiniteFreeResolutionLength_of_linearEquiv {P Q : Type v}
     [AddCommGroup P] [Module R P] [AddCommGroup Q] [Module R Q] (e : P ≃ₗ[R] Q)
