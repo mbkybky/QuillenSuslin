@@ -197,8 +197,7 @@ def N0 : Matrix s s R[X][Y] := fun i j => (ncy_isInteger hs M hc i j).choose
 
 def N0Inv : Matrix s s R[X][Y] := fun i j => (ncyInv_isInteger hs M hc i j).choose
 
-theorem hN0_mul : N0 hs M hc * N0Inv hs M hc = 1 := by
-  classical
+theorem hN0_mul : N0 hs M hc * N0Inv hs M hc = 1 :=
   let f : R[X][Y] →+* (Localization S)[X][Y] := algebraMap R[X][Y] (Localization S)[X][Y]
   have hf : Function.Injective f := by
     have hR : Function.Injective (algebraMap R (Localization S)) :=
@@ -207,15 +206,14 @@ theorem hN0_mul : N0 hs M hc * N0Inv hs M hc = 1 := by
       simpa [Polynomial.algebraMap_def] using Polynomial.map_injective (algebraMap R _) hR
     simpa [f, Polynomial.algebraMap_def] using
       Polynomial.map_injective (algebraMap R[X] (Localization S)[X]) hRX
-  have hfMat :
-      Function.Injective
-        (f.mapMatrix : Matrix s s R[X][Y] → Matrix s s (Localization S)[X][Y]) := by
+  have hfMat : Function.Injective (f.mapMatrix : Matrix s s R[X][Y] →
+      Matrix s s (Localization S)[X][Y]) := by
     intro A B h
     apply Matrix.ext
     intro i j
     apply hf
-    have hij := congrArg (fun M : Matrix s s (Localization S)[X][Y] => M i j) h
-    simpa [RingHom.mapMatrix_apply, Matrix.map_apply] using hij
+    simpa [RingHom.mapMatrix_apply, Matrix.map_apply] using
+      congrArg (fun M : Matrix s s (Localization S)[X][Y] => M i j) h
   have hN0 : f.mapMatrix (N0 hs M hc) = (Ncy c M).1 := by
     apply Matrix.ext
     intro i j
@@ -226,31 +224,24 @@ theorem hN0_mul : N0 hs M hc * N0Inv hs M hc = 1 := by
     intro i j
     simpa [RingHom.mapMatrix_apply, Matrix.map_apply, N0Inv, f] using
       (ncyInv_isInteger hs M hc i j).choose_spec
-  have hNcyInv : NcyInv c M = (Ncy c M)⁻¹ := by
-    simp [NcyInv, Ncy]
+  have hNcyInv : NcyInv c M = (Ncy c M)⁻¹ := by simp [NcyInv, Ncy]
   have hMul : (Ncy c M).1 * (NcyInv c M).1 = 1 := by
     have hGL : Ncy c M * NcyInv c M = 1 := by
       rw [hNcyInv]
       simp
-    simpa using
-      congrArg (fun g : GL s (Localization S)[X][Y] => (g : Matrix s s (Localization S)[X][Y]))
-        hGL
+    simpa using congrArg
+      (fun g : GL s (Localization S)[X][Y] => (g : Matrix s s (Localization S)[X][Y])) hGL
   have hmapProd : f.mapMatrix (N0 hs M hc * N0Inv hs M hc) = 1 := by
-    calc
-      f.mapMatrix (N0 hs M hc * N0Inv hs M hc) =
-          f.mapMatrix (N0 hs M hc) * f.mapMatrix (N0Inv hs M hc) := by
-        simp
+    calc _ = f.mapMatrix (N0 hs M hc) * f.mapMatrix (N0Inv hs M hc) := by simp
       _ = (Ncy c M).1 * (NcyInv c M).1 := by simp [hN0, hN0Inv]
       _ = 1 := hMul
   have hmapProd1 :
       f.mapMatrix (N0 hs M hc * N0Inv hs M hc) = f.mapMatrix (1 : Matrix s s R[X][Y]) := by
-    calc
-      f.mapMatrix (N0 hs M hc * N0Inv hs M hc) = 1 := hmapProd
+    calc _ = 1 := hmapProd
       _ = f.mapMatrix (1 : Matrix s s R[X][Y]) := by simp
-  exact hfMat hmapProd1
+  hfMat hmapProd1
 
-theorem hN0inv_mul : N0Inv hs M hc * N0 hs M hc = 1 := by
-  classical
+theorem hN0inv_mul : N0Inv hs M hc * N0 hs M hc = 1 :=
   let f : R[X][Y] →+* (Localization S)[X][Y] := algebraMap R[X][Y] (Localization S)[X][Y]
   have hf : Function.Injective f := by
     have hR : Function.Injective (algebraMap R (Localization S)) :=
@@ -259,9 +250,8 @@ theorem hN0inv_mul : N0Inv hs M hc * N0 hs M hc = 1 := by
       simpa [Polynomial.algebraMap_def] using Polynomial.map_injective (algebraMap R _) hR
     simpa [f, Polynomial.algebraMap_def] using
       Polynomial.map_injective (algebraMap R[X] (Localization S)[X]) hRX
-  have hfMat :
-      Function.Injective
-        (f.mapMatrix : Matrix s s R[X][Y] → Matrix s s (Localization S)[X][Y]) := by
+  have hfMat : Function.Injective (f.mapMatrix : Matrix s s R[X][Y] →
+      Matrix s s (Localization S)[X][Y]) := by
     intro A B h
     apply Matrix.ext
     intro i j
@@ -284,21 +274,17 @@ theorem hN0inv_mul : N0Inv hs M hc * N0 hs M hc = 1 := by
     have hGL : NcyInv c M * Ncy c M = 1 := by
       rw [hNcyInv]
       simp
-    simpa using
-      congrArg (fun g : GL s (Localization S)[X][Y] => (g : Matrix s s (Localization S)[X][Y]))
-        hGL
+    simpa using congrArg
+      (fun g : GL s (Localization S)[X][Y] => (g : Matrix s s (Localization S)[X][Y])) hGL
   have hmapProd : f.mapMatrix (N0Inv hs M hc * N0 hs M hc) = 1 := by
-    calc
-      f.mapMatrix (N0Inv hs M hc * N0 hs M hc) =
-          f.mapMatrix (N0Inv hs M hc) * f.mapMatrix (N0 hs M hc) := by simp
+    calc _ = f.mapMatrix (N0Inv hs M hc) * f.mapMatrix (N0 hs M hc) := by simp
       _ = (NcyInv c M).1 * (Ncy c M).1 := by simp [hN0, hN0Inv]
       _ = 1 := hMul
-  have hmapProd1 :
-      f.mapMatrix (N0Inv hs M hc * N0 hs M hc) = f.mapMatrix (1 : Matrix s s R[X][Y]) := by
-    calc
-      f.mapMatrix (N0Inv hs M hc * N0 hs M hc) = 1 := hmapProd
+  have hmapProd1 : f.mapMatrix (N0Inv hs M hc * N0 hs M hc) =
+      f.mapMatrix (1 : Matrix s s R[X][Y]) := by
+    calc _  = 1 := hmapProd
       _ = f.mapMatrix (1 : Matrix s s R[X][Y]) := by simp
-  exact hfMat hmapProd1
+  hfMat hmapProd1
 
 def U : Matrix.GeneralLinearGroup s R[X][Y] :=
   ⟨N0 hs M hc, N0Inv hs M hc, hN0_mul hs M hc , hN0inv_mul hs M hc⟩
