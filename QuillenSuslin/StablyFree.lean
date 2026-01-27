@@ -61,7 +61,29 @@ theorem isStablyFree_two_of_three_of_shortExact (P₁ P₂ P₃ : Type v)
                     (e.symm.prodCongr (LinearEquiv.refl R N₂)).prodCongr (LinearEquiv.refl R N₃)
       exact Module.Free.of_equiv eP₁.symm
 
+open Polynomial Module
 
+theorem stably_free_iff (M : Type v) [AddCommGroup M] [Module R M] [Module.Projective R M] :
+    IsStablyFree R M ↔ HasFiniteFreeResolution R M := by
+  sorry
+
+theorem polynomial_isStablyFree [IsNoetherianRing R]
+    (hR : ∀ (P : Type v) [AddCommGroup P] [Module R P],
+        Module.Finite R P → Module.Projective R P → IsStablyFree R P)
+    (P : Type v) [AddCommGroup P] [Module R[X] P] [Module.Finite R[X] P]
+    [Module.Projective R[X] P] : IsStablyFree R[X] P := by
+  sorry
+
+theorem isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrincipalIdealRing R]
+    (P : Type v) [AddCommGroup P] [Module R P] [Module.Finite R P] [Module.Projective R P] :
+    IsStablyFree R P := by
+  -- 先证引理 1 : R 上的投射模都是自由的，引理 2 : 自由模 stably free
+  sorry
+
+theorem cor3 [IsDomain R] [IsPrincipalIdealRing R] (s : Type*) [Finite s]
+    (P : Type v) [AddCommGroup P] [Module (MvPolynomial s R) P] [Module.Finite (MvPolynomial s R) P]
+    [Module.Projective (MvPolynomial s R) P] : IsStablyFree (MvPolynomial s R) P := by
+  sorry
 
 /-
 \begin{definition}
