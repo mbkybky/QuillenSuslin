@@ -18,11 +18,11 @@ instance : Algebra R[X][Y] (Localization S)[X][Y] :=
 
 /-- The `R[X][Y]`-endomorphism scaling `Y` by `c`. -/
 def σR : R[X][Y] →+* R[X][Y] :=
-    Polynomial.eval₂RingHom (C : R[X] →+* R[X][Y]) ((c : R) • (Polynomial.X : R[X][Y]))
+    eval₂RingHom (C : R[X] →+* R[X][Y]) ((c : R) • (X : R[X][Y]))
 
 /-- The `(Localization S)[X][Y]`-endomorphism scaling `Y` by the image of `c`. -/
 def σA : (Localization S)[X][Y] →+* (Localization S)[X][Y] :=
-  Polynomial.eval₂RingHom C
+  eval₂RingHom C
     (((algebraMap R (Localization S)) (c : R)) • (X : (Localization S)[X][Y]))
 
 /-- `σA` commutes with the canonical map `R[X][Y] → (Localization S)[X][Y]`. -/
@@ -30,28 +30,28 @@ theorem σA_comp : (σA c).comp (algebraMap R[X][Y] (Localization S)[X][Y]) =
     (algebraMap R[X][Y] (Localization S)[X][Y]).comp (σR c) := by
   have hAlg : algebraMap R[X][Y] (Localization S)[X][Y] =
     (mapRingHom (algebraMap R[X] (Localization S)[X])) := rfl
-  refine Polynomial.ringHom_ext ?_ ?_
+  refine ringHom_ext ?_ ?_
   · intro p
     have hC : algebraMap R[X][Y] (Localization S)[X][Y] (C p) =
         C (algebraMap R[X] (Localization S)[X] p) := by
       rw [hAlg]
       simp
     have hσR : σR c (C p) = C p := by
-      show (C p).eval₂ (C : R[X] →+* R[X][Y]) ((c : R) • (Polynomial.X : R[X][Y])) = C p
-      rw [Polynomial.eval₂_C]
+      show (C p).eval₂ (C : R[X] →+* R[X][Y]) ((c : R) • (X : R[X][Y])) = C p
+      rw [eval₂_C]
     simp only [RingHom.comp_apply]
     rw [hσR, hC]
     show (C (algebraMap R[X] (Localization S)[X] p)).eval₂ C _ = _
-    rw [Polynomial.eval₂_C]
+    rw [eval₂_C]
   · have hX : algebraMap R[X][Y] (Localization S)[X][Y] X = X := by
       rw [hAlg]
-      simp [Polynomial.mapRingHom]
+      simp [mapRingHom]
     have hσR : σR c X = (c : R) • X := by
-      show X.eval₂ (C : R[X] →+* R[X][Y]) ((c : R) • (Polynomial.X : R[X][Y])) = (c : R) • X
-      rw [Polynomial.eval₂_X]
+      show X.eval₂ (C : R[X] →+* R[X][Y]) ((c : R) • (X : R[X][Y])) = (c : R) • X
+      rw [eval₂_X]
     have hσA : σA c X = ((algebraMap R (Localization S)) (c : R)) • X := by
       show X.eval₂ C (((algebraMap R (Localization S)) (c : R)) • X) = _
-      rw [Polynomial.eval₂_X]
+      rw [eval₂_X]
     simp only [RingHom.comp_apply]
     rw [hσR, hX, hσA, Algebra.smul_def, Algebra.smul_def]
     simp
@@ -67,32 +67,26 @@ section S
 
 variable (S)
 
-def CAY : (Localization S)[X] →+* (Localization S)[X][Y] :=
-    (C : (Localization S)[X] →+* (Localization S)[X][Y])
+def CAY : (Localization S)[X] →+* (Localization S)[X][Y] := C
 
 def φ : (Localization S)[X] →+* (Localization S)[X][Y] :=
-    Polynomial.eval₂RingHom (((CAY S).comp (C : Localization S →+* (Localization S)[X])))
-      ((CAY S (X : (Localization S)[X])) + (Y : (Localization S)[X][Y]))
+  eval₂RingHom ((CAY S).comp C) ((CAY S X) + Y)
 
 end S
 
 section M
 
-def Mx : GL s (Localization S)[X][Y] :=
-  (Matrix.GeneralLinearGroup.map (CAY S)) M
+def Mx : GL s (Localization S)[X][Y] := (Matrix.GeneralLinearGroup.map (CAY S)) M
 
-def Mxy : GL s (Localization S)[X][Y] :=
-  (Matrix.GeneralLinearGroup.map (φ S)) M
+def Mxy : GL s (Localization S)[X][Y] := (Matrix.GeneralLinearGroup.map (φ S)) M
 
 def N : GL s (Localization S)[X][Y] := (Mx M)⁻¹ * (Mxy M)
 
 def W : Matrix s s (Localization S)[X][Y] :=
   fun i j => ((N M: Matrix s s (Localization S)[X][Y]) i j).divX
 
-def Ncy : GL s (Localization S)[X][Y] :=
-  Matrix.GeneralLinearGroup.map (σA c) (N M)
+def Ncy : GL s (Localization S)[X][Y] := Matrix.GeneralLinearGroup.map (σA c) (N M)
 
-def NcyInv : GL s (Localization S)[X][Y] :=
-  Matrix.GeneralLinearGroup.map (σA c) (N M)⁻¹
+def NcyInv : GL s (Localization S)[X][Y] := Matrix.GeneralLinearGroup.map (σA c) (N M)⁻¹
 
 end M
