@@ -32,8 +32,16 @@ def HasFiniteFreeResolution (R : Type u) (P : Type v)
 
 /-- A finitely generated free module has a finite free resolution (of length `0`). -/
 theorem hasFiniteFreeResolution_of_finite_of_free (P : Type v) [AddCommGroup P] [Module R P]
-    [Module.Finite R P] [Module.Free R P] : HasFiniteFreeResolution R P :=
-  ⟨0, HasFiniteFreeResolutionLengthAux.zero P⟩
+    [Module.Finite R P] [Module.Free R P] : HasFiniteFreeResolution R P := by
+  let ι := Module.Free.ChooseBasisIndex R P
+  let b : Module.Basis ι R P := Module.Free.chooseBasis R P
+  let n : ℕ := Fintype.card ι
+  let eι : Fin n ≃ ι := (Fintype.equivFin ι).symm
+  have ePi : (ι → R) ≃ₗ[R] (Fin n → R) := (LinearEquiv.piCongrLeft R (fun _ : ι => R) eι).symm
+  have eP : (Fin n → R) ≃ₗ[R] P := (b.equivFun.trans ePi).symm
+  have : Subsingleton eP.toLinearMap.ker := Submodule.subsingleton_iff_eq_bot.mpr eP.ker
+  exact ⟨Fin n → R, inferInstance, inferInstance, inferInstance, inferInstance, eP.toLinearMap,
+    eP.surjective, 0, HasFiniteFreeResolutionLength.zero eP.toLinearMap.ker⟩
 
 private theorem hasFiniteFreeResolutionLength_of_linearEquiv_aux (P : Type u) [AddCommGroup P]
     [Module R P] {n : ℕ} (hn : HasFiniteFreeResolutionLength R P n) :
@@ -60,10 +68,21 @@ theorem hasFiniteFreeResolutionLength_of_linearEquiv {P Q : Type u}
 theorem hasFiniteFreeResolution_of_linearEquiv {P : Type v} {Q : Type w} [AddCommGroup P]
     [Module R P] [AddCommGroup Q] [Module R Q]
     (e : P ≃ₗ[R] Q) (h : HasFiniteFreeResolution R P) : HasFiniteFreeResolution R Q := by
-  rcases h with ⟨n, hn⟩
-  exact ⟨n, hasFiniteFreeResolutionLength_of_linearEquiv e hn⟩
+  rcases h with ⟨F, _, _, _, _, f, hf, n, hn⟩
+  exact ⟨F, inferInstance, inferInstance, inferInstance, inferInstance, e.toLinearMap.comp f,
+    e.surjective.comp hf, n,
+      hasFiniteFreeResolutionLength_of_linearEquiv (LinearEquiv.ofEq _ _ (e.ker_comp f).symm) hn⟩
+
+theorem hasFiniteFreeResolutionAux_of_hasFiniteFreeResolution (P : Type u) [AddCommGroup P] [Module R P] :
+    HasFiniteFreeResolution R P → HasFiniteFreeResolutionAux R P := by
+  rintro ⟨F, _, _, _, _, f, hf, n, hn⟩
+  exact ⟨n + 1, HasFiniteFreeResolutionLength.succ P n F f hf hn⟩
 
 -- add a lemma : P HasFiniteFreeResolution ↔ Shrink.{u} P HasFiniteFreeResolution
+theorem hasFiniteFreeResolution_iff_shrink (P : Type v) [AddCommGroup P] [Module R P] [Small.{u} P] :
+    HasFiniteFreeResolution R P ↔ HasFiniteFreeResolution R (Shrink.{u} P) :=
+  ⟨hasFiniteFreeResolution_of_linearEquiv (Shrink.linearEquiv R P).symm,
+    hasFiniteFreeResolution_of_linearEquiv (Shrink.linearEquiv R P)⟩
 
 section exact_seq
 
@@ -82,6 +101,13 @@ theorem exists_surjective_of_hasFiniteFreeResolutionLength (P : Type u)
   | succ P n F π hπ hker =>
       refine ⟨F, inferInstance, inferInstance, inferInstance, inferInstance, π, hπ, ?_⟩
       simpa using hker
+
+theorem hasFiniteFreeResolution_of_hasFiniteFreeResolutionAux (P : Type u) [AddCommGroup P] [Module R P] :
+    HasFiniteFreeResolutionAux R P → HasFiniteFreeResolution R P := by
+  rintro ⟨n, hn⟩
+  rcases exists_surjective_of_hasFiniteFreeResolutionLength (R := R) P hn with
+    ⟨F, _, _, _, _, π, hπ, hker⟩
+  exact ⟨F, inferInstance, inferInstance, inferInstance, inferInstance, π, hπ, Nat.pred n, hker⟩
 
 /-- Horseshoe lemma for finite free resolutions (2-out-of-3: left + right ⇒ middle). -/
 theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right_length (P₁ P₂ P₃ : Type u)
