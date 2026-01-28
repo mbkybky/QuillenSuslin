@@ -18,6 +18,12 @@ inductive HasFiniteFreeResolutionLength (R : Type u) [CommRing R] :
       (hker : HasFiniteFreeResolutionLength R (LinearMap.ker f) n) :
       HasFiniteFreeResolutionLength R P (n + 1)
 
+theorem module_finite_of_hasFiniteFreeResolutionLength {P : Type u} [AddCommGroup P] [Module R P]
+    {n : ℕ} (hn : HasFiniteFreeResolutionLength R P n) : Module.Finite R P := by
+  induction hn with
+  | zero P => infer_instance
+  | succ P n F f hf hker ih => exact Module.Finite.of_surjective f hf
+
 /-- A module `P` over a commutative ring `R` has a finite free resolution if it has a resolution
 of some finite length by finitely generated free `R`-modules. -/
 def HasFiniteFreeResolution (R : Type u) (P : Type v)
