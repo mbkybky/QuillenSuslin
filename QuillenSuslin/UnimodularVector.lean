@@ -251,6 +251,24 @@ section thm12
 variable (R : Type*) [CommRing R] [IsDomain R]
 variable {s : Type*} [Fintype s] [DecidableEq s]
 
+/-- Unimodularity is preserved under a ring homomorphism. -/
+theorem isUnimodular_map_ringHom {A B : Type*} [CommRing A] [CommRing B] (f : A →+* B)
+    (v : s → A) (hv : IsUnimodular v) : IsUnimodular fun i => f (v i) := by
+  classical
+  unfold IsUnimodular at hv ⊢
+  have hmap : Ideal.map f (Ideal.span (Set.range v)) = ⊤ := by
+    simpa [hv] using (Ideal.map_top (f := f) : Ideal.map f (⊤ : Ideal A) = (⊤ : Ideal B))
+  have hrange : (f : A → B) '' Set.range v = Set.range fun i => f (v i) := by
+    ext b
+    constructor
+    · rintro ⟨a, ⟨i, rfl⟩, rfl⟩
+      exact ⟨i, rfl⟩
+    · rintro ⟨i, rfl⟩
+      exact ⟨v i, ⟨i, rfl⟩, rfl⟩
+  have hspan : Ideal.span ((f : A → B) '' Set.range v) = ⊤ := by
+    simpa [Ideal.map_span] using hmap
+  simpa [hrange] using hspan
+
 /-- Unimodularity is preserved under an algebra equivalence. -/
 theorem isUnimodular_map_ringEquiv {A B : Type*} [CommRing A] [CommRing B] (e : A ≃+* B)
     (v : s → A) (hv : IsUnimodular v) : IsUnimodular fun i => e (v i) := by
@@ -448,11 +466,108 @@ theorem exists_algEquiv_exists_monic_finSuccEquiv (n : ℕ)
 
 end monicize
 
-/-- Let $R = k[x_1, \dots, x_n]$ be a polynomial ring over a principal ideal domain $k$, and let
-  $v \in R^n$ be a unimodular vector. Then $v \sim e_1$.. -/
-theorem thm12 (o : s) (v : s → MvPolynomial s R) (hv : IsUnimodular v) :
+/-- Field case of the “unimodular vector” theorem, with variables indexed by `Fin n`. -/
+theorem thm12_fin {k : Type*} [Field k] (n : ℕ) (o : s) (v : s → MvPolynomial (Fin n) k)
+    (hv : IsUnimodular v) : UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
+  classical
+  induction n with
+  | zero =>
+    let e : MvPolynomial (Fin 0) k ≃+* k := MvPolynomial.isEmptyRingEquiv k (Fin 0)
+    have hv' : IsUnimodular fun i => e (v i) := isUnimodular_map_ringEquiv e v hv
+    have hstd : IsUnimodular fun i : s => if i = o then (1 : k) else 0 := by
+      unfold IsUnimodular
+      refine
+        Ideal.eq_top_of_isUnit_mem
+          (I := Ideal.span (Set.range fun i : s => if i = o then (1 : k) else 0)) (x := (1 : k)) ?_
+          isUnit_one
+      exact Ideal.subset_span ⟨o, by simp⟩
+    have h' :
+        UnimodularVectorEquiv (fun i => e (v i)) (fun i => if i = o then (1 : k) else 0) := by
+      simpa using unimodularVectorEquiv_of_pid (R := k) (s := s) hv' hstd
+    have h'' :
+        UnimodularVectorEquiv v (fun i => if i = o then (1 : MvPolynomial (Fin 0) k) else 0) := by
+      have := unimodularVectorEquiv_map_ringEquiv e.symm (fun i => e (v i))
+        (fun i : s => if i = o then (1 : k) else 0) h'
+      simpa using this
+    simpa using h''
+  | succ n ih =>
+    let A := MvPolynomial (Fin n) k
+    let φ : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] Polynomial A := MvPolynomial.finSuccEquiv k n
+    rcases exists_algEquiv_exists_monic_finSuccEquiv (k := k) (s := s) (n := n) v hv with ⟨e, i, hu⟩
+    let w : s → Polynomial A := fun j => φ (e (v j))
+    have hw : IsUnimodular w := by
+      have hv1 : IsUnimodular fun j => e (v j) := isUnimodular_map_ringEquiv e.toRingEquiv v hv
+      simpa [w, φ] using isUnimodular_map_ringEquiv φ.toRingEquiv (fun j => e (v j)) hv1
+    rcases hu with ⟨u, hu⟩
+    let b : A := (↑(u⁻¹) : A)
+    have hb : b * (w i).leadingCoeff = 1 := by
+      have : (w i).leadingCoeff = (u : A) := by simpa [w, φ] using hu.symm
+      simp [b, this]
+    have hmonic : (Polynomial.C b * w i).Monic := monic_C_mul_of_mul_leadingCoeff_eq_one hb
+    have hunitC : IsUnit (Polynomial.C b : Polynomial A) := by
+      have : IsUnit b := ⟨u⁻¹, rfl⟩
+      simpa [Polynomial.isUnit_C] using this
+    let w' : s → Polynomial A := Function.update w i (Polynomial.C b * w i)
+    have hww' : UnimodularVectorEquiv w w' :=
+      unimodularVectorEquiv_update_mul_isUnit (R := A) (s := s) i (Polynomial.C b) hunitC w
+    have hw' : IsUnimodular w' :=
+      (isUnimodular_iff_of_unimodularVectorEquiv (R := A) (s := s) hww').1 hw
+    have hmonic' : ∃ j : s, (w' j).Monic := by
+      refine ⟨i, ?_⟩
+      simp [w', hmonic]
+    have hcor : UnimodularVectorEquiv w' (fun j => Polynomial.C ((w' j).eval 0)) :=
+      cor11 (R := A) (s := s) w' hw' hmonic'
+    let ev0 : Polynomial A →+* A := Polynomial.evalRingHom (R := A) 0
+    let v0 : s → A := fun j => ev0 (w' j)
+    have hv0 : IsUnimodular v0 := isUnimodular_map_ringHom ev0 w' hw'
+    have hih : UnimodularVectorEquiv v0 (fun j => if j = o then (1 : A) else 0) := ih v0 hv0
+    have hmap :
+        UnimodularVectorEquiv (fun j => Polynomial.C (v0 j))
+          (fun j : s => if j = o then (1 : Polynomial A) else 0) := by
+      have := unimodularVectorEquiv_map (s := s) (Polynomial.C : A →+* Polynomial A) hih
+      simpa [v0] using this
+    have hcor' : UnimodularVectorEquiv w' (fun j : s => if j = o then (1 : Polynomial A) else 0) := by
+      have hcor0 : UnimodularVectorEquiv w' (fun j => Polynomial.C (v0 j)) := by
+        simpa [v0, ev0] using hcor
+      exact unimodularVectorEquiv_equivalence.trans hcor0 hmap
+    have hwstd : UnimodularVectorEquiv w (fun j : s => if j = o then (1 : Polynomial A) else 0) :=
+      unimodularVectorEquiv_equivalence.trans hww' hcor'
+    have h' :
+        UnimodularVectorEquiv (fun j => e (v j))
+          (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) := by
+      let φr : MvPolynomial (Fin (n + 1)) k ≃+* Polynomial A := φ.toRingEquiv
+      have := unimodularVectorEquiv_map_ringEquiv φr.symm w
+        (fun j : s => if j = o then (1 : Polynomial A) else 0) hwstd
+      have hcomp : (fun j => φr.symm (w j)) = fun j => e (v j) := by
+        funext j
+        simpa [w, φr] using φr.symm_apply_apply (e (v j))
+      simpa [hcomp] using this
+    have h'' :
+        UnimodularVectorEquiv v (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) := by
+      let er : MvPolynomial (Fin (n + 1)) k ≃+* MvPolynomial (Fin (n + 1)) k := e.toRingEquiv
+      have := unimodularVectorEquiv_map_ringEquiv er.symm (fun j => er (v j))
+        (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) h'
+      have hcomp : (fun j => er.symm (er (v j))) = v := by
+        funext j
+        simpa [er] using er.symm_apply_apply (v j)
+      simpa [hcomp] using this
+    simpa using h''
+
+/-- Let `k` be a field and `σ` a finite set of variables. Any unimodular vector in `k[σ]` is
+equivalent to a standard basis vector. -/
+theorem thm12 {k : Type*} [Field k] {σ : Type*} [Fintype σ] [DecidableEq σ]
+    (o : s) (v : s → MvPolynomial σ k) (hv : IsUnimodular v) :
     UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
-  sorry
+  classical
+  let n : ℕ := Fintype.card σ
+  let eσ : σ ≃ Fin n := Fintype.equivFin σ
+  let ρ : MvPolynomial σ k ≃ₐ[k] MvPolynomial (Fin n) k := MvPolynomial.renameEquiv k eσ
+  let v' : s → MvPolynomial (Fin n) k := fun i => ρ (v i)
+  have hv' : IsUnimodular v' := isUnimodular_map_ringEquiv ρ.toRingEquiv v hv
+  have h' : UnimodularVectorEquiv v' (fun i : s => if i = o then 1 else 0) := thm12_fin n o v' hv'
+  have := unimodularVectorEquiv_map_ringEquiv ρ.symm.toRingEquiv v'
+    (fun i : s => if i = o then 1 else 0) h'
+  simpa [v', ρ] using this
 
 end thm12
 
