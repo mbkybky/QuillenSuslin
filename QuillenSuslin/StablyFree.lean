@@ -43,6 +43,8 @@ theorem isStablyFree_of_projective_of_hasFiniteFreeResolutionLength
           LinearEquiv.prodAssoc R P (LinearMap.ker f) N
       exact Module.Free.of_equiv e'
 
+/-- Let $M$ be a projective module. Then $M$ is stably free if and only if $M$ admits a
+  finite free resolution. -/
 theorem stably_free_iff (M : Type v) [AddCommGroup M] [Module R M] [Module.Finite R M]
     [Module.Projective R M] : IsStablyFree R M ↔ HasFiniteFreeResolution R M := by
   constructor
@@ -83,54 +85,18 @@ theorem stably_free_iff (M : Type v) [AddCommGroup M] [Module R M] [Module.Finit
         LinearEquiv.prodAssoc R M (LinearMap.ker f) N
     exact Module.Free.of_equiv e'
 
-theorem module_free_of_isPrincipalIdealRing [IsDomain R] [IsPrincipalIdealRing R]
-    (P : Type v) [AddCommGroup P] [Module R P] [Module.Finite R P] [Module.Projective R P] :
-    Module.Free R P := by
-  rcases Module.Finite.exists_comp_eq_id_of_projective R P with ⟨n, f, g, hf, hg, hfg⟩
-  have : IsTorsionFree R P :=
-    Function.Injective.moduleIsTorsionFree g hg fun r m => by simp only [map_smul]
-  infer_instance
-
-theorem cor3 [IsDomain R] [IsPrincipalIdealRing R] (s : Type w) [Finite s]
-    (P : Type v) [AddCommGroup P] [Module (MvPolynomial s R) P] [Module.Finite (MvPolynomial s R) P]
-    [Module.Projective (MvPolynomial s R) P] : IsStablyFree (MvPolynomial s R) P := by
-  sorry
-
-/-
-\begin{definition}
-	A finitely generated module $P$ over a commutative ring $R$ is said to be stably free if there
-	exists a finitely generated free module $F$ such that the direct sum $P \oplus F$ is a free
-	module.
-\end{definition}
-
-\begin{proposition}\label{stably_free_iff}
-	Let $M$ be a projective module. Then $M$ is stably free if and only if $M$ admits a finite free resolution.
-\end{proposition}
-
-\begin{proof}
-	If $M$ is stably free then it is trivial that $M$ has a finite free resolution. Conversely assume the existence of the resolution with the above notation. We prove that $M$ is stably free by induction on $n$. The assertion is obvious if $n = 0$. Assume $n \geqq 1$. Insert the kernels and cokernels at each step, in the manner of dimension shifting. Say
-$$
-M_1 = \text{Ker}(E_0 \to P),
-$$
-giving rise to the exact sequence
-$$
-0 \to M_1 \to E_0 \to M \to 0.
-$$
-Since $M$ is projective, this sequence splits, and $E_0 \cong M \oplus M_1$. But $M_1$ has a finite free resolution of length smaller than the resolution of $M$, so there exists a finite free module $F$ such that $M_1 \oplus F$ is free. Since $E_0 \oplus F$ is also free, this concludes the proof of the theorem.
-\end{proof}
-
-\begin{proposition}
-	Let $R$ be a commutative Noetherian ring. Let $x$ be a variable. If every finite $R$-module has a finite free resolution, then every finite $R[x]$-module has a finite free resolution.
-\end{proposition}
-
-\begin{theorem}\label{poly}
-	Let $R$ be a noetherian ring such that every finitely generated projective module over $R$ is stably free. Then the same property holds true for $R[x]$.
-\end{theorem}
-
-By induction, we see:
-
-\begin{corollary}\label{cor:3}
-	Every finitely generated projective module over $k[x_1, \dots, x_n]$, for any field $k$, is necessarily stably free.
-\end{corollary}
-
--/
+/-- Every finitely generated projective module over $k[x_1, \dots, x_n]$, for any field $k$,
+  is necessarily stably free. -/
+theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrincipalIdealRing R]
+    (s : Type w) [Finite s] (P : Type v) [AddCommGroup P] [Module (MvPolynomial s R) P]
+    [Module.Finite (MvPolynomial s R) P] [Module.Projective (MvPolynomial s R) P] :
+    IsStablyFree (MvPolynomial s R) P := by
+  refine (stably_free_iff (MvPolynomial s R) P).2 <|
+    mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing s ?_ P
+  intro Q _ _ hQ
+  rcases Module.Finite.exists_fin' R Q with ⟨n, f, hf⟩
+  obtain ⟨m, bK⟩ := Submodule.basisOfPid (Pi.basisFun R (Fin n)) (LinearMap.ker f)
+  have : Module.Free R (LinearMap.ker f) := Module.Free.of_basis bK
+  have : Module.Finite R (LinearMap.ker f) := Module.Finite.of_basis bK
+  refine ⟨Fin n → R, inferInstance, inferInstance, inferInstance, inferInstance, f, hf, 0, ?_⟩
+  simpa using (HasFiniteFreeResolutionLength.zero (LinearMap.ker f))
