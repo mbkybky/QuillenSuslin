@@ -246,12 +246,37 @@ theorem cor11 (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic
 
 end cor11
 
+section thm12
+
+variable (R : Type*) [CommRing R] [IsDomain R]
+variable {s : Type*} [Fintype s] [DecidableEq s]
+
+/-- Unimodularity is preserved under an algebra equivalence. -/
+theorem isUnimodular_map_ringEquiv {A B : Type*} [CommRing A] [CommRing B] (e : A ≃+* B)
+    (v : s → A) (hv : IsUnimodular v) : IsUnimodular fun i => e (v i) := by
+  sorry
+
+/-- Unimodular-vector equivalence is preserved under an algebra equivalence. -/
+theorem unimodularVectorEquiv_map_ringEquiv {A B : Type*} [CommRing A] [CommRing B] (e : A ≃+* B)
+    (v w : s → A) (hvw : UnimodularVectorEquiv v w) :
+    UnimodularVectorEquiv (fun i => e (v i)) (fun i => e (w i)) := by
+  sorry
+
+/-- For a unimodular vector over `k[x₀,…,xₙ]`, there exists an
+  algebra automorphism making one component monic in `x₀`, after identifying
+  `k[x₀,…,xₙ] ≃ₐ[k] (k[x₁,…,xₙ])[X]` via `MvPolynomial.finSuccEquiv`. -/
+theorem exists_algEquiv_exists_monic_finSuccEquiv (n : ℕ) (v : s → MvPolynomial (Fin (n + 1)) R)
+    (hv : IsUnimodular v) : ∃ e : MvPolynomial (Fin (n + 1)) R ≃ₐ[R] MvPolynomial (Fin (n + 1)) R,
+      ∃ i : s, (MvPolynomial.finSuccEquiv R n (e (v i))).Monic := by
+  sorry
+
 /-- Let $R = k[x_1, \dots, x_n]$ be a polynomial ring over a principal ideal domain $k$, and let
   $v \in R^n$ be a unimodular vector. Then $v \sim e_1$.. -/
-theorem thm12 (R : Type*) [CommRing R] [IsDomain R] [IsPrincipalIdealRing R] {s : Type*} [Fintype s]
-    [DecidableEq s] (o : s) (v : s → MvPolynomial s R) (hv : IsUnimodular v) :
+theorem thm12 (o : s) (v : s → MvPolynomial s R) (hv : IsUnimodular v) :
     UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
   sorry
+
+end thm12
 
 /-
 \begin{definition}
