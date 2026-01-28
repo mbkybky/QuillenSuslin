@@ -12,10 +12,10 @@ variable {A : Type u} {B : Type u} [CommRing A] [CommRing B]
 
 attribute [local instance] RingHomInvPair.of_ringEquiv
 
-noncomputable def semilinearEquiv_compHom (e : A ≃+* B) (M : Type v) [AddCommGroup M] [Module B M] :
+noncomputable def semilinearEquiv_compHom (e : A ≃+* B) (M : Type v) [AddCommGroup M]
+    [Module B M] :
     let : Module A M := Module.compHom M (e : A →+* B)
     M ≃ₛₗ[(e : A →+* B)] M := by
-  classical
   let : Module A M := Module.compHom M (e : A →+* B)
   refine
     { toEquiv := Equiv.refl M
@@ -129,6 +129,149 @@ theorem hasFiniteFreeResolution_of_ringEquiv_right (e : A ≃+* B) (P : Type v) 
 
 end ringEquiv
 
+section uliftRing
+
+variable {S : Type u} [CommRing S]
+
+attribute [local instance] RingHomInvPair.of_ringEquiv
+
+noncomputable def ringEquivULift : ULift.{w} S ≃+* S :=
+  { toEquiv := Equiv.ulift
+    map_mul' := fun _ _ => rfl
+    map_add' := fun _ _ => rfl }
+
+noncomputable def semilinearEquivULift (M : Type u) [AddCommGroup M] [Module S M] :
+    ULift.{w} M ≃ₛₗ[(ringEquivULift (S := S) : ULift.{w} S →+* S)] M :=
+  { toEquiv := Equiv.ulift
+    map_add' := fun _ _ => rfl
+    map_smul' := fun _ _ => rfl }
+
+noncomputable def linearEquivULift (M : Type u) [AddCommGroup M] [Module S M] :
+    ULift.{w} M ≃ₗ[S] M :=
+  { toEquiv := Equiv.ulift
+    map_add' := fun _ _ => rfl
+    map_smul' := fun _ _ => rfl }
+
+theorem moduleFinite_of_ringEquiv' {A : Type u} {B : Type v} [CommRing A] [CommRing B]
+    (e : A ≃+* B) (M : Type w) [AddCommGroup M] [Module B M] [Module.Finite B M] :
+    let : Module A M := Module.compHom M e.toRingHom
+    Module.Finite A M := by
+  let : Module A M := Module.compHom M e.toRingHom
+  have hfgB : (⊤ : Submodule B M).FG := Module.Finite.fg_top
+  rcases (Submodule.fg_def.mp hfgB) with ⟨T, hTfin, hTspan⟩
+  refine Module.Finite.of_fg_top <| (Submodule.fg_def).2 ⟨T, hTfin, ?_⟩
+  apply le_antisymm le_top
+  show (⊤ : Submodule A M) ≤ Submodule.span A T
+  intro x hx
+  have hxB : x ∈ Submodule.span B T := by simp [hTspan]
+  have hBA : (Submodule.span B T : Set M) ⊆ (Submodule.span A T : Set M) := by
+    intro y
+    refine Submodule.span_induction
+      (p := fun z _ => z ∈ (Submodule.span A T : Submodule A M))
+        (fun z hz => Submodule.subset_span hz) (by simp)
+          (fun _ _ _ _ hz₁ hz₂ => by simpa using Submodule.add_mem (Submodule.span A T) hz₁ hz₂) ?_
+    intro b z _ hz
+    rcases e.surjective b with ⟨a, rfl⟩
+    simpa [Module.compHom] using Submodule.smul_mem (Submodule.span A T) a hz
+  exact hBA hxB
+
+theorem hasFiniteFreeResolutionLength_ulift {P : Type u} [AddCommGroup P] [Module S P] {n : ℕ}
+    (hn : HasFiniteFreeResolutionLength S P n) :
+    HasFiniteFreeResolutionLength (ULift.{w} S) (ULift.{w} P) n := by
+  induction hn with
+  | zero P =>
+      have : Module.Free (ULift.{w} S) (ULift.{w} P) :=
+        (Module.Free.iff_of_ringEquiv ringEquivULift
+          (semilinearEquivULift P)).2 inferInstance
+      have : Module.Finite (ULift.{w} S) (ULift.{w} P) := by
+        have : Module.Finite S (ULift.{w} P) :=
+          Module.Finite.equiv (linearEquivULift P).symm
+        simpa using
+          (moduleFinite_of_ringEquiv' (A := ULift.{w} S) (B := S)
+            ringEquivULift (ULift.{w} P))
+      exact HasFiniteFreeResolutionLength.zero (ULift.{w} P)
+  | succ P n F f hf hker ih =>
+      let f' : ULift.{w} F →ₗ[ULift.{w} S] ULift.{w} P :=
+        { toFun := fun x => ULift.up (f x.down)
+          map_add' := by
+            intro x y
+            ext
+            simp [f.map_add]
+          map_smul' := by
+            intro a x
+            ext
+            simp [f.map_smul] }
+      have hf' : Function.Surjective f' := by
+        intro y
+        rcases hf y.down with ⟨x, hx⟩
+        refine ⟨ULift.up x, ?_⟩
+        ext
+        simp [f', hx]
+      have : Module.Free (ULift.{w} S) (ULift.{w} F) :=
+        (Module.Free.iff_of_ringEquiv ringEquivULift (semilinearEquivULift F)).2 inferInstance
+      have : Module.Finite (ULift.{w} S) (ULift.{w} F) := by
+        have : Module.Finite S (ULift.{w} F) :=
+          Module.Finite.equiv (linearEquivULift F).symm
+        simpa using (moduleFinite_of_ringEquiv' (B := S) ringEquivULift (ULift.{w} F))
+      have hk' : HasFiniteFreeResolutionLength (ULift.{w} S) (LinearMap.ker f') n := by
+        have hk0 :
+            HasFiniteFreeResolutionLength (ULift.{w} S) (ULift.{w} (LinearMap.ker f)) n := by
+          simpa using ih
+        let eKer : ULift.{w} (LinearMap.ker f) ≃ₗ[ULift.{w} S] LinearMap.ker f' :=
+          { toEquiv :=
+              { toFun := fun x => ⟨ULift.up x.down.1, by
+                  ext
+                  simp [f']⟩
+                invFun := fun y =>
+                  ULift.up ⟨y.1.down, by
+                    have hy : f' y.1 = 0 := (LinearMap.mem_ker).1 y.2
+                    dsimp [f'] at hy
+                    have hy' : f y.1.down = 0 := by simpa using congrArg ULift.down hy
+                    exact (LinearMap.mem_ker).2 hy'⟩
+                left_inv := fun _ => by congr
+                right_inv := fun y => by congr }
+            map_add' := fun _ _ => by congr
+            map_smul' := fun _ _ => by congr }
+        exact hasFiniteFreeResolutionLength_of_linearEquiv eKer hk0
+      exact HasFiniteFreeResolutionLength.succ (ULift.{w} P) n (ULift.{w} F) f' hf' hk'
+
+theorem hasFiniteFreeResolution_ulift (P : Type v) [AddCommGroup P] [Module S P]
+    (h : HasFiniteFreeResolution S P) : HasFiniteFreeResolution (ULift.{w} S) P := by
+  rcases h with ⟨F, _, _, _, _, f, hf, n, hn⟩
+  let f' : ULift.{w} F →ₗ[ULift.{w} S] P :=
+    { toFun := fun x => f x.down
+      map_add' := fun _ _ => by simp
+      map_smul' := fun _ _ => by simp }
+  have hf' : Function.Surjective f' := by
+    intro y
+    rcases hf y with ⟨x, rfl⟩
+    exact ⟨ULift.up x, rfl⟩
+  have hn' : HasFiniteFreeResolutionLength (ULift.{w} S) (LinearMap.ker f') n := by
+    have hk0 : HasFiniteFreeResolutionLength (ULift.{w} S) (ULift.{w} (LinearMap.ker f)) n := by
+      simpa using hasFiniteFreeResolutionLength_ulift (S := S) (hn := hn)
+    let eKer :
+        ULift.{w} (LinearMap.ker f) ≃ₗ[ULift.{w} S] LinearMap.ker f' :=
+      { toEquiv :=
+          { toFun := fun x => ⟨ULift.up x.down.1, by simp [f']⟩
+            invFun := fun y =>
+            ULift.up ⟨y.1.down, by
+              have hy : f' y.1 = 0 := (LinearMap.mem_ker).1 y.2
+              dsimp [f'] at hy
+              exact (LinearMap.mem_ker).2 hy⟩
+            left_inv := fun _ => by congr
+            right_inv := fun _ => by congr }
+        map_add' := fun _ _ => by congr
+        map_smul' := fun _ _ => by congr }
+    exact hasFiniteFreeResolutionLength_of_linearEquiv eKer hk0
+  have : Module.Free (ULift.{w} S) (ULift.{w} F) :=
+    (Module.Free.iff_of_ringEquiv ringEquivULift (semilinearEquivULift F)).2 inferInstance
+  have : Module.Finite (ULift.{w} S) (ULift.{w} F) := by
+    have : Module.Finite S (ULift.{w} F) := Module.Finite.equiv (linearEquivULift F).symm
+    simpa using moduleFinite_of_ringEquiv' (B := S) ringEquivULift (ULift.{w} F)
+  exact ⟨ULift.{w} F, inferInstance, inferInstance, inferInstance, inferInstance, f', hf', n, hn'⟩
+
+end uliftRing
+
 theorem mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing_aux [IsNoetherianRing R]
     (s : Type) [Finite s]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
@@ -170,4 +313,33 @@ theorem mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing [IsNoetherianRi
       HasFiniteFreeResolution R P)
     (P : Type v) [AddCommGroup P] [Module (MvPolynomial s R) P]
     [Module.Finite (MvPolynomial s R) P] : HasFiniteFreeResolution (MvPolynomial s R) P := by
-  sorry
+  let : Fintype s := Fintype.ofFinite s
+  let n : ℕ := Fintype.card s
+  let a : s ≃ Fin n := Fintype.equivFin s
+  let e : MvPolynomial s R ≃+* MvPolynomial (Fin n) R := (MvPolynomial.renameEquiv R a).toRingEquiv
+  let B : Type u := MvPolynomial (Fin n) R
+  let : Module B P := Module.compHom P e.symm.toRingHom
+  have : Module.Finite B P := by simpa [B] using (moduleFinite_of_ringEquiv' e.symm P)
+  have : Small.{u} P := Module.Finite.small B P
+  let P' : Type u := Shrink.{u} P
+  have : Module.Finite B P' :=
+    Module.Finite.of_surjective ((Shrink.linearEquiv B P).symm.toLinearMap)
+      (Shrink.linearEquiv B P).symm.surjective
+  have hP' : HasFiniteFreeResolution B P' :=
+    mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing_aux (Fin n) hR P'
+  have hPB : HasFiniteFreeResolution B P := by
+    simpa [P'] using hasFiniteFreeResolution_of_linearEquiv (Shrink.linearEquiv B P) hP'
+  let UB : Type (max u w) := ULift.{w} B
+  let eU : MvPolynomial s R ≃+* UB := e.trans ringEquivULift.symm
+  let instUB₀ : Module UB P := Module.compHom P ringEquivULift.toRingHom
+  have hUB₀ : HasFiniteFreeResolution UB P := by
+    simpa [UB] using (hasFiniteFreeResolution_ulift P hPB)
+  let instUB₁ : Module UB P := Module.compHom P eU.symm.toRingHom
+  have hinst : instUB₀ = instUB₁ := by
+    refine Module.ext' instUB₀ instUB₁ ?_
+    intro b x
+    simp [instUB₀, instUB₁, eU, Module.compHom]
+  have hUB₁ : @HasFiniteFreeResolution UB P _ _ instUB₁ := by
+    simpa [hinst] using (show @HasFiniteFreeResolution UB P _ _ instUB₀ from hUB₀)
+  have hU' : (let : Module UB P := instUB₁; HasFiniteFreeResolution UB P) := by simpa using hUB₁
+  simpa [UB] using hasFiniteFreeResolution_of_ringEquiv_left eU P hU'
