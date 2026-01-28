@@ -18,17 +18,13 @@ inductive HasFiniteFreeResolutionLength (R : Type u) [CommRing R] :
       (hker : HasFiniteFreeResolutionLength R (LinearMap.ker f) n) :
       HasFiniteFreeResolutionLength R P (n + 1)
 
-def HasFiniteFreeResolutionAux (R P : Type u)
-    [CommRing R] [AddCommGroup P] [Module R P] : Prop :=
-  ∃ n : ℕ, HasFiniteFreeResolutionLength R P n
-
 /-- A module `P` over a commutative ring `R` has a finite free resolution if it has a resolution
 of some finite length by finitely generated free `R`-modules. -/
 def HasFiniteFreeResolution (R : Type u) (P : Type v)
     [CommRing R] [AddCommGroup P] [Module R P] : Prop :=
   ∃ (F : Type u) ( _ : AddCommGroup F) (_ : Module R F) (_ : Module.Finite R F)
     (_ : Module.Free R F) (f : F →ₗ[R] P) (_ : Function.Surjective f) (n : ℕ),
-    HasFiniteFreeResolutionLength R (LinearMap.ker f) n
+      HasFiniteFreeResolutionLength R (LinearMap.ker f) n
 
 /-- A finitely generated free module has a finite free resolution (of length `0`). -/
 theorem hasFiniteFreeResolution_of_finite_of_free (P : Type v) [AddCommGroup P] [Module R P]
@@ -73,8 +69,9 @@ theorem hasFiniteFreeResolution_of_linearEquiv {P : Type v} {Q : Type w} [AddCom
     e.surjective.comp hf, n,
       hasFiniteFreeResolutionLength_of_linearEquiv (LinearEquiv.ofEq _ _ (e.ker_comp f).symm) hn⟩
 
-theorem hasFiniteFreeResolutionAux_of_hasFiniteFreeResolution (P : Type u) [AddCommGroup P] [Module R P] :
-    HasFiniteFreeResolution R P → HasFiniteFreeResolutionAux R P := by
+theorem hasFiniteFreeResolutionLength_of_hasFiniteFreeResolution
+    (P : Type u) [AddCommGroup P] [Module R P] :
+    HasFiniteFreeResolution R P → ∃ n : ℕ, HasFiniteFreeResolutionLength R P n := by
   rintro ⟨F, _, _, _, _, f, hf, n, hn⟩
   exact ⟨n + 1, HasFiniteFreeResolutionLength.succ P n F f hf hn⟩
 
@@ -102,10 +99,11 @@ theorem exists_surjective_of_hasFiniteFreeResolutionLength (P : Type u)
       refine ⟨F, inferInstance, inferInstance, inferInstance, inferInstance, π, hπ, ?_⟩
       simpa using hker
 
-theorem hasFiniteFreeResolution_of_hasFiniteFreeResolutionAux (P : Type u) [AddCommGroup P] [Module R P] :
-    HasFiniteFreeResolutionAux R P → HasFiniteFreeResolution R P := by
+theorem hasFiniteFreeResolution_of_hasFiniteFreeResolutionLength
+    (P : Type u) [AddCommGroup P] [Module R P] :
+    (∃ n : ℕ, HasFiniteFreeResolutionLength R P n) → HasFiniteFreeResolution R P := by
   rintro ⟨n, hn⟩
-  rcases exists_surjective_of_hasFiniteFreeResolutionLength (R := R) P hn with
+  rcases exists_surjective_of_hasFiniteFreeResolutionLength P hn with
     ⟨F, _, _, _, _, π, hπ, hker⟩
   exact ⟨F, inferInstance, inferInstance, inferInstance, inferInstance, π, hπ, Nat.pred n, hker⟩
 
@@ -183,12 +181,11 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right_length (P₁ P₂
               _ = f y.1.1 := ((eq_neg_iff_add_eq_zero).2 hy).symm
           exact hf this
         exact Prod.ext h1 h2
-      have haux : HasFiniteFreeResolutionAux R P₂ :=
+      exact hasFiniteFreeResolution_of_hasFiniteFreeResolutionLength P₂
         ⟨Nat.pred n₃ + 1,
           HasFiniteFreeResolutionLength.succ P₂ (Nat.pred n₃) (P₁ × F₃) φ hφsurj <|
             hasFiniteFreeResolutionLength_of_linearEquiv
               (LinearEquiv.ofBijective p ⟨hp_inj, hp_surj⟩).symm hK₃⟩
-      exact hasFiniteFreeResolution_of_hasFiniteFreeResolutionAux (R := R) P₂ haux
   | succ P₁ n F₁ π₁ hπ₁ hK₁ ih =>
       -- Choose the first step of the resolution of `P₃`.
       rcases exists_surjective_of_hasFiniteFreeResolutionLength P₃ h₃ with
@@ -290,11 +287,10 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right_length (P₁ P₂
       have hK₂ : HasFiniteFreeResolution R (LinearMap.ker φ) :=
         ih (P₂ := LinearMap.ker φ) (P₃ := LinearMap.ker π₃) (f := i) (g := p)
           (hf := hi) (hg := hp) (h := hexact) (n₃ := Nat.pred n₃) hK₃
-      rcases hasFiniteFreeResolutionAux_of_hasFiniteFreeResolution (R := R) (P := LinearMap.ker φ) hK₂ with
+      rcases hasFiniteFreeResolutionLength_of_hasFiniteFreeResolution (LinearMap.ker φ) hK₂ with
         ⟨m, hm⟩
-      have haux : HasFiniteFreeResolutionAux R P₂ :=
+      exact hasFiniteFreeResolution_of_hasFiniteFreeResolutionLength P₂
         ⟨m + 1, HasFiniteFreeResolutionLength.succ P₂ m (F₁ × F₃) φ hφsurj hm⟩
-      exact hasFiniteFreeResolution_of_hasFiniteFreeResolutionAux (R := R) P₂ haux
 
 /-- In a short exact sequence `0 → P₁ → P₂ → P₃ → 0`, if `P₁` and `P₃` have finite free
 resolutions, then so does `P₂`. -/
@@ -397,7 +393,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right (P₁ P₂ P₃ :
   have hK₂ : HasFiniteFreeResolution R (LinearMap.ker φ) :=
     hasFiniteFreeResolution_of_shortExact_of_left_of_right_length (R := R)
       (P₁ := LinearMap.ker π₁) (P₂ := LinearMap.ker φ) (P₃ := LinearMap.ker π₃) hi hp hexact hK₁ hK₃
-  rcases hasFiniteFreeResolutionAux_of_hasFiniteFreeResolution (R := R) (P := LinearMap.ker φ) hK₂ with ⟨m, hm⟩
+  rcases hasFiniteFreeResolutionLength_of_hasFiniteFreeResolution (LinearMap.ker φ) hK₂ with ⟨m, hm⟩
   exact ⟨F₁ × F₃, inferInstance, inferInstance, inferInstance, inferInstance, φ, hφsurj, m, hm⟩
 
 /-- In a short exact sequence `0 → P₁ → P₂ → P₃ → 0`, if `P₁` and `P₂` have finite free
@@ -409,7 +405,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_middle (P₁ P₂ P₃ 
     (h₂ : HasFiniteFreeResolution R P₂) : HasFiniteFreeResolution R P₃ := by
   rcases h₂ with ⟨F₂, _, _, _, _, π₂, hπ₂, n₂, hK₂len⟩
   have hK₂ : HasFiniteFreeResolution R (LinearMap.ker π₂) :=
-    hasFiniteFreeResolution_of_hasFiniteFreeResolutionAux (R := R) (LinearMap.ker π₂) ⟨n₂, hK₂len⟩
+    hasFiniteFreeResolution_of_hasFiniteFreeResolutionLength (LinearMap.ker π₂) ⟨n₂, hK₂len⟩
   let q : F₂ →ₗ[R] P₃ := g.comp π₂
   have hq : Function.Surjective q := hg.comp hπ₂
   -- Define the short exact sequence `ker π₂ → ker q → P₁`.
@@ -463,7 +459,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_middle (P₁ P₂ P₃ 
   have hL : HasFiniteFreeResolution R (LinearMap.ker q) :=
     hasFiniteFreeResolution_of_shortExact_of_left_of_right (LinearMap.ker π₂) (LinearMap.ker q) P₁
       hi hp hexact hK₂ h₁
-  rcases hasFiniteFreeResolutionAux_of_hasFiniteFreeResolution (R := R) (P := LinearMap.ker q) hL with ⟨m, hm⟩
+  rcases hasFiniteFreeResolutionLength_of_hasFiniteFreeResolution (LinearMap.ker q) hL with ⟨m, hm⟩
   exact ⟨F₂, inferInstance, inferInstance, inferInstance, inferInstance, q, hq, m, hm⟩
 
 /-- In a short exact sequence `0 → P₁ → P₂ → P₃ → 0`, if `P₂` and `P₃` have finite free
@@ -475,13 +471,13 @@ theorem hasFiniteFreeResolution_of_shortExact_of_middle_of_right (P₁ P₂ P₃
     (h₃ : HasFiniteFreeResolution R P₃) : HasFiniteFreeResolution R P₁ := by
   rcases h₂ with ⟨F₂, _, _, _, _, π₂, hπ₂, n₂, hK₂len⟩
   have hK₂ : HasFiniteFreeResolution R (LinearMap.ker π₂) :=
-    hasFiniteFreeResolution_of_hasFiniteFreeResolutionAux (R := R) (LinearMap.ker π₂) ⟨n₂, hK₂len⟩
+    hasFiniteFreeResolution_of_hasFiniteFreeResolutionLength (LinearMap.ker π₂) ⟨n₂, hK₂len⟩
   have hF₂ : HasFiniteFreeResolution R F₂ := hasFiniteFreeResolution_of_finite_of_free F₂
   let q : F₂ →ₗ[R] P₃ := g.comp π₂
   have hq : Function.Surjective q := hg.comp hπ₂
   rcases h₃ with ⟨F₃, _, _, _, _, π₃, hπ₃, n₃, hK₃len⟩
   have hK₃ : HasFiniteFreeResolution R (LinearMap.ker π₃) :=
-    hasFiniteFreeResolution_of_hasFiniteFreeResolutionAux (R := R) (LinearMap.ker π₃) ⟨n₃, hK₃len⟩
+    hasFiniteFreeResolution_of_hasFiniteFreeResolutionLength (LinearMap.ker π₃) ⟨n₃, hK₃len⟩
   have hF₃ : HasFiniteFreeResolution R F₃ := hasFiniteFreeResolution_of_finite_of_free F₃
   -- Compare `q : F₂ → P₃` with the chosen surjection `π₃ : F₃ → P₃`.
   let d : (F₂ × F₃) →ₗ[R] P₃ := q.coprod (-π₃)
@@ -651,7 +647,7 @@ theorem hasFiniteFreeResolution_of_subsingleton (M : Type v)
 theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
     (I : Ideal R) (hI : HasFiniteFreeResolution R I) :
     HasFiniteFreeResolution R[X] (Ideal.map (C : R →+* R[X]) I) := by
-  rcases hasFiniteFreeResolutionAux_of_hasFiniteFreeResolution (R := R) (P := I) hI with ⟨n, hn⟩
+  rcases hasFiniteFreeResolutionLength_of_hasFiniteFreeResolution I hI with ⟨n, hn⟩
   let polyMap {P Q : Type u} [AddCommGroup P] [Module R P] [AddCommGroup Q] [Module R Q]
       (f : P →ₗ[R] Q) : PolynomialModule R P →ₗ[R[X]] PolynomialModule R Q :=
     { toFun := PolynomialModule.map R f
@@ -671,7 +667,7 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
         let : Module.Finite R[X] (PolynomialModule R P) :=
           Module.Finite.of_surjective e.toLinearMap e.surjective
         let : Module.Free R[X] (PolynomialModule R P) := Module.Free.of_equiv e
-        exact HasFiniteFreeResolutionLength.zero (P := PolynomialModule R P)
+        exact HasFiniteFreeResolutionLength.zero (PolynomialModule R P)
     | succ P n F f hf hker ih =>
         let eF := PolynomialModule.polynomialTensorProductLEquivPolynomialModule R F
         let : Module.Finite R[X] (PolynomialModule R F) :=
@@ -757,7 +753,7 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
         exact HasFiniteFreeResolutionLength.succ (PolynomialModule R P) n
           (PolynomialModule R F) fX hfX hkerX
   have hPoly : HasFiniteFreeResolution R[X] (PolynomialModule R I) :=
-    hasFiniteFreeResolution_of_hasFiniteFreeResolutionAux (R := R[X]) (P := PolynomialModule R I)
+    hasFiniteFreeResolution_of_hasFiniteFreeResolutionLength (PolynomialModule R I)
       ⟨n, liftLength hn⟩
   let incl : I →ₗ[R] R := I.subtype
   let inclX : PolynomialModule R I →ₗ[R[X]] PolynomialModule R R := polyMap incl
@@ -842,7 +838,7 @@ noncomputable def linearEquiv_mul_spanSingleton [IsDomain R] {f : R}
 
 /-- If `P ⊂ R[X]` is an ideal over a Noetherian domain `R` with `P ∩ R = (0)`, then there exists
   `d ≠ 0` and `f ∈ P` such that `d • P ⊆ (f)`. -/
-theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] [IsNoetherianRing R] (P : Ideal (R[X]))
+theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] [IsNoetherianRing R] {P : Ideal (R[X])}
     (hP : ∀ x : R, C x ∈ P → x = 0) (hPne : P ≠ ⊥) :
     ∃ d : R, d ≠ 0 ∧ ∃ f : R[X], f ∈ P ∧ f ≠ 0 ∧
       ∀ g ∈ P, C d * g ∈ Ideal.span ({f} : Set (R[X])) := by
@@ -1020,7 +1016,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
   by_cases hPIA : P = IA
   · have hI_res : HasFiniteFreeResolution R I := hR I inferInstance
     have hIA_res : HasFiniteFreeResolution A IA :=
-      hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution (R := R) I hI_res
+      hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution I hI_res
     have hA : HasFiniteFreeResolution A A := hasFiniteFreeResolution_of_finite_of_free A
     have hquot : HasFiniteFreeResolution A (A ⧸ IA) :=
       hasFiniteFreeResolution_of_shortExact_of_left_of_middle IA A (A ⧸ IA)
@@ -1078,7 +1074,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
       exact (Ideal.Quotient.eq_zero_iff_mem).2 hrI
     -- Apply the clearing-denominators lemma to `P₀`.
     obtain ⟨d₀, hd₀, f₀, hf₀P₀, hf₀ne, hmul₀⟩ :=
-      exists_nonzero_C_mul_mem_span_singleton (R := R₀) (P := P₀) hP₀_contr hP₀_ne
+      exists_nonzero_C_mul_mem_span_singleton hP₀_contr hP₀_ne
     -- Choose a lift `d : R` of `d₀` (so `d ∉ I`).
     rcases Ideal.Quotient.mk_surjective (I := I) d₀ with ⟨d, rfl⟩
     have hd_not_mem : d ∉ I := by
@@ -1284,7 +1280,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     -- `B` has a finite free resolution as an `A`-module.
     have hI_res : HasFiniteFreeResolution R I := hR I inferInstance
     have hIA_res : HasFiniteFreeResolution A IA :=
-      hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution (R := R) I hI_res
+      hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution I hI_res
     have hA : HasFiniteFreeResolution A A := hasFiniteFreeResolution_of_finite_of_free (R := A) A
     have hB : HasFiniteFreeResolution A B :=
       hasFiniteFreeResolution_of_shortExact_of_left_of_middle IA A (A ⧸ IA)
@@ -1377,13 +1373,5 @@ theorem polynomial_hasFiniteFreeResolution_of_isNoetherianRing [IsNoetherianRing
         (hasFiniteFreeResolution_quotient_prime hR p))
       (fun N₁ _ _ _ N₂ _ _ _ N₃ _ _ _ _ _ hf hg hfg h₁ h₃ =>
         hasFiniteFreeResolution_of_shortExact_of_left_of_right N₁ N₂ N₃ hf hg hfg h₁ h₃)
-
-theorem mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing [IsNoetherianRing R]
-    (s : Type w) [Finite s]
-    (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
-      HasFiniteFreeResolution R P)
-    (P : Type v) [AddCommGroup P] [Module (MvPolynomial s R) P]
-    [Module.Finite (MvPolynomial s R) P] : HasFiniteFreeResolution (MvPolynomial s R) P := by
-  sorry
 
 end polynomial
