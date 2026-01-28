@@ -254,21 +254,199 @@ variable {s : Type*} [Fintype s] [DecidableEq s]
 /-- Unimodularity is preserved under an algebra equivalence. -/
 theorem isUnimodular_map_ringEquiv {A B : Type*} [CommRing A] [CommRing B] (e : A ≃+* B)
     (v : s → A) (hv : IsUnimodular v) : IsUnimodular fun i => e (v i) := by
-  sorry
+  classical
+  unfold IsUnimodular at hv ⊢
+  have hmap : Ideal.map (e : A →+* B) (Ideal.span (Set.range v)) = ⊤ := by
+    have := congrArg (Ideal.map (e : A →+* B)) hv
+    simpa using this.trans (by simpa using (Ideal.map_top (f := (e : A →+* B))))
+  have hspan : Ideal.span ((e : A →+* B) '' Set.range v) = ⊤ := by
+    simpa [Ideal.map_span] using hmap
+  have hrange : (e : A → B) '' Set.range v = Set.range fun i => e (v i) := by
+    ext b
+    constructor
+    · rintro ⟨a, ⟨i, rfl⟩, rfl⟩
+      exact ⟨i, rfl⟩
+    · rintro ⟨i, rfl⟩
+      exact ⟨v i, ⟨i, rfl⟩, rfl⟩
+  simpa [hrange] using hspan
 
 /-- Unimodular-vector equivalence is preserved under an algebra equivalence. -/
 theorem unimodularVectorEquiv_map_ringEquiv {A B : Type*} [CommRing A] [CommRing B] (e : A ≃+* B)
     (v w : s → A) (hvw : UnimodularVectorEquiv v w) :
     UnimodularVectorEquiv (fun i => e (v i)) (fun i => e (w i)) := by
-  sorry
+  simpa using unimodularVectorEquiv_map (f := (e : A →+* B)) hvw
 
-/-- For a unimodular vector over `k[x₀,…,xₙ]`, there exists an
-  algebra automorphism making one component monic in `x₀`, after identifying
-  `k[x₀,…,xₙ] ≃ₐ[k] (k[x₁,…,xₙ])[X]` via `MvPolynomial.finSuccEquiv`. -/
-theorem exists_algEquiv_exists_monic_finSuccEquiv (n : ℕ) (v : s → MvPolynomial (Fin (n + 1)) R)
-    (hv : IsUnimodular v) : ∃ e : MvPolynomial (Fin (n + 1)) R ≃ₐ[R] MvPolynomial (Fin (n + 1)) R,
-      ∃ i : s, (MvPolynomial.finSuccEquiv R n (e (v i))).Monic := by
-  sorry
+section monicize
+
+variable {k : Type*} [Field k] {n : ℕ}
+
+open scoped BigOperators
+
+variable (f : MvPolynomial (Fin (n + 1)) k)
+
+/-- `up` is defined as `2 + f.totalDegree`. Any big enough number would work. -/
+local notation3 "up" => 2 + f.totalDegree
+
+private lemma lt_up {v : Fin (n + 1) → ℕ} (vlt : ∀ i, v i < up) :
+    ∀ l ∈ List.ofFn v, l < up := by
+  intro l hl
+  rcases ((List.mem_ofFn' v l).1 hl) with ⟨i, rfl⟩
+  exact vlt i
+
+/-- `r` maps `(i : Fin (n + 1))` to `up ^ i`. -/
+local notation3 "r" => fun (i : Fin (n + 1)) ↦ up ^ i.1
+
+/-- The triangular algebra endomorphism sending `X_i ↦ X_i + c * X_0^(r i)` for `i ≠ 0` and
+fixing `X_0`. -/
+noncomputable abbrev T1 (c : k) :
+    MvPolynomial (Fin (n + 1)) k →ₐ[k] MvPolynomial (Fin (n + 1)) k :=
+  MvPolynomial.aeval fun i ↦ if i = 0 then MvPolynomial.X 0 else MvPolynomial.X i + c • MvPolynomial.X 0 ^ r i
+
+private lemma t1_comp_t1_neg (c : k) : (T1 f c).comp (T1 f (-c)) = AlgHom.id _ _ := by
+  rw [MvPolynomial.comp_aeval, ← MvPolynomial.aeval_X_left]
+  ext i v
+  cases i using Fin.cases <;> simp [T1, add_assoc, add_left_comm, add_comm]
+
+/-- `T1 f 1` leads to an algebra equivalence `T f`. -/
+private noncomputable abbrev T :
+    MvPolynomial (Fin (n + 1)) k ≃ₐ[k] MvPolynomial (Fin (n + 1)) k :=
+  AlgEquiv.ofAlgHom (T1 f 1) (T1 f (-1)) (t1_comp_t1_neg f 1) (by simpa using t1_comp_t1_neg f (-1))
+
+private lemma sum_r_mul_neq {v w : Fin (n + 1) →₀ ℕ} (vlt : ∀ i, v i < up) (wlt : ∀ i, w i < up)
+    (neq : v ≠ w) : (∑ x : Fin (n + 1), r x * v x) ≠ ∑ x : Fin (n + 1), r x * w x := by
+  intro h
+  refine neq <| Finsupp.ext <| congrFun <| (List.ofFn_inj.mp ?_)
+  apply Nat.ofDigits_inj_of_len_eq (Nat.lt_add_right f.totalDegree one_lt_two) (by simp)
+      (lt_up (f := f) vlt) (lt_up (f := f) wlt)
+  simpa only [Nat.ofDigits_eq_sum_mapIdx, List.mapIdx_eq_ofFn, List.get_ofFn, List.length_ofFn,
+      Fin.val_cast, mul_comm, List.sum_ofFn] using h
+
+private lemma degreeOf_zero_t {v : Fin (n + 1) →₀ ℕ} {a : k} (ha : a ≠ 0) :
+    ((T f) (MvPolynomial.monomial v a)).degreeOf 0 = ∑ i : Fin (n + 1), (r i) * v i := by
+  rw [← MvPolynomial.natDegree_finSuccEquiv, MvPolynomial.monomial_eq, Finsupp.prod_pow v fun a ↦ MvPolynomial.X a]
+  simp only [Fin.prod_univ_succ, Fin.sum_univ_succ, map_mul, map_prod, map_pow, AlgEquiv.ofAlgHom_apply,
+    MvPolynomial.aeval_C, MvPolynomial.aeval_X, if_pos, Fin.succ_ne_zero, ite_false, one_smul,
+    map_add, MvPolynomial.finSuccEquiv_X_zero, MvPolynomial.finSuccEquiv_X_succ, MvPolynomial.algebraMap_eq]
+  have h (i : Fin n) :
+      (Polynomial.C (MvPolynomial.X (R := k) i) + Polynomial.X ^ r i.succ) ^ v i.succ ≠ 0 :=
+    pow_ne_zero (v i.succ) (Polynomial.leadingCoeff_ne_zero.mp <| by
+      simp [add_comm, Polynomial.leadingCoeff_X_pow_add_C])
+  rw [Polynomial.natDegree_mul (by simp [ha])
+      (mul_ne_zero (by simp) (Finset.prod_ne_zero_iff.mpr (fun i _ ↦ h i))),
+    Polynomial.natDegree_mul (by simp) (Finset.prod_ne_zero_iff.mpr (fun i _ ↦ h i)),
+    Polynomial.natDegree_prod _ _ (fun i _ ↦ h i), MvPolynomial.natDegree_finSuccEquiv,
+    MvPolynomial.degreeOf_C]
+  simpa only [Polynomial.natDegree_pow, zero_add, Polynomial.natDegree_X, mul_one, Fin.val_zero,
+      pow_zero, one_mul, add_right_inj] using
+    Finset.sum_congr rfl (fun i _ ↦ by
+      rw [add_comm (Polynomial.C _), Polynomial.natDegree_X_pow_add_C, mul_comm])
+
+private lemma degreeOf_t_neq_of_neq {v w : Fin (n + 1) →₀ ℕ} (hv : v ∈ f.support) (hw : w ∈ f.support)
+    (neq : v ≠ w) :
+    (T f (MvPolynomial.monomial v (MvPolynomial.coeff v f))).degreeOf 0 ≠
+      (T f (MvPolynomial.monomial w (MvPolynomial.coeff w f))).degreeOf 0 := by
+  rw [degreeOf_zero_t (f := f) (a := MvPolynomial.coeff v f) (by exact (MvPolynomial.mem_support_iff.mp hv)),
+    degreeOf_zero_t (f := f) (a := MvPolynomial.coeff w f) (by exact (MvPolynomial.mem_support_iff.mp hw))]
+  refine sum_r_mul_neq (f := f) (v := v) (w := w) (fun i ↦ ?_) (fun i ↦ ?_) neq <;>
+  · exact lt_of_le_of_lt ((MvPolynomial.monomial_le_degreeOf i ‹_›).trans (MvPolynomial.degreeOf_le_totalDegree f i))
+      (by lia)
+
+private lemma leadingCoeff_finSuccEquiv_t {v : Fin (n + 1) →₀ ℕ} :
+    (MvPolynomial.finSuccEquiv k n (T f (MvPolynomial.monomial v (MvPolynomial.coeff v f)))).leadingCoeff =
+      algebraMap k _ (MvPolynomial.coeff v f) := by
+  rw [MvPolynomial.monomial_eq, Finsupp.prod_fintype]
+  · simp only [map_mul, map_prod, Polynomial.leadingCoeff_mul, Polynomial.leadingCoeff_prod]
+    rw [AlgEquiv.ofAlgHom_apply, MvPolynomial.algHom_C, MvPolynomial.algebraMap_eq,
+      MvPolynomial.finSuccEquiv_apply, MvPolynomial.eval₂Hom_C, RingHom.coe_comp]
+    simp only [AlgEquiv.ofAlgHom_apply, Function.comp_apply, Polynomial.leadingCoeff_C, map_pow,
+      Polynomial.leadingCoeff_pow, MvPolynomial.algebraMap_eq]
+    have : ∀ j, (MvPolynomial.finSuccEquiv k n ((T1 f) 1 (MvPolynomial.X j))).leadingCoeff = 1 := fun j ↦ by
+      by_cases h : j = 0
+      · simp [h, MvPolynomial.finSuccEquiv_apply]
+      · simp only [MvPolynomial.aeval_eq_bind₁, MvPolynomial.bind₁_X_right, if_neg h, one_smul,
+          map_add, map_pow]
+        obtain ⟨i, rfl⟩ := Fin.exists_succ_eq.mpr h
+        simp [MvPolynomial.finSuccEquiv_X_succ, MvPolynomial.finSuccEquiv_X_zero, add_comm]
+    simp only [this, one_pow, Finset.prod_const_one, mul_one]
+  exact fun i ↦ pow_zero _
+
+private lemma T_leadingcoeff_isUnit (fne : f ≠ 0) :
+    IsUnit (MvPolynomial.finSuccEquiv k n (T f f)).leadingCoeff := by
+  obtain ⟨v, vin, vs⟩ := Finset.exists_max_image f.support
+    (fun v ↦ (T f (MvPolynomial.monomial v (MvPolynomial.coeff v f))).degreeOf 0)
+    (MvPolynomial.support_nonempty.mpr fne)
+  set h := fun w ↦ MvPolynomial.monomial w (MvPolynomial.coeff w f)
+  simp only [← MvPolynomial.natDegree_finSuccEquiv] at vs
+  replace vs :
+      ∀ x ∈ f.support \ {v},
+        (MvPolynomial.finSuccEquiv k n (T f (h x))).degree <
+          (MvPolynomial.finSuccEquiv k n (T f (h v))).degree := by
+    intro x hx
+    obtain ⟨h1, h2⟩ := Finset.mem_sdiff.mp hx
+    apply Polynomial.degree_lt_degree <| lt_of_le_of_ne (vs x h1) ?_
+    simpa only [MvPolynomial.natDegree_finSuccEquiv] using
+      degreeOf_t_neq_of_neq (f := f) (hv := h1) (hw := vin) (neq := by
+        intro hxv
+        exact h2 (Finset.mem_singleton.2 hxv))
+  have coeff :
+      (MvPolynomial.finSuccEquiv k n (T f (h v + ∑ x ∈ f.support \ {v}, h x))).leadingCoeff =
+        (MvPolynomial.finSuccEquiv k n (T f (h v))).leadingCoeff := by
+    simp only [map_add, map_sum]
+    rw [add_comm]
+    apply Polynomial.leadingCoeff_add_of_degree_lt <| (lt_of_le_of_lt (Polynomial.degree_sum_le _ _) ?_)
+    have h2 : h v ≠ 0 := by
+      simpa [h] using (MvPolynomial.mem_support_iff.mp vin)
+    have h2' : (MvPolynomial.finSuccEquiv k n (T f (h v))) ≠ 0 := fun eq ↦ h2 <|
+      by simpa only [map_eq_zero_iff _ (AlgEquiv.injective _)] using eq
+    exact (Finset.sup_lt_iff (Ne.bot_lt (fun x ↦ h2' <| Polynomial.degree_eq_bot.mp x))).mpr vs
+  nth_rw 2 [← MvPolynomial.support_sum_monomial_coeff f]
+  rw [Finset.sum_eq_add_sum_diff_singleton vin h]
+  rw [leadingCoeff_finSuccEquiv_t (f := f)] at coeff
+  simpa only [coeff, MvPolynomial.algebraMap_eq] using (MvPolynomial.mem_support_iff.mp vin).isUnit.map MvPolynomial.C
+
+/-- For a nonzero multivariable polynomial over a field, there exists an algebra automorphism which
+makes its `finSuccEquiv` image have invertible leading coefficient (Nagata's trick). -/
+theorem exists_algEquiv_isUnit_leadingCoeff_finSuccEquiv (f : MvPolynomial (Fin (n + 1)) k) (fne : f ≠ 0) :
+    ∃ e : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] MvPolynomial (Fin (n + 1)) k,
+      IsUnit (MvPolynomial.finSuccEquiv k n (e f)).leadingCoeff := by
+  refine ⟨T f, ?_⟩
+  simpa using T_leadingcoeff_isUnit (f := f) (n := n) fne
+
+/-- For a unimodular vector over `k[x₀,…,xₙ]` (with `k` a field), there exists an algebra
+automorphism such that one component becomes a polynomial in `x₀` with invertible leading
+coefficient, after identifying `k[x₀,…,xₙ] ≃ₐ[k] (k[x₁,…,xₙ])[X]` via `finSuccEquiv`. -/
+theorem exists_algEquiv_exists_isUnit_leadingCoeff_finSuccEquiv (n : ℕ)
+    (v : s → MvPolynomial (Fin (n + 1)) k) (hv : IsUnimodular v) :
+    ∃ e : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] MvPolynomial (Fin (n + 1)) k,
+      ∃ i : s, IsUnit (MvPolynomial.finSuccEquiv k n (e (v i))).leadingCoeff := by
+  classical
+  have h1 :
+      (1 : MvPolynomial (Fin (n + 1)) k) ∈ Ideal.span (Set.range v) := by
+    unfold IsUnimodular at hv
+    simpa [hv] using (show (1 : MvPolynomial (Fin (n + 1)) k) ∈ (⊤ : Ideal _) from by simp)
+  rcases (Ideal.mem_span_range_iff_exists_fun).1 h1 with ⟨c, hc⟩
+  have hex : ∃ i : s, v i ≠ 0 := by
+    by_contra h0
+    have hv0 : ∀ i : s, v i = 0 := by
+      intro i
+      by_contra hi
+      exact h0 ⟨i, hi⟩
+    have : (∑ i : s, c i * v i) = 0 := by simp [hv0]
+    exact (one_ne_zero : (1 : MvPolynomial (Fin (n + 1)) k) ≠ 0) (by simpa [this] using hc.symm)
+  rcases hex with ⟨i, hi⟩
+  rcases exists_algEquiv_isUnit_leadingCoeff_finSuccEquiv (k := k) (n := n) (f := v i) hi with ⟨e, he⟩
+  exact ⟨e, i, he⟩
+
+/-- Alias for `exists_algEquiv_exists_isUnit_leadingCoeff_finSuccEquiv`. This is the “monicization”
+step in the proof sketch at the end of this file: in practice we first arrange that some component
+has *invertible* leading coefficient in the distinguished variable. -/
+theorem exists_algEquiv_exists_monic_finSuccEquiv (n : ℕ)
+    (v : s → MvPolynomial (Fin (n + 1)) k) (hv : IsUnimodular v) :
+    ∃ e : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] MvPolynomial (Fin (n + 1)) k,
+      ∃ i : s, IsUnit (MvPolynomial.finSuccEquiv k n (e (v i))).leadingCoeff :=
+  exists_algEquiv_exists_isUnit_leadingCoeff_finSuccEquiv (k := k) (s := s) (n := n) v hv
+
+end monicize
 
 /-- Let $R = k[x_1, \dots, x_n]$ be a polynomial ring over a principal ideal domain $k$, and let
   $v \in R^n$ be a unimodular vector. Then $v \sim e_1$.. -/
