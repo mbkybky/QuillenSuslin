@@ -10,62 +10,10 @@ def IsStablyFree (R : Type u) (P : Type v) [CommRing R] [AddCommGroup P] [Module
 
 variable {R : Type u} [CommRing R]
 
-/-- Let $R$ be a ring. Let $0 \to P' \to P \to P'' \to 0$ be a short
-	exact sequence of finite projective $R$-modules. If $2$ out of $3$
-	of these modules are stably free, then so is the third. -/
-theorem isStablyFree_two_of_three_of_shortExact (P₁ P₂ P₃ : Type v)
-    [AddCommGroup P₁] [Module R P₁] [Module.Finite R P₁] [AddCommGroup P₂] [Module R P₂]
-    [AddCommGroup P₃] [Module R P₃] [Module.Finite R P₃] [Module.Projective R P₃]
-    {f : P₁ →ₗ[R] P₂} {g : P₂ →ₗ[R] P₃} (hf : Function.Injective f) (hg : Function.Surjective g)
-    (h : Function.Exact f g) :
-      (IsStablyFree R P₁ → IsStablyFree R P₂ → IsStablyFree R P₃) ∧
-        (IsStablyFree R P₁ → IsStablyFree R P₃ → IsStablyFree R P₂) ∧
-          (IsStablyFree R P₂ → IsStablyFree R P₃ → IsStablyFree R P₁) := by
-  obtain ⟨l, hl⟩ := LinearMap.exists_rightInverse_of_surjective g (LinearMap.range_eq_top.2 hg)
-  set eSigma := h.splitSurjectiveEquiv hf ⟨l, hl⟩ with heSigma
-  set e : P₂ ≃ₗ[R] P₁ × P₃ := eSigma.1 with he
-  refine ⟨?_, ?_⟩
-  · intro hP₁ hP₂
-    rcases hP₁ with ⟨N₁, _, _, _, _, _⟩
-    rcases hP₂ with ⟨N₂, _, _, _, _, _⟩
-    refine ⟨(P₁ × N₁) × N₂, inferInstance, inferInstance, inferInstance, inferInstance, ?_⟩
-    -- Rewrite `P₃ × ((P₁ × N₁) × N₂)` as `((P₂ × N₂) × N₁)` using the splitting `P₂ ≃ P₁ × P₃`.
-    let eP₃ : (P₃ × ((P₁ × N₁) × N₂)) ≃ₗ[R] ((P₂ × N₂) × N₁) :=
-      (LinearEquiv.prodAssoc R P₃ (P₁ × N₁) N₂).symm ≪≫ₗ
-        (LinearEquiv.prodAssoc R P₃ P₁ N₁).symm.prodCongr (LinearEquiv.refl R N₂) ≪≫ₗ
-          ((LinearEquiv.prodComm R P₃ P₁).prodCongr (LinearEquiv.refl R N₁)).prodCongr
-              (LinearEquiv.refl R N₂) ≪≫ₗ LinearEquiv.prodAssoc R (P₁ × P₃) N₁ N₂ ≪≫ₗ
-              (LinearEquiv.refl R (P₁ × P₃)).prodCongr (LinearEquiv.prodComm R N₁ N₂) ≪≫ₗ
-                (LinearEquiv.prodAssoc R (P₁ × P₃) N₂ N₁).symm ≪≫ₗ
-                  (((e.symm.prodCongr (LinearEquiv.refl R N₂)).prodCongr (LinearEquiv.refl R N₁)))
-    exact Module.Free.of_equiv eP₃.symm
-  · refine ⟨?_, ?_⟩
-    · intro hP₁ hP₃
-      rcases hP₁ with ⟨N₁, _, _, _, _, _⟩
-      rcases hP₃ with ⟨N₃, _, _, _, _, _⟩
-      refine ⟨N₁ × N₃, inferInstance, inferInstance, inferInstance, inferInstance, ?_⟩
-      let eP₂ : (P₂ × (N₁ × N₃)) ≃ₗ[R] ((P₁ × N₁) × (P₃ × N₃)) :=
-        e.prodCongr (LinearEquiv.refl R (N₁ × N₃)) ≪≫ₗ LinearEquiv.prodProdProdComm R P₁ P₃ N₁ N₃
-      exact Module.Free.of_equiv eP₂.symm
-    · intro hP₂ hP₃
-      rcases hP₂ with ⟨N₂, _, _, _, _, _⟩
-      rcases hP₃ with ⟨N₃, _, _, _, _, _⟩
-      refine ⟨(P₃ × N₃) × N₂, inferInstance, inferInstance, inferInstance, inferInstance, ?_⟩
-      let eP₁ : (P₁ × ((P₃ × N₃) × N₂)) ≃ₗ[R] ((P₂ × N₂) × N₃) :=
-        (LinearEquiv.prodAssoc R P₁ (P₃ × N₃) N₂).symm ≪≫ₗ
-          (LinearEquiv.prodAssoc R P₁ P₃ N₃).symm.prodCongr (LinearEquiv.refl R N₂) ≪≫ₗ
-            ((LinearEquiv.refl R (P₁ × P₃)).prodCongr (LinearEquiv.refl R N₃)).prodCongr
-                (LinearEquiv.refl R N₂) ≪≫ₗ LinearEquiv.prodAssoc R (P₁ × P₃) N₃ N₂ ≪≫ₗ
-                (LinearEquiv.refl R (P₁ × P₃)).prodCongr (LinearEquiv.prodComm R N₃ N₂) ≪≫ₗ
-                  (LinearEquiv.prodAssoc R (P₁ × P₃) N₂ N₃).symm ≪≫ₗ
-                    (e.symm.prodCongr (LinearEquiv.refl R N₂)).prodCongr (LinearEquiv.refl R N₃)
-      exact Module.Free.of_equiv eP₁.symm
-
 open Polynomial Module
 
 theorem stably_free_iff (M : Type v) [AddCommGroup M] [Module R M] [Module.Finite R M]
-    [Module.Projective R M] :
-    IsStablyFree R M ↔ HasFiniteFreeResolution R M := by
+    [Module.Projective R M] : IsStablyFree R M ↔ HasFiniteFreeResolution R M := by
   classical
   have moduleFinite_of_hasFiniteFreeResolutionLength :
       ∀ {P : Type u} [AddCommGroup P] [Module R P] {n : ℕ},
@@ -159,8 +107,9 @@ theorem stably_free_iff (M : Type v) [AddCommGroup M] [Module R M] [Module.Finit
         LinearEquiv.prodAssoc R M (LinearMap.ker f) N
     exact Module.Free.of_equiv e'
 
+-- 转化为有限自由分解存在性的问题
 theorem polynomial_isStablyFree [IsNoetherianRing R]
-    (hR : ∀ (P : Type v) [AddCommGroup P] [Module R P],
+    (hR : ∀ (P : Type u) [AddCommGroup P] [Module R P],
         Module.Finite R P → Module.Projective R P → IsStablyFree R P)
     (P : Type v) [AddCommGroup P] [Module R[X] P] [Module.Finite R[X] P]
     [Module.Projective R[X] P] : IsStablyFree R[X] P := by
@@ -172,13 +121,13 @@ theorem isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrincipalIdealRing 
   -- 先证引理 1 : R 上的投射模都是自由的，引理 2 : 自由模 stably free
   sorry
 
--- induction
+-- use `polynomial_isStablyFree` to induction
 theorem cor3_aux [IsDomain R] [IsPrincipalIdealRing R] (s : Type) [Finite s]
     (P : Type u) [AddCommGroup P] [Module (MvPolynomial s R) P] [Module.Finite (MvPolynomial s R) P]
     [Module.Projective (MvPolynomial s R) P] : IsStablyFree (MvPolynomial s R) P := by
   sorry
 
--- use `cor3_aux` and the fact that the propoties are invariant under isomorphism
+-- use `cor3_aux` and the fact that these propoties are invariant under isomorphism
 theorem cor3 [IsDomain R] [IsPrincipalIdealRing R] (s : Type*) [Finite s]
     (P : Type v) [AddCommGroup P] [Module (MvPolynomial s R) P] [Module.Finite (MvPolynomial s R) P]
     [Module.Projective (MvPolynomial s R) P] : IsStablyFree (MvPolynomial s R) P := by
