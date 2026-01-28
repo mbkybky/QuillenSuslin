@@ -86,16 +86,12 @@ theorem stably_free_iff (M : Type v) [AddCommGroup M] [Module R M] [Module.Finit
 theorem module_free_of_isPrincipalIdealRing [IsDomain R] [IsPrincipalIdealRing R]
     (P : Type v) [AddCommGroup P] [Module R P] [Module.Finite R P] [Module.Projective R P] :
     Module.Free R P := by
-  sorry
+  rcases Module.Finite.exists_comp_eq_id_of_projective R P with ⟨n, f, g, hf, hg, hfg⟩
+  have : IsTorsionFree R P :=
+    Function.Injective.moduleIsTorsionFree g hg fun r m => by simp only [map_smul]
+  infer_instance
 
--- use `polynomial_isStablyFree` to induction
-theorem cor3_aux [IsDomain R] [IsPrincipalIdealRing R] (s : Type) [Finite s]
-    (P : Type u) [AddCommGroup P] [Module (MvPolynomial s R) P] [Module.Finite (MvPolynomial s R) P]
-    [Module.Projective (MvPolynomial s R) P] : IsStablyFree (MvPolynomial s R) P := by
-  sorry
-
--- use `cor3_aux` and the fact that these propoties are invariant under isomorphism
-theorem cor3 [IsDomain R] [IsPrincipalIdealRing R] (s : Type*) [Finite s]
+theorem cor3 [IsDomain R] [IsPrincipalIdealRing R] (s : Type w) [Finite s]
     (P : Type v) [AddCommGroup P] [Module (MvPolynomial s R) P] [Module.Finite (MvPolynomial s R) P]
     [Module.Projective (MvPolynomial s R) P] : IsStablyFree (MvPolynomial s R) P := by
   sorry
