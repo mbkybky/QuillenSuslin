@@ -3,13 +3,13 @@ import QuillenSuslin.BivariatePolynomial
 
 open Module Polynomial Finset BigOperators Bivariate
 
-variable {R : Type*} [CommRing R]
+variable {R : Type*} [CommRing R] [IsDomain R]
 variable {s : Type*} [Fintype s] [DecidableEq s]
 
 open Bivariate in
 /-- Suppose $v(x) \sim v(0)$ over the localization $R_S[x]$. Then there exists a $c \in S$ such
   that $v(x) \sim v(x + cy)$ over $R[x, y]$. -/
-theorem lem10 [IsDomain R] {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
+theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
     (h : UnimodularVectorEquiv (fun i => (v i).map (algebraMap R (Localization S)))
       (fun i => C (algebraMap R (Localization S) ((v i).eval 0)))) :
     ∃ c : S, UnimodularVectorEquiv (fun i => C (v i))

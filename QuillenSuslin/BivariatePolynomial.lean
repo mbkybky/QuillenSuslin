@@ -98,11 +98,9 @@ variable [IsDomain R] {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s �
   {c : S} (hc : ∀ i j : s, IsLocalization.IsInteger R[X][Y]
     ((C (C (c : R)) : R[X][Y]) • σA c ((W S M) i j)))
 
-include hs
-
+omit [IsDomain R] in
 lemma N_entry_decomp (M : GL s (Localization S)[X]) (i j : s) :
     (N S M).1 i j = X * (W S M i j) + C (if i = j then 1 else 0) := by
-  have : Nontrivial (Localization S) := OreLocalization.nontrivial_of_nonZeroDivisors hs
   let ev0 : (Localization S)[X][Y] →+* (Localization S)[X] := eval₂RingHom (RingHom.id _) 0
   let map0 : GL s (Localization S)[X][Y] →* GL s (Localization S)[X] :=
     Matrix.GeneralLinearGroup.map (n := s) (R := (Localization S)[X][Y])
@@ -129,13 +127,13 @@ lemma N_entry_decomp (M : GL s (Localization S)[X]) (i j : s) :
     simpa [ev0, coeff_zero_eq_eval_zero] using hij'
   simpa [W, hcoeff0N, add_comm] using ( X_mul_divX_add ((N S M) i j)).symm
 
+omit [IsDomain R] in
 lemma ncy_isInteger_eq (i j : s) (w : R[X][Y]) (hw : (algebraMap R[X][Y] (Localization S)[X][Y]) w =
     (C (C (c : R)) : R[X][Y]) • σA c ((W S M) i j)) :
     algebraMap R[X][Y] (Localization S)[X][Y] (X * w + C (if i = j then 1 else 0 : R[X])) =
       (Ncy c M).1 i j := by
-  have : Nontrivial (Localization S) := OreLocalization.nontrivial_of_nonZeroDivisors hs
   let b : R[X][Y] := C (C (c : R))
-  have hN_entry := N_entry_decomp hs M i j
+  have hN_entry := N_entry_decomp M i j
   let ι : R →+* Localization S := algebraMap R (Localization S)
   have hCι : mapRingHom ι (C (c : R)) = C (ι (c : R)) := by
     rw [← RingHom.comp_apply]
@@ -180,19 +178,17 @@ lemma ncy_isInteger_eq (i j : s) (w : R[X][Y]) (hw : (algebraMap R[X][Y] (Locali
       _ = C (C (ι (c : R))) * (Y * (σA c) (W S M i j)) := by rw [mul_assoc]
   simp [hmul, mul_assoc]
 
-lemma det_N_eq_one (M : GL s (Localization S)[X]) :
-    Matrix.det ((N S M).1) = 1 := by
-  have : IsDomain (Localization S) := IsLocalization.isDomain_localization (M := S) hs
+lemma det_N_eq_one (M : GL s (Localization S)[X]) : Matrix.det ((N S M).1) = 1 := by
   let ev0 : (Localization S)[X][Y] →+* (Localization S)[X] := eval₂RingHom (RingHom.id _) 0
   have hev0_X : ev0 X = 0 := by simp [ev0]
   have hN0mat : ev0.mapMatrix ((N S M).1) = 1 := by
     apply Matrix.ext
     intro i j
     rw [Matrix.one_apply, RingHom.mapMatrix_apply, Matrix.map_apply]
-    rw [N_entry_decomp hs M i j, ev0.map_add, ev0.map_mul, hev0_X]
+    rw [N_entry_decomp M i j, ev0.map_add, ev0.map_mul, hev0_X]
     simp [ev0]
   have hdet_ev0 : ev0 (Matrix.det ((N S M).1)) = 1 := by
-    calc _ = Matrix.det (ev0.mapMatrix ((N S M).1)) := by simpa using (RingHom.map_det ev0 ((N S M).1))
+    calc _ = Matrix.det (ev0.mapMatrix ((N S M).1)) := by simpa using RingHom.map_det ev0 (N S M).1
       _ = 1 := by simp [hN0mat]
   have hdet_isUnit : IsUnit (Matrix.det ((N S M).1)) := by simp
   let p : (Localization S)[X][Y] := Matrix.det ((N S M).1)
@@ -217,11 +213,10 @@ lemma det_N_eq_one (M : GL s (Localization S)[X]) :
       _ = 1 := by simp
   simpa [p] using this
 
-omit [IsDomain R] hs in
+omit [IsDomain R] in
 lemma σA_map_det (c : S) (A : Matrix s s (Localization S)[X][Y]) :
     σA c A.det = Matrix.det ((σA c).mapMatrix A) := by
-  let t : (Localization S)[X][Y] :=
-    ((algebraMap R (Localization S)) (c : R)) • Y
+  let t : (Localization S)[X][Y] := ((algebraMap R (Localization S)) (c : R)) • Y
   have hC (p : (Localization S)[X]) : σA c (C p) = C p := by
     dsimp [σA, t]
     show eval₂ (C : (Localization S)[X] →+* (Localization S)[X][Y]) t (C p) = C p
@@ -235,7 +230,7 @@ lemma σA_map_det (c : S) (A : Matrix s s (Localization S)[X][Y]) :
 
 lemma det_Ncy_eq_one (c : S) (M : GL s (Localization S)[X]) :
     Matrix.det ((Ncy c M).1) = 1 := by
-  have hdetN : Matrix.det ((N S M).1) = 1 := det_N_eq_one hs M
+  have hdetN : Matrix.det ((N S M).1) = 1 := det_N_eq_one M
   have hNcy : (σA c).mapMatrix (N S M).1 = (Ncy c M).1 := by
     ext i j
     simp [Ncy, Matrix.GeneralLinearGroup.map_apply]
@@ -246,16 +241,19 @@ lemma det_Ncy_eq_one (c : S) (M : GL s (Localization S)[X]) :
 
 include hc
 
+omit [IsDomain R] in
 theorem ncy_isInteger (i j : s) : IsLocalization.IsInteger R[X][Y] ((Ncy c M).1 i j) := by
   rcases hc i j with ⟨w, hw⟩
-  exact ⟨X * w + C (if i = j then 1 else 0 : R[X]), ncy_isInteger_eq hs M i j w hw⟩
+  exact ⟨X * w + C (if i = j then 1 else 0 : R[X]), ncy_isInteger_eq M i j w hw⟩
 
-def N0 : Matrix s s R[X][Y] := fun i j => (ncy_isInteger hs M hc i j).choose
+def N0 : Matrix s s R[X][Y] := fun i j => (ncy_isInteger M hc i j).choose
 
-def N0Inv : Matrix s s R[X][Y] := (N0 hs M hc).adjugate
+def N0Inv : Matrix s s R[X][Y] := (N0 M hc).adjugate
+
+include hs
 
 /-- The determinant of `N0` is `1`. -/
-lemma det_N0_eq_one : Matrix.det (N0 hs M hc) = 1 := by
+lemma det_N0_eq_one : Matrix.det (N0 M hc) = 1 :=
   let f : R[X][Y] →+* (Localization S)[X][Y] := algebraMap R[X][Y] (Localization S)[X][Y]
   have hf : Function.Injective f := by
     have hR : Function.Injective (algebraMap R (Localization S)) :=
@@ -264,40 +262,40 @@ lemma det_N0_eq_one : Matrix.det (N0 hs M hc) = 1 := by
       simpa [Polynomial.algebraMap_def] using map_injective (algebraMap R _) hR
     simpa [f, Polynomial.algebraMap_def] using
       map_injective (algebraMap R[X] (Localization S)[X]) hRX
-  have hN0 : f.mapMatrix (N0 hs M hc) = (Ncy c M).1 := by
+  have hN0 : f.mapMatrix (N0 M hc) = (Ncy c M).1 := by
     apply Matrix.ext
     intro i j
     simpa [RingHom.mapMatrix_apply, Matrix.map_apply, N0, f] using
-      (ncy_isInteger hs M hc i j).choose_spec
+      (ncy_isInteger M hc i j).choose_spec
   have hdet_map (A : Matrix s s R[X][Y]) : f (Matrix.det A) = Matrix.det (f.mapMatrix A) := by
     simp [Matrix.det_apply', map_sum, map_prod, RingHom.mapMatrix_apply, Matrix.map_apply]
-  have hdet : f (Matrix.det (N0 hs M hc)) = f 1 := by
-    calc _ = Matrix.det (f.mapMatrix (N0 hs M hc)) := hdet_map (N0 hs M hc)
+  have hdet : f (Matrix.det (N0 M hc)) = f 1 := by
+    calc _ = Matrix.det (f.mapMatrix (N0 M hc)) := hdet_map (N0 M hc)
       _ = Matrix.det ((Ncy c M).1) := by simp [hN0]
-      _ = 1 := det_Ncy_eq_one hs c M
+      _ = 1 := det_Ncy_eq_one c M
       _ = f 1 := by simp [f]
-  exact hf hdet
+  hf hdet
 
-theorem hN0_mul : N0 hs M hc * N0Inv hs M hc = 1 := by
-  have hdet : Matrix.det (N0 hs M hc) = 1 := det_N0_eq_one hs M hc
-  have h : N0 hs M hc * (N0 hs M hc).adjugate = _ := Matrix.mul_adjugate (N0 hs M hc)
-  calc _ = Matrix.det (N0 hs M hc) • (1 : Matrix s s R[X][Y]) := h
+theorem hN0_mul : N0 M hc * N0Inv M hc = 1 := by
+  have hdet : Matrix.det (N0 M hc) = 1 := det_N0_eq_one hs M hc
+  have h : N0 M hc * (N0 M hc).adjugate = _ := Matrix.mul_adjugate (N0 M hc)
+  calc _ = Matrix.det (N0 M hc) • (1 : Matrix s s R[X][Y]) := h
     _ = (1 : R[X][Y]) • (1 : Matrix s s R[X][Y]) := by rw [hdet]
     _ = 1 := one_smul _ _
 
-theorem hN0inv_mul : N0Inv hs M hc * N0 hs M hc = 1 := by
-  have hdet : Matrix.det (N0 hs M hc) = 1 := det_N0_eq_one hs M hc
-  have h : (N0 hs M hc).adjugate * N0 hs M hc = _ := Matrix.adjugate_mul (N0 hs M hc)
-  calc _ = Matrix.det (N0 hs M hc) • (1 : Matrix s s R[X][Y]) := h
+theorem hN0inv_mul : N0Inv M hc * N0 M hc = 1 := by
+  have hdet : Matrix.det (N0 M hc) = 1 := det_N0_eq_one hs M hc
+  have h : (N0 M hc).adjugate * N0 M hc = _ := Matrix.adjugate_mul (N0 M hc)
+  calc _ = Matrix.det (N0 M hc) • (1 : Matrix s s R[X][Y]) := h
     _ = (1 : R[X][Y]) • (1 : Matrix s s R[X][Y]) := by rw [hdet]
     _ = 1 := one_smul _ _
 
-def U : GL s R[X][Y] := ⟨N0 hs M hc, N0Inv hs M hc, hN0_mul hs M hc, hN0inv_mul hs M hc⟩
+def U : GL s R[X][Y] := ⟨N0 M hc, N0Inv M hc, hN0_mul hs M hc, hN0inv_mul hs M hc⟩
 
 include hM
 
-set_option maxHeartbeats 5000000 in
-theorem hU : (N0Inv hs M hc).mulVec (fun i => C (v i)) =
+set_option maxHeartbeats 300000 in
+theorem hU : (N0Inv M hc).mulVec (fun i => C (v i)) =
     fun i => (v i).eval₂ ((C : R[X] →+* R[X][Y]).comp C) (C X + (c : R) • Y) := by
   let f : R[X][Y] →+* (Localization S)[X][Y] := algebraMap R[X][Y] (Localization S)[X][Y]
   have hf : Function.Injective f := by
@@ -307,23 +305,22 @@ theorem hU : (N0Inv hs M hc).mulVec (fun i => C (v i)) =
       simpa [Polynomial.algebraMap_def] using map_injective (algebraMap R _) hR
     simpa [f, Polynomial.algebraMap_def] using
       map_injective (algebraMap R[X] (Localization S)[X]) hRX
-  have hN0 : f.mapMatrix (N0 hs M hc) = (Ncy c M).1 := by
+  have hN0 : f.mapMatrix (N0 M hc) = (Ncy c M).1 := by
     apply Matrix.ext
     intro i j
     simpa [RingHom.mapMatrix_apply, Matrix.map_apply, N0, f] using
-      (ncy_isInteger hs M hc i j).choose_spec
-  have hUinv : f.mapMatrix (N0Inv hs M hc) = (NcyInv c M).1 := by
-    have hN0inv : f.mapMatrix (N0Inv hs M hc) * f.mapMatrix (N0 hs M hc) = 1 := by
+      (ncy_isInteger M hc i j).choose_spec
+  have hUinv : f.mapMatrix (N0Inv M hc) = (NcyInv c M).1 := by
+    have hN0inv : f.mapMatrix (N0Inv M hc) * f.mapMatrix (N0 M hc) = 1 := by
       simpa [Matrix.map_mul] using congrArg f.mapMatrix (hN0inv_mul hs M hc)
-    have hN0mul : f.mapMatrix (N0 hs M hc) * f.mapMatrix (N0Inv hs M hc) = 1 := by
+    have hN0mul : f.mapMatrix (N0 M hc) * f.mapMatrix (N0Inv M hc) = 1 := by
       simpa [Matrix.map_mul] using congrArg f.mapMatrix (hN0_mul hs M hc)
     have hNcyInv : (Ncy c M).1 * (NcyInv c M).1 = 1 := by
       have hdef : NcyInv c M = (Ncy c M)⁻¹ := by simp [NcyInv, Ncy]
       have hGL : Ncy c M * NcyInv c M = 1 := by
         rw [hdef]
         simp
-      simpa using congrArg (fun g : GL s (Localization S)[X][Y] =>
-        g.1) hGL
+      simpa using congrArg (fun g : GL s (Localization S)[X][Y] => g.1) hGL
     have hNcyInv' : (NcyInv c M).1 * (Ncy c M).1 = 1 := by
       have hdef : NcyInv c M = (Ncy c M)⁻¹ := by simp [NcyInv, Ncy]
       have hGL : NcyInv c M * Ncy c M = 1 := by
@@ -331,14 +328,14 @@ theorem hU : (N0Inv hs M hc).mulVec (fun i => C (v i)) =
         simp
       simpa using congrArg (fun g : GL s (Localization S)[X][Y] =>
         g.1) hGL
-    have hleft : f.mapMatrix (N0Inv hs M hc) * (Ncy c M).1 = 1 := by
+    have hleft : f.mapMatrix (N0Inv M hc) * (Ncy c M).1 = 1 := by
       simpa [hN0] using hN0inv
-    have hright : (Ncy c M).1 * f.mapMatrix (N0Inv hs M hc) = 1 := by
+    have hright : (Ncy c M).1 * f.mapMatrix (N0Inv M hc) = 1 := by
       simpa [hN0] using hN0mul
-    have hinv : f.mapMatrix (N0Inv hs M hc) = (NcyInv c M).1 := by
-      calc _ = f.mapMatrix (N0Inv hs M hc) * 1 := by simp
-        _ = f.mapMatrix (N0Inv hs M hc) * ((Ncy c M).1 * (NcyInv c M).1) := by rw [← hNcyInv]
-        _ = (f.mapMatrix (N0Inv hs M hc) * (Ncy c M).1) * (NcyInv c M).1 := by
+    have hinv : f.mapMatrix (N0Inv M hc) = (NcyInv c M).1 := by
+      calc _ = f.mapMatrix (N0Inv M hc) * 1 := by simp
+        _ = f.mapMatrix (N0Inv M hc) * ((Ncy c M).1 * (NcyInv c M).1) := by rw [← hNcyInv]
+        _ = (f.mapMatrix (N0Inv M hc) * (Ncy c M).1) * (NcyInv c M).1 := by
           simp [Matrix.mul_assoc]
         _ = (NcyInv c M).1 := by rw [hleft]; simp
     exact hinv
@@ -434,17 +431,16 @@ theorem hU : (N0Inv hs M hc).mulVec (fun i => C (v i)) =
     simpa [u, a, uφ] using hres
   funext i
   apply hf
-  have hL : f ((N0Inv hs M hc).mulVec (fun i => C (v i)) i) =
+  have hL : f ((N0Inv M hc).mulVec (fun i => C (v i)) i) =
       (NcyInv c M).1.mulVec (fun i => C (map (algebraMap R (Localization S)) (v i))) i := by
-    have hv : (f ∘ fun j => C (v j)) =
-        fun j => C (map (algebraMap R (Localization S)) (v j)) := by
+    have hv : (f ∘ fun j => C (v j)) = fun j => C (map (algebraMap R (Localization S)) (v j)) := by
       simpa [Function.comp] using hvec
-    have hUinv' : (N0Inv hs M hc).map f = (NcyInv c M).1 := by
+    have hUinv' : (N0Inv M hc).map f = (NcyInv c M).1 := by
       apply Matrix.ext
       intro j k
       have hjk := congrArg (fun A : Matrix s s (Localization S)[X][Y] => A j k) hUinv
       simpa [RingHom.mapMatrix_apply, Matrix.map_apply] using hjk
-    have h := RingHom.map_mulVec f (N0Inv hs M hc) (fun j => C (v j)) i
+    have h := RingHom.map_mulVec f (N0Inv M hc) (fun j => C (v j)) i
     rw [hv] at h
     rwa [hUinv'] at h
   have hR : f ((v i).eval₂ ((C : R[X] →+* R[X][Y]).comp C) (C X + (c : R) • Y)) =
@@ -460,7 +456,7 @@ theorem hU : (N0Inv hs M hc).mulVec (fun i => C (v i)) =
       dsimp [σR]
       rw [eval₂_add, eval₂_C, eval₂_X]
     have hσR : σR c P = (v i).eval₂ coeff (C X + (c : R) • Y) := by
-      have h := hom_eval₂ (p := v i) (f := coeff) (g := σR c) (x := (C X + Y))
+      have h := hom_eval₂ (v i) coeff (σR c) (C X + Y)
       rwa [hcoeff, hx] at h
     have hσAcomp := congrArg (fun g : R[X][Y] →+* (Localization S)[X][Y] => g P) (σA_comp c)
     have hσA : f (σR c P) = σA c (f P) := hσAcomp.symm
@@ -473,20 +469,12 @@ theorem hU : (N0Inv hs M hc).mulVec (fun i => C (v i)) =
     have hfx : f (C X + Y) = C X + Y := by
       simp [f]
     have hP : f P = φ S (map a0 (v i)) := by
-      have h := hom_eval₂ (p := v i) (f := coeff) (g := f) (x := (C X + Y))
-      have hfP : f P = (v i).eval₂ (f.comp coeff) (f (C X + Y)) := by
-        simpa [P] using h
+      have h := hom_eval₂ (v i) coeff f (C X + Y)
+      have hfP : f P = (v i).eval₂ (f.comp coeff) (f (C X + Y)) := by simpa [P] using h
       rw [hfcoeff, hfx] at hfP
-      have hev : (v i).eval₂ (CC.comp a0) (C X + Y) =
-          (map a0 (v i)).eval₂ CC (C X + Y) := by
-        simpa using
-          (eval₂_map (p := v i) (f := a0) (g := CC) (x := (C X + Y))).symm
-      have hφ : φ S (map a0 (v i)) =
-          (map a0 (v i)).eval₂ CC (C X + Y) := by
-        dsimp [φ, CC, CAY]
       calc f P = (v i).eval₂ (CC.comp a0) (C X + Y) := hfP
-        _ = (map a0 (v i)).eval₂ CC (C X + Y) := hev
-        _ = φ S (map a0 (v i)) := hφ.symm
+        _ = (map a0 (v i)).eval₂ CC (C X + Y) := by simpa using (eval₂_map a0 CC (C X + Y)).symm
+        _ = φ S (map a0 (v i)) := rfl
     have hR0 : f ((v i).eval₂ coeff (C X + (c : R) • Y)) = σA c (f P) := by
       have : (v i).eval₂ coeff (C X + (c : R) • Y) = σR c P := hσR.symm
       rw [this]
