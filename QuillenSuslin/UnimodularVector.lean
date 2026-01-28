@@ -246,6 +246,13 @@ theorem cor11 (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic
 
 end cor11
 
+/-- Let $R = k[x_1, \dots, x_n]$ be a polynomial ring over a principal ideal domain $k$, and let
+  $v \in R^n$ be a unimodular vector. Then $v \sim e_1$.. -/
+theorem thm12 (R : Type*) [CommRing R] [IsDomain R] [IsPrincipalIdealRing R] {s : Type*} [Fintype s]
+    [DecidableEq s] (o : s) (v : s → MvPolynomial s R) (hv : IsUnimodular v) :
+    UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
+  sorry
+
 /-
 \begin{definition}
 	Let $A$ be any ring. A vector ${v} \in A^s$ is unimodular if its components generate the unit ideal in $A$. For two unimodular vectors ${v}, {w}$, we write
