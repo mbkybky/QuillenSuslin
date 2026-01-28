@@ -83,18 +83,9 @@ theorem stably_free_iff (M : Type v) [AddCommGroup M] [Module R M] [Module.Finit
         LinearEquiv.prodAssoc R M (LinearMap.ker f) N
     exact Module.Free.of_equiv e'
 
--- 转化为有限自由分解存在性的问题
-theorem polynomial_isStablyFree [IsNoetherianRing R]
-    (hR : ∀ (P : Type u) [AddCommGroup P] [Module R P],
-        Module.Finite R P → Module.Projective R P → IsStablyFree R P)
-    (P : Type v) [AddCommGroup P] [Module R[X] P] [Module.Finite R[X] P]
-    [Module.Projective R[X] P] : IsStablyFree R[X] P := by
-  sorry
-
-theorem isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrincipalIdealRing R]
+theorem module_free_of_isPrincipalIdealRing [IsDomain R] [IsPrincipalIdealRing R]
     (P : Type v) [AddCommGroup P] [Module R P] [Module.Finite R P] [Module.Projective R P] :
-    IsStablyFree R P := by
-  -- 先证引理 1 : R 上的投射模都是自由的，引理 2 : 自由模 stably free
+    Module.Free R P := by
   sorry
 
 -- use `polynomial_isStablyFree` to induction

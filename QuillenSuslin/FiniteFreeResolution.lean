@@ -1350,14 +1350,16 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
         simpa [gPP, fIP] using (Ideal.Quotient.eq_zero_iff_mem).2 y.2
     have hP : HasFiniteFreeResolution A P :=
       -- Use `0 → IA → P → Pbar → 0`.
-      hasFiniteFreeResolution_of_shortExact_of_left_of_right (R := A) IA P Pbar hfIP hgPP hexPP
-        hIA_res <| by simpa [Psub] using hPbar
+      hasFiniteFreeResolution_of_shortExact_of_left_of_right IA P Pbar hfIP hgPP hexPP
+        hIA_res <| by simpa only [Psub] using hPbar
     -- Finally, `0 → P → A → A ⧸ P → 0`.
     have hquot : HasFiniteFreeResolution A (A ⧸ P) :=
-      hasFiniteFreeResolution_of_shortExact_of_left_of_middle (R := A) P A (A ⧸ P)
+      hasFiniteFreeResolution_of_shortExact_of_left_of_middle P A (A ⧸ P)
         (f := P.subtype) (g := P.mkQ) Subtype.coe_injective (Submodule.mkQ_surjective P)
-          (by simpa using (LinearMap.exact_subtype_mkQ P)) hP hA
+          (by simpa only [Submodule.coe_subtype] using (LinearMap.exact_subtype_mkQ P)) hP hA
     exact hquot
+
+variable (R)
 
 theorem hasFiniteFreeResolution_quotient_prime [IsNoetherianRing R]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
@@ -1376,7 +1378,7 @@ theorem polynomial_hasFiniteFreeResolution_of_isNoetherianRing [IsNoetherianRing
     inferInstance (motive := fun N _ _ _ => HasFiniteFreeResolution R[X] N)
       (fun N _ _ _ _ => hasFiniteFreeResolution_of_subsingleton N)
       (fun _ _ _ _ p e => hasFiniteFreeResolution_of_linearEquiv e.symm
-        (hasFiniteFreeResolution_quotient_prime hR p))
+        (hasFiniteFreeResolution_quotient_prime R hR p))
       (fun N₁ _ _ _ N₂ _ _ _ N₃ _ _ _ _ _ hf hg hfg h₁ h₃ =>
         hasFiniteFreeResolution_of_shortExact_of_left_of_right N₁ N₂ N₃ hf hg hfg h₁ h₃)
 
