@@ -4,7 +4,7 @@ open Module Polynomial Finset BigOperators Bivariate
 
 variable {R : Type*} [CommRing R]
 variable {s : Type*} [Fintype s] [DecidableEq s]
-variable {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
+variable {S : Submonoid R} (v : s → R[X])
   {x : (Localization S)[X][Y]} (c : S) (M : GL s (Localization S)[X])
 
 noncomputable section
@@ -63,8 +63,6 @@ theorem isInteger_σA (hx : IsLocalization.IsInteger R[X][Y] x) :
   have := congrArg (fun f => f r) (σA_comp c)
   simpa using this.symm
 
-section S
-
 variable (S)
 
 def CAY : (Localization S)[X] →+* (Localization S)[X][Y] := C
@@ -72,21 +70,16 @@ def CAY : (Localization S)[X] →+* (Localization S)[X][Y] := C
 def φ : (Localization S)[X] →+* (Localization S)[X][Y] :=
   eval₂RingHom ((CAY S).comp C) ((CAY S X) + Y)
 
-end S
-
-section M
-
 def Mx : GL s (Localization S)[X][Y] := (Matrix.GeneralLinearGroup.map (CAY S)) M
 
 def Mxy : GL s (Localization S)[X][Y] := (Matrix.GeneralLinearGroup.map (φ S)) M
 
-def N : GL s (Localization S)[X][Y] := (Mx M)⁻¹ * (Mxy M)
+def N : GL s (Localization S)[X][Y] := (Mx S M)⁻¹ * (Mxy S M)
 
-def W : Matrix s s (Localization S)[X][Y] :=
-  fun i j => ((N M: Matrix s s (Localization S)[X][Y]) i j).divX
+def W : Matrix s s (Localization S)[X][Y] := fun i j => ((N S M).1 i j).divX
 
-def Ncy : GL s (Localization S)[X][Y] := Matrix.GeneralLinearGroup.map (σA c) (N M)
+variable {S}
 
-def NcyInv : GL s (Localization S)[X][Y] := Matrix.GeneralLinearGroup.map (σA c) (N M)⁻¹
+def Ncy : GL s (Localization S)[X][Y] := Matrix.GeneralLinearGroup.map (σA c) (N S M)
 
-end M
+def NcyInv : GL s (Localization S)[X][Y] := Matrix.GeneralLinearGroup.map (σA c) (N S M)⁻¹
