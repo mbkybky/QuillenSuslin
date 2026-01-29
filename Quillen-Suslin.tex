@@ -30,7 +30,6 @@
 \title{The Proof of the Quillen-Suslin Theorem}
 \maketitle
 
-\noindent \url{https://amathew.wordpress.com/2012/01/16/the-quillen-suslin-theorem}.
 
 \section{Unimodular Vector}
 
@@ -211,7 +210,7 @@ Then we have
 By induction, we see:
 
 \begin{corollary}\label{cor:3}
-	Every finitely generated projective module over $k[x_1, \dots, x_n]$, for any field $k$, is necessarily stably free.
+	Every finitely generated projective module over $k[x_1, \dots, x_n]$, for any principal ideal domain $k$, is necessarily stably free.
 \end{corollary}
 
 \section{Quillen-Suslin theorem}
@@ -221,11 +220,19 @@ By induction, we see:
 \end{theorem}
 
 \begin{proof}
-	 By Corollary \ref{cor:3}, we only need to show that a stably free module over $R = k[x_1, \dots, x_n]$ is fre. That is, if $P$ is such a finitely generated module such that $P \oplus R^m \simeq R^{m'}$, then $P$ is free. By induction on $m$, one reduces to the case $m = 1$. In this case we have an exact sequence
+	By Corollary \ref{cor:3}, we only need to show that a stably free module over $R = k[x_1, \dots, x_n]$ is free. That is, if $P$ is such a finitely generated module such that $P \oplus R^m \simeq R^{m'}$, then $P$ is free. By induction on $m$, one reduces to the case $m = 1$. In this case we have an exact sequence
 	$$ \displaystyle 0 \rightarrow R \rightarrow R^{m'} \rightarrow P \rightarrow 0 $$
 	and we have to conclude that the cokernel $P$ is free.
 	
 	But the injection $R \rightarrow R^{m'}$ corresponds to a unimodular vector, and we have seen [by Theorem \ref{thm:12}] that this is isomorphic to the standard embedding $e_1: R \rightarrow R^{m'}$, whose cokernel is obviously free. Thus $P$ is free.
 \end{proof}
+
+{
+	\linespread{1.0}\small\selectfont
+	\begin{thebibliography}{99}
+		\bibitem{web} \url{https://amathew.wordpress.com/2012/01/16/the-quillen-suslin-theorem}.
+		\bibitem{211} Serge Lang, $ Algebra $, volume 211 of $ Graduate\ Texts\ in\ Mathematics $. Springer, 2002.
+	\end{thebibliography}
+}
 
 \end{document}
