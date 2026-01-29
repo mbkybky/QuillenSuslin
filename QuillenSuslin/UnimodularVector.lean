@@ -407,6 +407,33 @@ theorem unimodularVectorEquiv_map_ringEquiv {A B : Type*} [CommRing A] [CommRing
     UnimodularVectorEquiv (fun i => e (v i)) (fun i => e (w i)) := by
   simpa using unimodularVectorEquiv_map (f := (e : A →+* B)) hvw
 
+omit [IsDomain R] in
+/-- Local Horrocks step: if a unimodular vector in `R[X]` becomes monic in some coordinate after
+localizing the coefficient ring at a maximal ideal, then over that localization we have
+`v(x) ∼ v(0)`. -/
+theorem local_equiv_eval0_of_monic_localization (v : s → R[X]) (hv : IsUnimodular v) {m : Ideal R}
+    (hm : m.IsMaximal)
+    (hmonic : ∃ i : s, ((v i).map (algebraMap R (Localization m.primeCompl))).Monic) :
+    UnimodularVectorEquiv
+      (fun i => (v i).map (algebraMap R (Localization m.primeCompl)))
+      (fun i => C (algebraMap R (Localization m.primeCompl) ((v i).eval 0))) := by
+  classical
+  haveI : m.IsPrime := hm.isPrime
+  haveI : IsLocalRing (Localization m.primeCompl) :=
+    by simpa using (Localization.AtPrime.isLocalRing (P := m))
+  let f : R[X] →+* (Localization m.primeCompl)[X] :=
+    Polynomial.mapRingHom (algebraMap R (Localization m.primeCompl))
+  have hvS : IsUnimodular fun i => f (v i) := isUnimodular_map_ringHom f v hv
+  have hloc0 : UnimodularVectorEquiv (fun i => f (v i)) (fun i => C ((f (v i)).eval 0)) :=
+    cor9 (v := fun i => f (v i)) hvS (by simpa [f] using hmonic)
+  have hev0 :
+      (fun i => C ((f (v i)).eval 0)) = fun i => C (algebraMap R (Localization m.primeCompl) ((v i).eval 0)) := by
+    funext i
+    have : (f (v i)).eval 0 = algebraMap R (Localization m.primeCompl) ((v i).eval 0) := by
+      simpa [f] using (Polynomial.eval_zero_map (algebraMap R (Localization m.primeCompl)) (v i))
+    simp [this]
+  simpa [hev0] using hloc0
+
 /-- If `w(x) ∼ w(0)` holds after localizing at every maximal ideal of `A`, then it holds globally;
 combining with an equivalence for `w(0)` yields an equivalence for `w(x)`. -/
 theorem unimodularVectorEquiv_stdBasis_of_forall_maximal_local (A : Type*) [CommRing A] [IsDomain A]
@@ -705,6 +732,99 @@ theorem thm12 {k : Type*} [Field k] {σ : Type*} [Fintype σ] [DecidableEq σ]
   simpa [v', ρ] using this
 
 end thm12
+
+section thm12_pid
+
+variable {k : Type*} [CommRing k] [IsDomain k] [IsPrincipalIdealRing k]
+variable {s : Type*} [Fintype s] [DecidableEq s]
+
+/-- The monicization hypothesis needed for the Route A proof of Theorem 12 over a PID:
+for every unimodular vector over `k[x₀,…,xₙ]` (with `x₀` distinguished), and every maximal ideal
+`m` of the coefficient ring `k[x₁,…,xₙ]`, after localizing at `m` some component becomes monic in
+the distinguished variable. -/
+def MonicAtMaximals : Prop :=
+  ∀ n : ℕ,
+    ∀ o : s,
+      ∀ v : s → MvPolynomial (Fin (n + 1)) k,
+        IsUnimodular v →
+          ∀ m : Ideal (MvPolynomial (Fin n) k),
+            (hm : m.IsMaximal) →
+              ∃ i : s,
+                (((MvPolynomial.finSuccEquiv k n) (v i)).map
+                      (algebraMap (MvPolynomial (Fin n) k) (Localization m.primeCompl))).Monic
+
+/-- Route A: assuming `MonicAtMaximals`, the PID version of Theorem 12 for variables `Fin n`. -/
+theorem thm12_pid_fin (H : MonicAtMaximals (k := k) (s := s)) (n : ℕ) (o : s)
+    (v : s → MvPolynomial (Fin n) k) (hv : IsUnimodular v) :
+    UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
+  classical
+  induction n with
+  | zero =>
+      let e : MvPolynomial (Fin 0) k ≃+* k := MvPolynomial.isEmptyRingEquiv k (Fin 0)
+      have hv' : IsUnimodular fun i => e (v i) := isUnimodular_map_ringEquiv e v hv
+      have hstd : IsUnimodular fun i : s => if i = o then (1 : k) else 0 := by
+        unfold IsUnimodular
+        refine
+          Ideal.eq_top_of_isUnit_mem
+            (I := Ideal.span (Set.range fun i : s => if i = o then (1 : k) else 0)) (x := (1 : k)) ?_
+            isUnit_one
+        exact Ideal.subset_span ⟨o, by simp⟩
+      have h' :
+          UnimodularVectorEquiv (fun i => e (v i)) (fun i : s => if i = o then (1 : k) else 0) := by
+        simpa using unimodularVectorEquiv_of_pid (R := k) (s := s) hv' hstd
+      have h'' :
+          UnimodularVectorEquiv v (fun i : s => if i = o then (1 : MvPolynomial (Fin 0) k) else 0) := by
+        have := unimodularVectorEquiv_map_ringEquiv e.symm (fun i => e (v i))
+          (fun i : s => if i = o then (1 : k) else 0) h'
+        simpa using this
+      simpa using h''
+  | succ n ih =>
+      let A := MvPolynomial (Fin n) k
+      let φ : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] Polynomial A := MvPolynomial.finSuccEquiv k n
+      let w : s → Polynomial A := fun j => φ (v j)
+      have hw : IsUnimodular w := isUnimodular_map_ringEquiv φ.toRingEquiv v hv
+      have hloc :
+          ∀ m : Ideal A, (hm : m.IsMaximal) →
+            UnimodularVectorEquiv
+              (fun i => (w i).map (algebraMap A (Localization m.primeCompl)))
+              (fun i => C (algebraMap A (Localization m.primeCompl) ((w i).eval 0))) := by
+        intro m hm
+        have hmonic :
+            ∃ i : s, ((w i).map (algebraMap A (Localization m.primeCompl))).Monic := by
+          simpa [w, A, φ] using H n o v hv m hm
+        exact local_equiv_eval0_of_monic_localization (R := A) (s := s) w hw hm hmonic
+      let ev0 : Polynomial A →+* A := Polynomial.evalRingHom (R := A) 0
+      let v0 : s → A := fun j => ev0 (w j)
+      have hv0 : IsUnimodular v0 := isUnimodular_map_ringHom ev0 w hw
+      have h0 : UnimodularVectorEquiv v0 (fun j : s => if j = o then (1 : A) else 0) := ih v0 hv0
+      have hwstd : UnimodularVectorEquiv w (fun j : s => if j = o then (1 : Polynomial A) else 0) :=
+        unimodularVectorEquiv_stdBasis_of_forall_maximal_local (A := A) (s := s) o w hloc h0
+      let φr : MvPolynomial (Fin (n + 1)) k ≃+* Polynomial A := φ
+      have := unimodularVectorEquiv_map_ringEquiv φr.symm w
+        (fun j : s => if j = o then (1 : Polynomial A) else 0) hwstd
+      have hcomp : (fun j : s => φr.symm (w j)) = v := by
+        funext j
+        simpa [w, φr] using φr.symm_apply_apply (v j)
+      simpa [hcomp] using this
+
+/-- Route A: assuming `MonicAtMaximals`, the PID version of Theorem 12 for an arbitrary finite
+set of variables. -/
+theorem thm12_pid (H : MonicAtMaximals (k := k) (s := s)) {σ : Type*} [Fintype σ] [DecidableEq σ]
+    (o : s) (v : s → MvPolynomial σ k) (hv : IsUnimodular v) :
+    UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
+  classical
+  let n : ℕ := Fintype.card σ
+  let eσ : σ ≃ Fin n := Fintype.equivFin σ
+  let ρ : MvPolynomial σ k ≃ₐ[k] MvPolynomial (Fin n) k := MvPolynomial.renameEquiv k eσ
+  let v' : s → MvPolynomial (Fin n) k := fun i => ρ (v i)
+  have hv' : IsUnimodular v' := isUnimodular_map_ringEquiv ρ.toRingEquiv v hv
+  have h' : UnimodularVectorEquiv v' (fun i : s => if i = o then 1 else 0) :=
+    thm12_pid_fin (k := k) (s := s) H n o v' hv'
+  have := unimodularVectorEquiv_map_ringEquiv ρ.symm.toRingEquiv v'
+    (fun i : s => if i = o then 1 else 0) h'
+  simpa [v', ρ] using this
+
+end thm12_pid
 
 /-
 \begin{definition}
