@@ -434,6 +434,67 @@ theorem local_equiv_eval0_of_monic_localization (v : s → R[X]) (hv : IsUnimodu
     simp [this]
   simpa [hev0] using hloc0
 
+omit [IsDomain R] in
+/-- Local Horrocks step (unit leading coefficient): if a unimodular vector in `R[X]` has a
+coordinate whose leading coefficient becomes a unit after localizing at a maximal ideal, then over
+that localization we have `v(x) ∼ v(0)`. -/
+theorem local_equiv_eval0_of_isUnit_leadingCoeff_localization (v : s → R[X]) (hv : IsUnimodular v)
+    {m : Ideal R} (hm : m.IsMaximal)
+    (hunit : ∃ i : s, IsUnit (((v i).map (algebraMap R (Localization m.primeCompl))).leadingCoeff)) :
+    UnimodularVectorEquiv
+      (fun i => (v i).map (algebraMap R (Localization m.primeCompl)))
+      (fun i => C (algebraMap R (Localization m.primeCompl) ((v i).eval 0))) := by
+  classical
+  haveI : m.IsPrime := hm.isPrime
+  haveI : IsLocalRing (Localization m.primeCompl) :=
+    by simpa using (Localization.AtPrime.isLocalRing (P := m))
+  let f : R[X] →+* (Localization m.primeCompl)[X] :=
+    Polynomial.mapRingHom (algebraMap R (Localization m.primeCompl))
+  let vS : s → (Localization m.primeCompl)[X] := fun i => f (v i)
+  have hvS : IsUnimodular vS := isUnimodular_map_ringHom f v hv
+  rcases hunit with ⟨i, hu⟩
+  rcases hu with ⟨u, hu⟩
+  let b : Localization m.primeCompl := (↑(u⁻¹) : Localization m.primeCompl)
+  have hb : b * (vS i).leadingCoeff = 1 := by
+    have : (vS i).leadingCoeff = (u : Localization m.primeCompl) := by
+      simpa [vS, f] using hu.symm
+    simp [b, this]
+  have hmonic : (Polynomial.C b * vS i).Monic := monic_C_mul_of_mul_leadingCoeff_eq_one hb
+  have hunitC : IsUnit (Polynomial.C b : (Localization m.primeCompl)[X]) := by
+    have : IsUnit b := ⟨u⁻¹, rfl⟩
+    simpa [Polynomial.isUnit_C] using this
+  let vS' : s → (Localization m.primeCompl)[X] := Function.update vS i (Polynomial.C b * vS i)
+  have hvv' : UnimodularVectorEquiv vS vS' :=
+    unimodularVectorEquiv_update_mul_isUnit (R := Localization m.primeCompl) (s := s) i
+      (Polynomial.C b) hunitC vS
+  have hvS' : IsUnimodular vS' :=
+    (isUnimodular_iff_of_unimodularVectorEquiv (R := Localization m.primeCompl) (s := s) hvv').1 hvS
+  have hmonic' : ∃ j : s, (vS' j).Monic := by refine ⟨i, by simp [vS', hmonic]⟩
+  let w0 : s → (Localization m.primeCompl)[X] := fun j => C ((vS j).eval 0)
+  let w1 : s → (Localization m.primeCompl)[X] := fun j => C ((vS' j).eval 0)
+  have hcor : UnimodularVectorEquiv vS' w1 := by simpa [w1] using cor9 vS' hvS' hmonic'
+  have hw1 : w1 = Function.update w0 i (Polynomial.C b * w0 i) := by
+    funext j
+    by_cases hj : j = i
+    · subst hj
+      simp only [mul_comm, Function.update_self, eval_mul, eval_C, map_mul, w1, vS', w0]
+    · simp [w1, w0, vS', Function.update, hj]
+  have hw0w1 : UnimodularVectorEquiv w0 w1 := by
+    have :=
+      unimodularVectorEquiv_update_mul_isUnit (R := Localization m.primeCompl) (s := s) i
+        (Polynomial.C b) hunitC w0
+    simpa [hw1] using this
+  have hw1w0 : UnimodularVectorEquiv w1 w0 := unimodularVectorEquiv_equivalence.symm hw0w1
+  have htotal : UnimodularVectorEquiv vS w0 :=
+    unimodularVectorEquiv_equivalence.trans hvv' <|
+      unimodularVectorEquiv_equivalence.trans hcor hw1w0
+  have hev0 : w0 = fun j => C (algebraMap R (Localization m.primeCompl) ((v j).eval 0)) := by
+    funext j
+    have : (vS j).eval 0 = algebraMap R (Localization m.primeCompl) ((v j).eval 0) := by
+      simpa [vS, f] using (Polynomial.eval_zero_map (algebraMap R (Localization m.primeCompl)) (v j))
+    simp [w0, this]
+  simpa [vS, f, hev0, w0] using htotal
+
 /-- If `w(x) ∼ w(0)` holds after localizing at every maximal ideal of `A`, then it holds globally;
 combining with an equivalence for `w(0)` yields an equivalence for `w(x)`. -/
 theorem unimodularVectorEquiv_stdBasis_of_forall_maximal_local (A : Type*) [CommRing A] [IsDomain A]
@@ -738,20 +799,20 @@ section thm12_pid
 variable {k : Type*} [CommRing k] [IsDomain k] [IsPrincipalIdealRing k]
 variable {s : Type*} [Fintype s] [DecidableEq s]
 
-/-- The monicization hypothesis needed for the Route A proof of Theorem 12 over a PID:
-for every unimodular vector over `k[x₀,…,xₙ]` (with `x₀` distinguished), and every maximal ideal
-`m` of the coefficient ring `k[x₁,…,xₙ]`, after localizing at `m` some component becomes monic in
-the distinguished variable. -/
+/-- The “unit-leading-coefficient” hypothesis needed for the Route A proof of Theorem 12 over a
+PID: for every unimodular vector over `k[x₀,…,xₙ]` (with `x₀` distinguished), and every maximal
+ideal `m` of the coefficient ring `k[x₁,…,xₙ]`, after localizing at `m` some component has unit
+leading coefficient in the distinguished variable. -/
 def MonicAtMaximals : Prop :=
   ∀ n : ℕ,
-    ∀ o : s,
-      ∀ v : s → MvPolynomial (Fin (n + 1)) k,
-        IsUnimodular v →
-          ∀ m : Ideal (MvPolynomial (Fin n) k),
-            (hm : m.IsMaximal) →
-              ∃ i : s,
-                (((MvPolynomial.finSuccEquiv k n) (v i)).map
-                      (algebraMap (MvPolynomial (Fin n) k) (Localization m.primeCompl))).Monic
+    ∀ v : s → MvPolynomial (Fin (n + 1)) k,
+      IsUnimodular v →
+        ∀ m : Ideal (MvPolynomial (Fin n) k),
+          (hm : m.IsMaximal) →
+            ∃ i : s,
+              IsUnit
+                ((((MvPolynomial.finSuccEquiv k n) (v i)).map
+                        (algebraMap (MvPolynomial (Fin n) k) (Localization m.primeCompl))).leadingCoeff)
 
 /-- Route A: assuming `MonicAtMaximals`, the PID version of Theorem 12 for variables `Fin n`. -/
 theorem thm12_pid_fin (H : MonicAtMaximals (k := k) (s := s)) (n : ℕ) (o : s)
@@ -789,10 +850,11 @@ theorem thm12_pid_fin (H : MonicAtMaximals (k := k) (s := s)) (n : ℕ) (o : s)
               (fun i => (w i).map (algebraMap A (Localization m.primeCompl)))
               (fun i => C (algebraMap A (Localization m.primeCompl) ((w i).eval 0))) := by
         intro m hm
-        have hmonic :
-            ∃ i : s, ((w i).map (algebraMap A (Localization m.primeCompl))).Monic := by
-          simpa [w, A, φ] using H n o v hv m hm
-        exact local_equiv_eval0_of_monic_localization (R := A) (s := s) w hw hm hmonic
+        have hunit :
+            ∃ i : s,
+              IsUnit (((w i).map (algebraMap A (Localization m.primeCompl))).leadingCoeff) := by
+          simpa [w, A, φ] using H n v hv m hm
+        exact local_equiv_eval0_of_isUnit_leadingCoeff_localization (R := A) (s := s) w hw hm hunit
       let ev0 : Polynomial A →+* A := Polynomial.evalRingHom (R := A) 0
       let v0 : s → A := fun j => ev0 (w j)
       have hv0 : IsUnimodular v0 := isUnimodular_map_ringHom ev0 w hw
