@@ -249,6 +249,46 @@ theorem cor11Ideal_eq_top_of_forall_maximal (v : s → R[X])
   rcases h m hm with ⟨q, hqI, hqnm⟩
   exact hqnm (hIm hqI)
 
+/-- A local-to-global form of `cor11`: if `v(x) ∼ v(0)` holds after localizing at *every* maximal
+ideal of the coefficient ring, then it already holds over the original ring. -/
+theorem cor11_of_forall_maximal_local_equiv (v : s → R[X])
+    (hloc :
+      ∀ m : Ideal R, (hm : m.IsMaximal) →
+        UnimodularVectorEquiv
+          (fun i => (v i).map (algebraMap R (Localization m.primeCompl)))
+          (fun i => C (algebraMap R (Localization m.primeCompl) ((v i).eval 0)))) :
+    UnimodularVectorEquiv v (fun i => C ((v i).eval 0)) := by
+  classical
+  let I : Ideal R := cor11Ideal v
+  have hI : I = ⊤ := by
+    have hmax :
+        ∀ m : Ideal R, m.IsMaximal → ∃ q : R, q ∈ cor11IdealCarrier v ∧ q ∉ m := by
+      intro m hm
+      exact cor11IdealCarrier_exists_not_mem_maximal_of_local_equiv (v := v) hm (hloc m hm)
+    simpa [I] using cor11Ideal_eq_top_of_forall_maximal (v := v) hmax
+  have h1 : (1 : R) ∈ I := by simp [I, hI]
+  have hI1 : UnimodularVectorEquiv (cor11vx v) (cor11vxy v 1) := h1
+  let ev0 : R[X] →+* R[X] := Polynomial.eval₂RingHom (C : R →+* R[X]) 0
+  let evXY : R[X][Y] →+* R[X] := Polynomial.eval₂RingHom ev0 X
+  have hev0 (i : s) : ev0 (v i) = C ((v i).eval 0) := by
+    simp [ev0, Polynomial.coeff_zero_eq_eval_zero]
+  have hevXY_vx : (fun i => evXY (cor11vx v i)) = fun i => C ((v i).eval 0) := by
+    funext i
+    simp [evXY, ev0, hev0 i]
+  have hevXY_vxy : (fun i => evXY (cor11vxy v 1 i)) = v := by
+    funext i
+    have hcoeff : evXY.comp cor11ι = (C : R →+* R[X]) := by
+      ext r
+      simp [evXY, ev0, cor11ι]
+    have hX : evXY (C X + Y) = X := by simp [evXY, ev0]
+    have hhom := Polynomial.hom_eval₂ (v i) cor11ι evXY (C X + Y)
+    have : evXY (cor11vxy v 1 i) = (v i).eval₂ (C : R →+* R[X]) X := by
+      simpa [cor11vxy, cor11ι, one_smul, hcoeff, hX] using hhom
+    simpa [Polynomial.eval₂_C_X] using this
+  have hmain : UnimodularVectorEquiv (fun i => C ((v i).eval 0)) v := by
+    simpa [hevXY_vx, hevXY_vxy] using unimodularVectorEquiv_map evXY hI1
+  exact unimodularVectorEquiv_equivalence.symm hmain
+
 /-- Suppose $R$ is any ring, and $v(x) \in R[x]^s$ is a unimodular vector one of whose
   leading coefficients is one. Then $v(x) \sim v(0)$. -/
 theorem cor11 (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic) :
@@ -287,7 +327,7 @@ theorem cor11_of_isUnit_leadingCoeff (v : s → R[X]) (hv : IsUnimodular v)
   rcases hi with ⟨u, hu⟩
   let b : R := (↑(u⁻¹) : R)
   have hb : b * (v i).leadingCoeff = 1 := by
-    calc b * (v i).leadingCoeff = (↑(u⁻¹) : R) * (↑u : R) := by simpa [b, hu]
+    calc b * (v i).leadingCoeff = (↑(u⁻¹) : R) * (↑u : R) := by simp [b, hu]
       _ = 1 := by simp
   have hmonic : (Polynomial.C b * v i).Monic := monic_C_mul_of_mul_leadingCoeff_eq_one hb
   have hunitC : IsUnit (Polynomial.C b : R[X]) := by
@@ -306,7 +346,7 @@ theorem cor11_of_isUnit_leadingCoeff (v : s → R[X]) (hv : IsUnimodular v)
     funext j
     by_cases hj : j = i
     · subst hj
-      simp [w1, w0, v', Polynomial.eval_mul, mul_assoc, mul_left_comm, mul_comm]
+      simp only [mul_comm, Function.update_self, eval_mul, eval_C, map_mul, w1, v', w0]
     · simp [w1, w0, v', Function.update, hj]
   have hw0w1 : UnimodularVectorEquiv w0 w1 := by
     have := unimodularVectorEquiv_update_mul_isUnit (R := R) (s := s) i (Polynomial.C b) hunitC w0
@@ -320,7 +360,7 @@ end cor11
 section thm12
 
 variable (R : Type*) [CommRing R] [IsDomain R]
-variable {s : Type*} [Fintype s] [DecidableEq s]
+variable {s : Type*}
 
 /-- Unimodularity is preserved under a ring homomorphism. -/
 theorem isUnimodular_map_ringHom {A B : Type*} [CommRing A] [CommRing B] (f : A →+* B)
@@ -359,11 +399,34 @@ theorem isUnimodular_map_ringEquiv {A B : Type*} [CommRing A] [CommRing B] (e : 
       exact ⟨v i, ⟨i, rfl⟩, rfl⟩
   simpa [hrange] using hspan
 
+variable [Fintype s] [DecidableEq s]
+
 /-- Unimodular-vector equivalence is preserved under an algebra equivalence. -/
 theorem unimodularVectorEquiv_map_ringEquiv {A B : Type*} [CommRing A] [CommRing B] (e : A ≃+* B)
     (v w : s → A) (hvw : UnimodularVectorEquiv v w) :
     UnimodularVectorEquiv (fun i => e (v i)) (fun i => e (w i)) := by
   simpa using unimodularVectorEquiv_map (f := (e : A →+* B)) hvw
+
+/-- If `w(x) ∼ w(0)` holds after localizing at every maximal ideal of `A`, then it holds globally;
+combining with an equivalence for `w(0)` yields an equivalence for `w(x)`. -/
+theorem unimodularVectorEquiv_stdBasis_of_forall_maximal_local (A : Type*) [CommRing A] [IsDomain A]
+    (o : s) (w : s → Polynomial A)
+    (hloc :
+      ∀ m : Ideal A, (hm : m.IsMaximal) →
+        UnimodularVectorEquiv
+          (fun i => (w i).map (algebraMap A (Localization m.primeCompl)))
+          (fun i => C (algebraMap A (Localization m.primeCompl) ((w i).eval 0))))
+    (h0 : UnimodularVectorEquiv (fun i => (w i).eval 0) (fun i : s => if i = o then 1 else 0)) :
+    UnimodularVectorEquiv w (fun i : s => if i = o then 1 else 0) := by
+  classical
+  have hcor : UnimodularVectorEquiv w (fun i => C ((w i).eval 0)) :=
+    cor11_of_forall_maximal_local_equiv (R := A) (s := s) w hloc
+  have hmap :
+      UnimodularVectorEquiv (fun i => C ((w i).eval 0))
+        (fun i : s => if i = o then (1 : Polynomial A) else 0) := by
+    have := unimodularVectorEquiv_map (s := s) (Polynomial.C : A →+* Polynomial A) h0
+    simpa using this
+  exact unimodularVectorEquiv_equivalence.trans hcor hmap
 
 section monicize
 
@@ -394,7 +457,7 @@ noncomputable abbrev T1 (c : k) :
 private lemma t1_comp_t1_neg (c : k) : (T1 f c).comp (T1 f (-c)) = AlgHom.id _ _ := by
   rw [MvPolynomial.comp_aeval, ← MvPolynomial.aeval_X_left]
   ext i v
-  cases i using Fin.cases <;> simp [T1, add_assoc, add_left_comm, add_comm]
+  cases i using Fin.cases <;> simp [T1, add_assoc, add_comm]
 
 /-- `T1 f 1` leads to an algebra equivalence `T f`. -/
 private noncomputable abbrev T :
@@ -501,6 +564,7 @@ theorem exists_algEquiv_isUnit_leadingCoeff_finSuccEquiv (f : MvPolynomial (Fin 
   refine ⟨T f, ?_⟩
   simpa using T_leadingcoeff_isUnit (f := f) (n := n) fne
 
+omit [DecidableEq s] in
 /-- For a unimodular vector over `k[x₀,…,xₙ]` (with `k` a field), there exists an algebra
 automorphism such that one component becomes a polynomial in `x₀` with invertible leading
 coefficient, after identifying `k[x₀,…,xₙ] ≃ₐ[k] (k[x₁,…,xₙ])[X]` via `finSuccEquiv`. -/
@@ -508,11 +572,10 @@ theorem exists_algEquiv_exists_isUnit_leadingCoeff_finSuccEquiv (n : ℕ)
     (v : s → MvPolynomial (Fin (n + 1)) k) (hv : IsUnimodular v) :
     ∃ e : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] MvPolynomial (Fin (n + 1)) k,
       ∃ i : s, IsUnit (MvPolynomial.finSuccEquiv k n (e (v i))).leadingCoeff := by
-  classical
   have h1 :
       (1 : MvPolynomial (Fin (n + 1)) k) ∈ Ideal.span (Set.range v) := by
     unfold IsUnimodular at hv
-    simpa [hv] using (show (1 : MvPolynomial (Fin (n + 1)) k) ∈ (⊤ : Ideal _) from by simp)
+    simp [hv]
   rcases (Ideal.mem_span_range_iff_exists_fun).1 h1 with ⟨c, hc⟩
   have hex : ∃ i : s, v i ≠ 0 := by
     by_contra h0
@@ -526,6 +589,7 @@ theorem exists_algEquiv_exists_isUnit_leadingCoeff_finSuccEquiv (n : ℕ)
   rcases exists_algEquiv_isUnit_leadingCoeff_finSuccEquiv (k := k) (n := n) (f := v i) hi with ⟨e, he⟩
   exact ⟨e, i, he⟩
 
+omit [DecidableEq s] in
 /-- Alias for `exists_algEquiv_exists_isUnit_leadingCoeff_finSuccEquiv`. This is the “monicization”
 step in the proof sketch at the end of this file: in practice we first arrange that some component
 has *invertible* leading coefficient in the distinguished variable. -/
