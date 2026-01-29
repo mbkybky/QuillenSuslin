@@ -215,6 +215,16 @@ theorem cor11Ideal_eq_top (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s,
   rcases lem10 hs v hloc with ⟨c, hc⟩
   exact c.2 (hIm hc)
 
+/-- A maximal-ideal criterion for `cor11Ideal v = ⊤`. -/
+theorem cor11Ideal_eq_top_of_forall_maximal (v : s → R[X])
+    (h : ∀ m : Ideal R, m.IsMaximal → ∃ q : R, q ∈ cor11IdealCarrier v ∧ q ∉ m) :
+    cor11Ideal v = ⊤ := by
+  classical
+  by_contra hI
+  rcases Ideal.exists_le_maximal (cor11Ideal v) hI with ⟨m, hm, hIm⟩
+  rcases h m hm with ⟨q, hqI, hqnm⟩
+  exact hqnm (hIm hqI)
+
 /-- Suppose $R$ is any ring, and $v(x) \in R[x]^s$ is a unimodular vector one of whose
   leading coefficients is one. Then $v(x) \sim v(0)$. -/
 theorem cor11 (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic) :
@@ -243,6 +253,43 @@ theorem cor11 (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic
   have hmain : UnimodularVectorEquiv (fun i => C ((v i).eval 0)) v := by
     simpa [hevXY_vx, hevXY_vxy] using unimodularVectorEquiv_map evXY hI1
   unimodularVectorEquiv_equivalence.symm hmain
+
+/-- A variant of `cor11`: it suffices that some component has *unit* leading coefficient. -/
+theorem cor11_of_isUnit_leadingCoeff (v : s → R[X]) (hv : IsUnimodular v)
+    (h : ∃ i : s, IsUnit (v i).leadingCoeff) :
+    UnimodularVectorEquiv v (fun i => C ((v i).eval 0)) := by
+  classical
+  rcases h with ⟨i, hi⟩
+  rcases hi with ⟨u, hu⟩
+  let b : R := (↑(u⁻¹) : R)
+  have hb : b * (v i).leadingCoeff = 1 := by
+    calc b * (v i).leadingCoeff = (↑(u⁻¹) : R) * (↑u : R) := by simpa [b, hu]
+      _ = 1 := by simp
+  have hmonic : (Polynomial.C b * v i).Monic := monic_C_mul_of_mul_leadingCoeff_eq_one hb
+  have hunitC : IsUnit (Polynomial.C b : R[X]) := by
+    have : IsUnit b := ⟨u⁻¹, rfl⟩
+    simpa [Polynomial.isUnit_C] using this
+  let v' : s → R[X] := Function.update v i (Polynomial.C b * v i)
+  have hvv' : UnimodularVectorEquiv v v' :=
+    unimodularVectorEquiv_update_mul_isUnit (R := R) (s := s) i (Polynomial.C b) hunitC v
+  have hv' : IsUnimodular v' :=
+    (isUnimodular_iff_of_unimodularVectorEquiv (R := R) (s := s) hvv').1 hv
+  have hmonic' : ∃ j : s, (v' j).Monic := by refine ⟨i, by simp [v', hmonic]⟩
+  let w0 : s → R[X] := fun j => C ((v j).eval 0)
+  let w1 : s → R[X] := fun j => C ((v' j).eval 0)
+  have hcor : UnimodularVectorEquiv v' w1 := by simpa [w1] using cor11 v' hv' hmonic'
+  have hw1 : w1 = Function.update w0 i (Polynomial.C b * w0 i) := by
+    funext j
+    by_cases hj : j = i
+    · subst hj
+      simp [w1, w0, v', Polynomial.eval_mul, mul_assoc, mul_left_comm, mul_comm]
+    · simp [w1, w0, v', Function.update, hj]
+  have hw0w1 : UnimodularVectorEquiv w0 w1 := by
+    have := unimodularVectorEquiv_update_mul_isUnit (R := R) (s := s) i (Polynomial.C b) hunitC w0
+    simpa [hw1] using this
+  have hw1w0 : UnimodularVectorEquiv w1 w0 := unimodularVectorEquiv_equivalence.symm hw0w1
+  exact unimodularVectorEquiv_equivalence.trans hvv' <|
+    unimodularVectorEquiv_equivalence.trans hcor hw1w0
 
 end cor11
 
