@@ -215,6 +215,30 @@ theorem cor11Ideal_eq_top (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s,
   rcases lem10 hs v hloc with ⟨c, hc⟩
   exact c.2 (hIm hc)
 
+/-- From a localization equivalence `v(x) ∼ v(0)` at a maximal ideal, produce `q ∉ m` with
+`v(x) ∼ v(x + qy)` over `R[x,y]`. -/
+theorem cor11IdealCarrier_exists_not_mem_maximal_of_local_equiv (v : s → R[X]) {m : Ideal R}
+    (hm : m.IsMaximal)
+    (hloc :
+      UnimodularVectorEquiv
+        (fun i => (v i).map (algebraMap R (Localization m.primeCompl)))
+        (fun i => C (algebraMap R (Localization m.primeCompl) ((v i).eval 0)))) :
+    ∃ q : R, q ∈ cor11IdealCarrier v ∧ q ∉ m := by
+  classical
+  haveI : m.IsPrime := hm.isPrime
+  let S : Submonoid R := m.primeCompl
+  have hS0 : (0 : R) ∉ S := by simp [S, Ideal.mem_primeCompl_iff]
+  have hs : S ≤ nonZeroDivisors R := le_nonZeroDivisors_of_noZeroDivisors hS0
+  rcases lem10 hs v (by simpa [S] using hloc) with ⟨c, hc⟩
+  refine ⟨(c : R), ?_, ?_⟩
+  · change UnimodularVectorEquiv (cor11vx v) (cor11vxy v (c : R))
+    change
+      UnimodularVectorEquiv (fun i : s => C (v i))
+        (fun i : s =>
+          (v i).eval₂ ((C : R[X] →+* R[X][Y]).comp (C : R →+* R[X])) (C X + (c : R) • Y))
+    exact hc
+  · exact (Ideal.mem_primeCompl_iff).1 c.2
+
 /-- A maximal-ideal criterion for `cor11Ideal v = ⊤`. -/
 theorem cor11Ideal_eq_top_of_forall_maximal (v : s → R[X])
     (h : ∀ m : Ideal R, m.IsMaximal → ∃ q : R, q ∈ cor11IdealCarrier v ∧ q ∉ m) :
@@ -640,6 +664,10 @@ end thm12
 \begin{lemma}\label{lem:10}
 	Suppose $v(x) \sim v(0)$ over the localization $R_S[x]$. Then there exists a $c \in S$ such that $v(x) \sim v(x + cy)$ over $R[x, y]$.
 \end{lemma}
+
+\begin{corollary}\label{cor:11}
+	Suppose $R$ is any ring, and $v(x) \in R[x]^s$ is a unimodular vector one of whose leading coefficients is one. Then $v(x) \sim v(0)$.
+\end{corollary}
 
 \begin{theorem}\label{thm:12}
 	Let $R = k[x_1, \dots, x_n]$ be a polynomial ring over a principal ideal domain $k$, and let $v \in R^n$ be a unimodular vector. Then $v \sim e_1$.
