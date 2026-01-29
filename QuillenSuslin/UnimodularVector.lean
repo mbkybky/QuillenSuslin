@@ -357,7 +357,7 @@ theorem cor11_of_isUnit_leadingCoeff (v : s → R[X]) (hv : IsUnimodular v)
 
 end cor11
 
-section thm12
+section thm12_field
 
 variable (R : Type*) [CommRing R] [IsDomain R]
 variable {s : Type*}
@@ -798,7 +798,7 @@ theorem thm12_fin {k : Type*} [Field k] (n : ℕ) (o : s) (v : s → MvPolynomia
 
 /-- Let `k` be a field and `σ` a finite set of variables. Any unimodular vector in `k[σ]` is
 equivalent to a standard basis vector. -/
-theorem thm12 {k : Type*} [Field k] {σ : Type*} [Fintype σ] [DecidableEq σ]
+theorem thm12_field {k : Type*} [Field k] {σ : Type*} [Fintype σ] [DecidableEq σ]
     (o : s) (v : s → MvPolynomial σ k) (hv : IsUnimodular v) :
     UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
   classical
@@ -812,16 +812,13 @@ theorem thm12 {k : Type*} [Field k] {σ : Type*} [Fintype σ] [DecidableEq σ]
     (fun i : s => if i = o then 1 else 0) h'
   simpa [v', ρ] using this
 
-end thm12
+end thm12_field
 
 section thm12_pid
 
 variable {k : Type*} [CommRing k] [IsDomain k] [IsPrincipalIdealRing k]
 variable {s : Type*} [Fintype s] [DecidableEq s]
 
-/-- The Route A local hypothesis for Theorem 12 over a PID: after localizing at any maximal ideal
-of the coefficient ring, one can perform a unimodular-vector equivalence so that some coordinate
-has unit leading coefficient in the distinguished variable. -/
 def MonicAtMaximals : Prop :=
   ∀ n : ℕ,
     ∀ w : s → Polynomial (MvPolynomial (Fin n) k),
@@ -836,7 +833,6 @@ def MonicAtMaximals : Prop :=
                   w' ∧
                 ∃ i : s, IsUnit (w' i).leadingCoeff
 
-/-- Route A: assuming `MonicAtMaximals`, the PID version of Theorem 12 for variables `Fin n`. -/
 theorem thm12_pid_fin (H : MonicAtMaximals (k := k) (s := s)) (n : ℕ) (o : s)
     (v : s → MvPolynomial (Fin n) k) (hv : IsUnimodular v) :
     UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
@@ -923,8 +919,6 @@ theorem thm12_pid_fin (H : MonicAtMaximals (k := k) (s := s)) (n : ℕ) (o : s)
         simpa [w, φr] using φr.symm_apply_apply (v j)
       simpa [hcomp] using this
 
-/-- Route A: assuming `MonicAtMaximals`, the PID version of Theorem 12 for an arbitrary finite
-set of variables. -/
 theorem thm12_pid (H : MonicAtMaximals (k := k) (s := s)) {σ : Type*} [Fintype σ] [DecidableEq σ]
     (o : s) (v : s → MvPolynomial σ k) (hv : IsUnimodular v) :
     UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
@@ -939,6 +933,10 @@ theorem thm12_pid (H : MonicAtMaximals (k := k) (s := s)) {σ : Type*} [Fintype 
   have := unimodularVectorEquiv_map_ringEquiv ρ.symm.toRingEquiv v'
     (fun i : s => if i = o then 1 else 0) h'
   simpa [v', ρ] using this
+
+theorem thm12 (o : s) {σ : Type*} [Fintype σ] [DecidableEq σ] (v : s → MvPolynomial σ k)
+    (hv : IsUnimodular v) : UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
+  sorry
 
 end thm12_pid
 
