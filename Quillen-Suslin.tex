@@ -30,7 +30,6 @@
 \title{The Proof of the Quillen-Suslin Theorem}
 \maketitle
 
-\noindent \url{https://amathew.wordpress.com/2012/01/16/the-quillen-suslin-theorem}.
 
 \section{Unimodular Vector}
 
@@ -78,9 +77,9 @@
 
 \begin{proof}
 	As before, we can choose a matrix $M(x) \in \mathrm{GL}_s(R_S[x])$ such that $M(x) v(x) = v(0)$, and then the matrix $N(x,y) := M(x)^{-1}M(x+y)$ has the property that
-	\[ \displaystyle N(x,y) v(x+y) = v(x). \]
+	$$ \displaystyle N(x,y) v(x+y) = v(x). $$
 	It follows that if we substitute $cy$ for $y$, then we have
-	\[ \displaystyle N(x,cy) v(x+cy) = v(x). \]
+	$$ \displaystyle N(x,cy) v(x+cy) = v(x). $$
 	The claim is that we can choose $c \in S$ such that $N(x,cy)$ actually has $R$-coefficients. In fact, this is because $N(x, 0) = I$, which implies that $N(x,y) = I + y W$ for some matrix $W$ with values in $R_S[x,y]$. If we replace $y$ with $cy$ for $c$ an element of $S$, then we can clear the denominators in $W$ and arrange it so that $N(x,cy) \in R[x, y]$.
 \end{proof}
 
@@ -92,11 +91,11 @@
 	Let us consider the set $I$ of $q \in R$ such that $v(x+qy) \sim v(x)$ in $R[x, y]$. If we can show that $1 \in I$, then we will be done, because after applying the homomorphism $x \mapsto 0, R[x, y] \rightarrow R[y]$, we will get that $v(y) \sim v(0)$ in $R[y]$.
 	
 	We start by observing that $I$ is an ideal. In fact, suppose $v(x+qy) \sim v(x)$ and $v(x + q'y) \sim v(x)$. Then, substituting $x \mapsto x + q'y$ in the first leads to
-	\[ \displaystyle v(x + q'y + qy) \sim v(x + q'y) \in R[x,y] \]
+	$$ \displaystyle v(x + q'y + qy) \sim v(x + q'y) \in R[x,y] $$
 	and since $v(x + q'y) \sim v(x)$, we get easily by transitivity that $q + q' \in I$. Similarly, we have to observe that if $q \in I$ and $r \in R$, then $v(x+qry) \sim v(x)$. But this is true because one can substitute $y \mapsto ry$.
 	
 	Since $I$ is an ideal, to show that $1 \in I$ we just need to show that $I$ is contained in no maximal ideal. Let $\mathfrak{m} \subset R$ be a maximal ideal. We then note that, by what we have already done for local rings [Corollary \ref{cor:9}], we have that
-	\[ \displaystyle v(x) \sim v(0 ) \quad \text{in} \quad R_{\mathfrak{m}}[x]. \]
+	$$ \displaystyle v(x) \sim v(0 ) \quad \text{in} \quad R_{\mathfrak{m}}[x]. $$
 	By Lemma \ref{lem:10}, this means that there is a $q \in R - \mathfrak{m}$ such that $v(x+qy) \sim v(0)$; this means that $q \in I$. So $I$ cannot be contained in $\mathfrak{m}$. Since this applies to any maximal ideal $\mathfrak{m}$, it follows that $I$ must be the unit ideal.
 \end{proof}
 
@@ -110,7 +109,7 @@
 	Suppose $n \geq 1$. Then we can treat $R$ as $k[x_1, \dots, x_{n-1}, X]$, where we replace $x_n$ by $X$ to make it stand out. We can think of $v = v(X)$ as a vector of polynomials in $X$ with coefficients in the smaller ring $k[x_1, \dots, x_{n-1}]$.
 	
 	If $v(X)$ has a term with leading coefficient one, then the previous results [Corollary \ref{cor:11}] enable us to conclude that $v(X) \sim v(0)$, and as $v(0)$ lies in $k[x_1, \dots, x_{n-1}]$ we can use induction to work downwards. The claim is that, possibly after a change of variables $x_1, \dots, x_n$, we can always arrange it so that the leading coefficient in $X = x_n$ is one. The relevant change of variables leaves $X = x_n$ constant and
-	\[ \displaystyle x_i \mapsto x_i - X^{M^i}, \quad M \gg 0 \quad (1 \leq i < n). \]
+	$$ \displaystyle x_i \mapsto x_i - X^{M^i}, \quad M \gg 0 \quad (1 \leq i < n). $$
 	If $M$ is chosen very large, one makes by this substitution the leading term of each of the elements of $v$ a unit. So, without loss of generality we can assume that this is already the case. Thus, we can apply the inductive hypothesis on $n$ to complete the proof.
 \end{proof}
 
@@ -121,27 +120,49 @@
 	A finitely generated module $P$ over a commutative ring $R$ is said to be stably free if there exists a finitely generated free module $F$ such that the direct sum $P \oplus F$ is a free module.
 \end{definition}
 
-\begin{lemma}\label{exact_seq}
-	Let $R$ be a ring. Let $0 \to P' \to P \to P'' \to 0$ be a short
-	exact sequence of finite projective $R$-modules. If $2$ out of $3$
-	of these modules are stably free, then so is the third.
-\end{lemma}
+%\begin{lemma}\label{exact_seq}
+%	Let $R$ be a ring. Let $0 \to P' \to P \to P'' \to 0$ be a short
+%	exact sequence of finite projective $R$-modules. If $2$ out of $3$
+%	of these modules are stably free, then so is the third.
+%\end{lemma}
+%
+%\begin{proof}
+%	Since the modules are projective, the sequence is split. Thus we can
+%	choose an isomorphism $P = P' \oplus P''$. If $P' \oplus R^{\oplus n}$
+%	and $P'' \oplus R^{\oplus m}$ are free, then we see that
+%	$P \oplus R^{\oplus n + m}$ is free. Suppose that $P'$ and $P$ are
+%	stably free, say $P \oplus R^{\oplus n}$ is free and $P' \oplus R^{\oplus m}$
+%	is free. Then
+%	$$
+%	P'' \oplus (P' \oplus R^{\oplus m}) \oplus R^{\oplus n} =
+%	(P'' \oplus P') \oplus R^{\oplus m} \oplus R^{\oplus n} =
+%	(P \oplus R^{\oplus n}) \oplus R^{\oplus m}
+%	$$
+%	is free. Thus $P''$ is stably free. By symmetry we get the last of the
+%	three cases.
+%\end{proof}
+
+\begin{proposition}\label{stably_free_iff}
+	Let $M$ be a projective module. Then $M$ is stably free if and only if $M$ admits a finite free resolution.
+\end{proposition}
 
 \begin{proof}
-	Since the modules are projective, the sequence is split. Thus we can
-	choose an isomorphism $P = P' \oplus P''$. If $P' \oplus R^{\oplus n}$
-	and $P'' \oplus R^{\oplus m}$ are free, then we see that
-	$P \oplus R^{\oplus n + m}$ is free. Suppose that $P'$ and $P$ are
-	stably free, say $P \oplus R^{\oplus n}$ is free and $P' \oplus R^{\oplus m}$
-	is free. Then
-	$$
-	P'' \oplus (P' \oplus R^{\oplus m}) \oplus R^{\oplus n} =
-	(P'' \oplus P') \oplus R^{\oplus m} \oplus R^{\oplus n} =
-	(P \oplus R^{\oplus n}) \oplus R^{\oplus m}
-	$$
-	is free. Thus $P''$ is stably free. By symmetry we get the last of the
-	three cases.
+	If $M$ is stably free then it is trivial that $M$ has a finite free resolution. Conversely assume the existence of the resolution with the above notation. We prove that $M$ is stably free by induction on $n$. The assertion is obvious if $n = 0$. Assume $n \geqq 1$. Insert the kernels and cokernels at each step, in the manner of dimension shifting. Say
+$$
+M_1 = \text{Ker}(E_0 \to P),
+$$
+giving rise to the exact sequence
+$$
+0 \to M_1 \to E_0 \to M \to 0.
+$$
+Since $M$ is projective, this sequence splits, and $E_0 \cong M \oplus M_1$. But $M_1$ has a finite free resolution of length smaller than the resolution of $M$, so there exists a finite free module $F$ such that $M_1 \oplus F$ is free. Since $E_0 \oplus F$ is also free, this concludes the proof of the theorem.
 \end{proof}
+
+\begin{lemma}\label{exact_seq}
+	Let $R$ be a ring. Let $0 \to P' \to P \to P'' \to 0$ be a short
+	exact sequence of finite $R$-modules. If $2$ out of $3$
+	of these modules has a finite free resolution, then so is the third.
+\end{lemma}
 
 \begin{proposition}
 	Let $R$ be a commutative Noetherian ring. Let $x$ be a variable. If every finite $R$-module has a finite free resolution, then every finite $R[x]$-module has a finite free resolution.
@@ -163,7 +184,7 @@
 	where $q'_i = d_0 q_i$ and $r'_i = d_0 r_i$ lie in $R_0[x]$. Since $\deg f$ is minimal in $P_0$ it follows that $r'_i = 0$ for all $i$, so
 	$$d_0 P_0 \subset R_0[x]f = (f).$$
 	
-	Let $N_0 = P_0/(f)$, so $N_0$ is a module over $R_0[x]$, and we can also view $N_0$ as a module over $R[x]$. When so viewed, we denote $N_0$ by $N$. Let $d \in R$ be any element reducing to $d_0 \pmod{\mathfrak{p}}$. Then $d \notin \mathfrak{p}$ since $d_0 \neq 0$. The module $N_0$ has a finite filtration such that each factor module of the filtration is isomorphic to some $R_0[x]/\bar{Q}_0$ where $\bar{Q}_0$ is an associated prime of $N_0$. Let $Q$ be the inverse image of $\bar{Q}_0$ in $R[x]$. These prime ideals $Q$ are precisely the associated primes of $N$ in $R[x]$. Since $d_0$ kills $N_0$ it follows that $d$ kills $N$ and therefore $d$ lies in every associated prime of $N$. By the maximality property in the selection of $P$, it follows that every one of the factor modules in the filtration of $N$ has a finite free resolution, and by Theorem 2.7 it follows that $N$ itself has a finite free resolution.
+	Let $N_0 = P_0/(f)$, so $N_0$ is a module over $R_0[x]$, and we can also view $N_0$ as a module over $R[x]$. When so viewed, we denote $N_0$ by $N$. Let $d \in R$ be any element reducing to $d_0 \pmod{\mathfrak{p}}$. Then $d \notin \mathfrak{p}$ since $d_0 \neq 0$. The module $N_0$ has a finite filtration such that each factor module of the filtration is isomorphic to some $R_0[x]/\bar{Q}_0$ where $\bar{Q}_0$ is an associated prime of $N_0$. Let $Q$ be the inverse image of $\bar{Q}_0$ in $R[x]$. These prime ideals $Q$ are precisely the associated primes of $N$ in $R[x]$. Since $d_0$ kills $N_0$ it follows that $d$ kills $N$ and therefore $d$ lies in every associated prime of $N$. By the maximality property in the selection of $P$, it follows that every one of the factor modules in the filtration of $N$ has a finite free resolution, and by Lemma \ref{exact_seq} it follows that $N$ itself has a finite free resolution.
 	
 	Now we view $R_0[x]$ as an $R[x]$-module, via the canonical homomorphism
 	$$R[x] \to R_0[x] = R[x]/\mathfrak{p}R[x].$$
@@ -173,33 +194,23 @@
 	$$0 \to \mathfrak{p}R[x] \to R[x] \to R_0[x] \to 0$$
 	we conclude that $R_0[x]$ has a finite free resolution as $R[x]$-module.
 	
-	Since $R_0$ is entire, it follows that the principal ideal $(f)$ in $R_0[x]$ is $R[x]$-isomorphic to $R_0[x]$, and therefore has a finite free resolution as $R[x]$-module. Theorem 2.7 applied to the exact sequence of $R[x]$-modules
+	Since $R_0$ is entire, it follows that the principal ideal $(f)$ in $R_0[x]$ is $R[x]$-isomorphic to $R_0[x]$, and therefore has a finite free resolution as $R[x]$-module. Lemma \ref{exact_seq} applied to the exact sequence of $R[x]$-modules
 	$$0 \to (f) \to P_0 \to N \to 0$$
 	shows that $P_0$ has a finite free resolution; and further applied to the exact sequence
 	$$0 \to \mathfrak{p}R[x] \to P \to P_0 \to 0$$
 	shows that $P$ has a finite free resolution, thereby concluding the proof.
 \end{proof}
 
-\begin{proposition}
-	Let $M$ be an $A$-module. Then $M$ has a finite free resolution of length $n \geqq 1$ if and only if $M$ has a stably free resolution of length $n$.
-\end{proposition}
-
-\begin{proof}
-	One direction is trivial, so we suppose given a stably free resolution with the above notation. Let $0 \leqq i < n$ be some integer, and let $F_i, F_{i+1}$ be finite free such that $E_i \oplus F_i$ and $E_{i+1} \oplus F_{i+1}$ are free. Let $F = F_i \oplus F_{i+1}$. Then we can form an exact sequence
-	$$ 0 \to E_n \to \dots \to E_{i+1} \oplus F \to E_i \oplus F \to \dots \to E_0 \to M \to 0 $$
-	in the obvious manner. In this way, we have changed two consecutive modules in the resolution to make them free. Proceeding by induction, we can then make $E_0, E_1$ free, then $E_1, E_2$ free, and so on to conclude the proof of the proposition.
-\end{proof}
-
 Then we have
 
-\begin{theorem}
+\begin{theorem}\label{poly}
 	Let $R$ be a noetherian ring such that every finitely generated projective module over $R$ is stably free. Then the same property holds true for $R[x]$.
 \end{theorem}
 
 By induction, we see:
 
 \begin{corollary}\label{cor:3}
-	Every finitely generated projective module over $k[x_1, \dots, x_n]$, for any field $k$, is necessarily stably free.
+	Every finitely generated projective module over $k[x_1, \dots, x_n]$, for any principal ideal domain $k$, is necessarily stably free.
 \end{corollary}
 
 \section{Quillen-Suslin theorem}
@@ -209,11 +220,19 @@ By induction, we see:
 \end{theorem}
 
 \begin{proof}
-	 By Corollary \ref{cor:3}, we only need to show that a stably free module over $R = k[x_1, \dots, x_n]$ is fre. That is, if $P$ is such a finitely generated module such that $P \oplus R^m \simeq R^{m'}$, then $P$ is free. By induction on $m$, one reduces to the case $m = 1$. In this case we have an exact sequence
-	\[ \displaystyle 0 \rightarrow R \rightarrow R^{m'} \rightarrow P \rightarrow 0 \]
+	By Corollary \ref{cor:3}, we only need to show that a stably free module over $R = k[x_1, \dots, x_n]$ is free. That is, if $P$ is such a finitely generated module such that $P \oplus R^m \simeq R^{m'}$, then $P$ is free. By induction on $m$, one reduces to the case $m = 1$. In this case we have an exact sequence
+	$$ \displaystyle 0 \rightarrow R \rightarrow R^{m'} \rightarrow P \rightarrow 0 $$
 	and we have to conclude that the cokernel $P$ is free.
 	
 	But the injection $R \rightarrow R^{m'}$ corresponds to a unimodular vector, and we have seen [by Theorem \ref{thm:12}] that this is isomorphic to the standard embedding $e_1: R \rightarrow R^{m'}$, whose cokernel is obviously free. Thus $P$ is free.
 \end{proof}
+
+{
+	\linespread{1.0}\small\selectfont
+	\begin{thebibliography}{99}
+		\bibitem{web} \url{https://amathew.wordpress.com/2012/01/16/the-quillen-suslin-theorem}.
+		\bibitem{211} Serge Lang, $ Algebra $, volume 211 of $ Graduate\ Texts\ in\ Mathematics $. Springer, 2002.
+	\end{thebibliography}
+}
 
 \end{document}

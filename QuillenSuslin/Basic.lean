@@ -1,1 +1,2 @@
 import QuillenSuslin.UnimodularVector
+import QuillenSuslin.StablyFree
