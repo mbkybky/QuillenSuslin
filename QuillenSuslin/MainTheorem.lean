@@ -239,6 +239,8 @@ theorem module_free_of_isStablyFree_of_unimodularVectorEquiv
         exact ih hQ'
   exact this n hPFin
 
+#check thm12
+
 /-
 \begin{theorem}[Quillen-Suslin]\label{thm:13}
 	A finitely generated projective module over $k[x_1, \dots, x_n]$ for $k$ a principal ideal domain is free.
