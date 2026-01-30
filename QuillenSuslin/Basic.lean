@@ -34,7 +34,7 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
       apply hx
       exact b.repr.injective (by simpa [c] using hc)
     let t : Finset I := c.support
-    have ht : t.Nonempty := (Finsupp.support_nonempty_iff.2 hc)
+    have ht : t.Nonempty := Finsupp.support_nonempty_iff.2 hc
     let o : t := ⟨ht.choose, ht.choose_spec⟩
     let v : t → R := fun i => c i
     have hv : IsUnimodular v := by
@@ -43,24 +43,20 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
       refine ⟨fun i => (b i).2, ?_⟩
       have hsnd : (LinearMap.snd R Q R) x = (1 : R) := by simp [x]
       have hsnd' : (LinearMap.snd R Q R) x = t.sum fun i => c i * (b i).2 := by
-        calc
-          (LinearMap.snd R Q R) x =
-              (LinearMap.snd R Q R) (Finsupp.linearCombination R b c) := by
-                simpa [c] using
-                  congrArg (LinearMap.snd R Q R) (b.linearCombination_repr x).symm
+        calc _ = (LinearMap.snd R Q R) (Finsupp.linearCombination R b c) := by simp [c]
           _ = t.sum fun i => c i * (b i).2 := by
             simp [t, Finsupp.linearCombination_apply, Finsupp.sum, map_sum, smul_eq_mul]
       have hsum : (∑ i : t, (b i).2 * v i) = (1 : R) := by
         have hsum' : (∑ i : t, (b i).2 * v i) = t.sum fun i => (b i).2 * c i := by
-          simpa [v] using (Finset.sum_coe_sort (s := t) (f := fun i => (b i).2 * c i))
-        calc
-          (∑ i : t, (b i).2 * v i) = t.sum fun i => (b i).2 * c i := hsum'
+          simp [v]
+          exact Finset.sum_coe_sort (s := t) (f := fun i => (b i).2 * c i)
+        calc _ = t.sum fun i => (b i).2 * c i := hsum'
           _ = t.sum fun i => c i * (b i).2 := by
             refine Finset.sum_congr rfl ?_
             intro i hi
             simp [mul_comm]
-          _ = (LinearMap.snd R Q R) x := by simpa [hsnd'] using hsnd'.symm
-          _ = 1 := by simpa using hsnd
+          _ = (LinearMap.snd R Q R) x := hsnd'.symm
+          _ = 1 := hsnd
       simpa [hsum]
     let n : ℕ := Fintype.card t
     let e : t ≃ Fin n := Fintype.equivFin t
@@ -73,10 +69,10 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
         constructor
         · rintro ⟨i, rfl⟩
           refine ⟨e.symm i, ?_⟩
-          simp [v', Function.comp]
+          simp [v']
         · rintro ⟨i, rfl⟩
           refine ⟨e i, ?_⟩
-          simp [v', Function.comp]
+          simp [v']
       simpa [hrange] using hv
     have hvo' :
         UnimodularVectorEquiv v' (fun i : Fin n => if i = o' then 1 else 0) :=
@@ -103,8 +99,8 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
     have hxE : eF x = (v', (0 : I₂ →₀ R)) := by
       ext i
       ·
-        simp [eF, eF''', eF'', eF', eI, v', v, x, c, e, Finsupp.sumFinsuppLEquivProdFinsupp,
-          Finsupp.linearEquivFunOnFinite_apply, Finsupp.domLCongr_apply]
+        simp [eF, eF''', eF'', eF', eI, x, c, e, Finsupp.sumFinsuppLEquivProdFinsupp,
+          Finsupp.domLCongr_apply]
         exact
           congrArg (fun k => (b.repr x) k)
             (Equiv.sumCompl_apply_inl (p := fun i : I => i ∈ t) (e.symm i))
@@ -113,15 +109,15 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
           by_contra hne
           have : (i : I) ∈ c.support := (Finsupp.mem_support_iff.2 hne)
           exact i.property (by simpa [t] using this)
-        simp [eF, eF''', eF'', eF', eI, v', v, x, c, e, Finsupp.sumFinsuppLEquivProdFinsupp,
-          Finsupp.linearEquivFunOnFinite_apply, Finsupp.domLCongr_apply]
+        simp [eF, eF''', eF'', eF', eI, x, c, e, Finsupp.sumFinsuppLEquivProdFinsupp,
+          Finsupp.domLCongr_apply]
         calc
           (b.repr x) ((Equiv.sumCompl fun i : I => i ∈ t) (Sum.inr i)) =
               (b.repr x) (i : I) := by
-                simpa using
+                exact
                   congrArg (fun k => (b.repr x) k)
                     (Equiv.sumCompl_apply_inr (p := fun i : I => i ∈ t) i)
-          _ = 0 := by simpa [c] using hi0
+          _ = 0 := by simp [c, hi0]
     let U := (Fin n → R) × (I₂ →₀ R)
     let φ : U ≃ₗ[R] U := LinearEquiv.prodCongr eM (LinearEquiv.refl R _)
     let g : R →ₗ[R] U := (eF.toLinearMap).comp (LinearMap.inr R Q R)
@@ -131,16 +127,20 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
         map_add' := by
           intro a b
           refine Prod.ext ?_ ?_
-          · simpa using (add_smul a b std)
           ·
-            change (0 : I₂ →₀ R) = (0 : I₂ →₀ R) + 0
+            show (a + b) • std = a • std + b • std
+            simp [add_smul]
+          ·
+            show (0 : I₂ →₀ R) = (0 : I₂ →₀ R) + 0
             simp
         map_smul' := by
           intro a b
           refine Prod.ext ?_ ?_
-          · simpa using (mul_smul a b std)
           ·
-            change (0 : I₂ →₀ R) = a • (0 : I₂ →₀ R)
+            show (a * b) • std = a • (b • std)
+            simp [mul_smul]
+          ·
+            show (0 : I₂ →₀ R) = a • (0 : I₂ →₀ R)
             simp }
     have hφ : (φ.toLinearMap).comp g = gstd := by
       apply LinearMap.ext
@@ -155,7 +155,7 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
             refine Prod.ext ?_ ?_
             · rfl
             ·
-              change r • (0 : I₂ →₀ R) = 0
+              show r • (0 : I₂ →₀ R) = 0
               simp
       refine Prod.ext ?_ ?_
       ·
@@ -163,8 +163,8 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
           (φ.toLinearMap (g r)).1 = (φ (g r)).1 := rfl
           _ = eM (g r).1 := by rfl
           _ = eM (r • v') := by simp [hgr]
-          _ = r • eM v' := by simpa using (eM.map_smul r v')
-          _ = r • std := by simpa [heM, std]
+          _ = r • eM v' := by simp
+          _ = r • std := by simp [heM, std]
           _ = (gstd r).1 := by simp [gstd]
       ·
         calc
@@ -180,7 +180,7 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
         Submodule.map φ.toLinearMap (LinearMap.range g) =
             LinearMap.range ((φ.toLinearMap).comp g) := by
               simpa using (LinearMap.range_comp g (φ.toLinearMap)).symm
-        _ = LinearMap.range gstd := by simpa [hφ]
+        _ = LinearMap.range gstd := by simp [hφ]
     let t' := { i : Fin n // i ≠ o' }
     let restrict : (Fin n → R) →ₗ[R] (t' → R) :=
       { toFun := fun f i => f i.1
@@ -296,7 +296,6 @@ theorem module_free_of_isStablyFree_of_unimodularVectorEquiv
               (LinearEquiv.prodAssoc R P (Fin n → R) R).symm
           letI : Module.Free R (P × (Fin (n + 1) → R)) := hsn
           exact Module.Free.of_equiv eAssoc
-        letI : Module.Free R ((P × (Fin n → R)) × R) := hQ
         have hQ' : Module.Free R (P × (Fin n → R)) :=
           module_free_of_prod_free_of_unimodularVectorEquiv (R := R) hR (P × (Fin n → R))
         exact ih hQ'
