@@ -239,18 +239,14 @@ theorem module_free_of_isStablyFree_of_unimodularVectorEquiv
         exact ih hQ'
   exact this n hPFin
 
-#check thm12
-
-/-
-\begin{theorem}[Quillen-Suslin]\label{thm:13}
-	A finitely generated projective module over $k[x_1, \dots, x_n]$ for $k$ a principal ideal domain is free.
-\end{theorem}
-
-\begin{proof}
-	By Corollary \ref{cor:3}, we only need to show that a stably free module over $R = k[x_1, \dots, x_n]$ is free. That is, if $P$ is such a finitely generated module such that $P \oplus R^m \simeq R^{m'}$, then $P$ is free. By induction on $m$, one reduces to the case $m = 1$. In this case we have an exact sequence
-	$$ \displaystyle 0 \rightarrow R \rightarrow R^{m'} \rightarrow P \rightarrow 0 $$
-	and we have to conclude that the cokernel $P$ is free.
-
-	But the injection $R \rightarrow R^{m'}$ corresponds to a unimodular vector, and we have seen [by Theorem \ref{thm:12}] that this is isomorphic to the standard embedding $e_1: R \rightarrow R^{m'}$, whose cokernel is obviously free. Thus $P$ is free.
-\end{proof}
--/
+/-- Quillen–Suslin over a field:
+  every finitely generated projective module over `k[x₁, \dots, xₙ]` is free. -/
+theorem quillenSuslin_field (k : Type*) [Field k] (σ : Type*) [Fintype σ] [DecidableEq σ]
+    (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ k) P] [Module.Finite (MvPolynomial σ k) P]
+    [Projective (MvPolynomial σ k) P] : Module.Free (MvPolynomial σ k) P := by
+  have hP : IsStablyFree (MvPolynomial σ k) P :=
+    mvPolynomial_isStablyFree_of_isPrincipalIdealRing k σ P
+  refine module_free_of_isStablyFree_of_unimodularVectorEquiv (MvPolynomial σ k) ?_ P <|
+    mvPolynomial_isStablyFree_of_isPrincipalIdealRing k σ P
+  intro _ _ _
+  exact thm12
