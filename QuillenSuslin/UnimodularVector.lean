@@ -865,6 +865,16 @@ theorem suslin_monic_polynomial_theorem (hr : ringKrullDim R < ⊤) (n : ℕ)
 
 variable [IsPrincipalIdealRing R]
 
+/-- If a unimodular vector `v` generates an ideal containing a polynomial `f` that is monic in
+`x₀` (after `finSuccEquiv`), then `v` is `GL_s`-equivalent to a vector with a monic coordinate. -/
+theorem exists_equiv_exists_monic_finSuccEquiv_of_mem_span (n : ℕ)
+    (v : s → MvPolynomial (Fin (n + 1)) R) (hv : IsUnimodular v)
+    (f : MvPolynomial (Fin (n + 1)) R) (hf : f ∈ Ideal.span (Set.range v))
+    (hmonic : (MvPolynomial.finSuccEquiv R n f).Monic) :
+    ∃ w : s → MvPolynomial (Fin (n + 1)) R,
+      UnimodularVectorEquiv v w ∧ ∃ i : s, (MvPolynomial.finSuccEquiv R n (w i)).Monic := by
+  sorry
+
 /-- A unimodular-vector form of Suslin's theorem, tailored for the `thm12` induction over a PID:
 after a change of variables, the vector becomes `GL_s`-equivalent to one with a monic coordinate
 (as a polynomial in `x₀` with coefficients in `R[x₁,…,xₙ]`). -/
@@ -874,7 +884,57 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
       ∃ w : s → MvPolynomial (Fin (n + 1)) R,
         UnimodularVectorEquiv (fun i => e (v i)) w ∧
           ∃ i : s, (MvPolynomial.finSuccEquiv R n (w i)).Monic := by
-  sorry
+  classical
+  let A := MvPolynomial (Fin (n + 1)) R
+  let I : Ideal A := Ideal.span (Set.range v)
+
+  -- Since `v` is unimodular, `I = ⊤`, hence `ringKrullDim R < I.height` holds trivially.
+  have hItop : I = ⊤ := by
+    simpa [I, IsUnimodular] using hv
+  have hr : ringKrullDim R < ⊤ := by
+    have hle : ringKrullDim R ≤ (1 : Nat).cast := by
+      -- A PID has Krull dimension ≤ 1.
+      exact (Ring.krullDimLE_iff (R := R) (n := 1)).1 (by infer_instance)
+    have h1 : (1 : WithBot ENat) < ⊤ := by
+      refine lt_top_iff_ne_top.2 ?_
+      intro h
+      have h' : ((1 : ENat) : WithBot ENat) = (⊤ : WithBot ENat) := by
+        simpa using h
+      have : (1 : ENat) = ⊤ := (WithBot.coe_eq_top).1 h'
+      have hne : (1 : ENat) ≠ ⊤ := by simp
+      exact hne this
+    exact lt_of_le_of_lt hle h1
+  have hI : ringKrullDim R < I.height := by
+    simpa [hItop, Ideal.height_top] using hr
+
+  rcases suslin_monic_polynomial_theorem (R := R) hr n I hI with ⟨e, f, hfI, hfmonic⟩
+
+  -- Switch to the transformed unimodular vector.
+  let v' : s → A := fun i => e (v i)
+  have hv' : IsUnimodular v' := isUnimodular_map_ringEquiv e.toRingEquiv v hv
+
+  -- Transport `f ∈ Ideal.span (Set.range v)` along `e` to obtain `e f ∈ Ideal.span (Set.range v')`.
+  let er : A →+* A := e.toRingEquiv
+  have hrange : (er : A → A) '' Set.range v = Set.range v' := by
+    ext a
+    constructor
+    · rintro ⟨b, ⟨i, rfl⟩, rfl⟩
+      exact ⟨i, rfl⟩
+    · rintro ⟨i, rfl⟩
+      exact ⟨v i, ⟨i, rfl⟩, rfl⟩
+  have hef_mem : e f ∈ Ideal.span (Set.range v') := by
+    have hmap : e f ∈ Ideal.map er (Ideal.span (Set.range v)) :=
+      Ideal.mem_map_of_mem er (I := Ideal.span (Set.range v)) (x := f) hfI
+    have hspan : e f ∈ Ideal.span ((er : A → A) '' Set.range v) := by
+      simpa [Ideal.map_span] using hmap
+    simpa [hrange] using hspan
+
+  rcases
+      exists_equiv_exists_monic_finSuccEquiv_of_mem_span (R := R) (s := s) n v' hv' (e f)
+        hef_mem hfmonic with
+    ⟨w, hvw, hmonic⟩
+  refine ⟨e, w, ?_, hmonic⟩
+  simpa [v'] using hvw
 
 end suslin_monic
 
