@@ -819,6 +819,21 @@ section thm12_pid
 variable {k : Type*} [CommRing k] [IsDomain k] [IsPrincipalIdealRing k]
 variable {s : Type*} [Fintype s] [DecidableEq s]
 
+/-
+Note: `Fintype s` is in scope for later theorems in this section, but not needed for the next
+lemma. We explicitly omit it to avoid linter warnings about unused section variables.
+-/
+omit [Fintype s] in
+/-- The standard basis vector `e_o` is unimodular. -/
+theorem isUnimodular_stdBasis (R : Type*) [CommRing R] (o : s) :
+    IsUnimodular (fun i : s => if i = o then (1 : R) else 0) := by
+  unfold IsUnimodular
+  refine
+    Ideal.eq_top_of_isUnit_mem
+      (I := Ideal.span (Set.range fun i : s => if i = o then (1 : R) else 0)) (x := (1 : R)) ?_
+      isUnit_one
+  exact Ideal.subset_span ⟨o, by simp⟩
+
 def MonicAtMaximals : Prop :=
   ∀ n : ℕ,
     ∀ w : s → Polynomial (MvPolynomial (Fin n) k),
