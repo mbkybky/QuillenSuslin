@@ -839,7 +839,7 @@ The file-level comment at the end contains a proof sketch of Suslin's monic poly
 For the Quillen–Suslin induction over a PID, the most convenient interface is:
 
 * an *ideal-level* statement producing a monic polynomial after a change of variables; and
-* a *unimodular-vector* corollary producing a monic coordinate (up to `GL_s`-equivalence).
+* a *unimodular-vector* corollary producing a monic coordinate after a change of variables.
 
 Both statements are left as `sorry` placeholders for future formalization.
 -/
@@ -865,76 +865,14 @@ theorem suslin_monic_polynomial_theorem (hr : ringKrullDim R < ⊤) (n : ℕ)
 
 variable [IsPrincipalIdealRing R]
 
-/-- If a unimodular vector `v` generates an ideal containing a polynomial `f` that is monic in
-`x₀` (after `finSuccEquiv`), then `v` is `GL_s`-equivalent to a vector with a monic coordinate. -/
-theorem exists_equiv_exists_monic_finSuccEquiv_of_mem_span (n : ℕ)
-    (v : s → MvPolynomial (Fin (n + 1)) R) (hv : IsUnimodular v)
-    (f : MvPolynomial (Fin (n + 1)) R) (hf : f ∈ Ideal.span (Set.range v))
-    (hmonic : (MvPolynomial.finSuccEquiv R n f).Monic) :
-    ∃ w : s → MvPolynomial (Fin (n + 1)) R,
-      UnimodularVectorEquiv v w ∧ ∃ i : s, (MvPolynomial.finSuccEquiv R n (w i)).Monic := by
-  sorry
-
 /-- A unimodular-vector form of Suslin's theorem, tailored for the `thm12` induction over a PID:
-after a change of variables, the vector becomes `GL_s`-equivalent to one with a monic coordinate
-(as a polynomial in `x₀` with coefficients in `R[x₁,…,xₙ]`). -/
-theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
+after a change of variables, one coordinate becomes monic (as a polynomial in `x₀` with
+coefficients in `R[x₁,…,xₙ]`). -/
+theorem exists_algEquiv_exists_monic_finSuccEquiv (n : ℕ)
     (v : s → MvPolynomial (Fin (n + 1)) R) (hv : IsUnimodular v) :
     ∃ e : MvPolynomial (Fin (n + 1)) R ≃ₐ[R] MvPolynomial (Fin (n + 1)) R,
-      ∃ w : s → MvPolynomial (Fin (n + 1)) R,
-        UnimodularVectorEquiv (fun i => e (v i)) w ∧
-          ∃ i : s, (MvPolynomial.finSuccEquiv R n (w i)).Monic := by
-  classical
-  let A := MvPolynomial (Fin (n + 1)) R
-  let I : Ideal A := Ideal.span (Set.range v)
-
-  -- Since `v` is unimodular, `I = ⊤`, hence `ringKrullDim R < I.height` holds trivially.
-  have hItop : I = ⊤ := by
-    simpa [I, IsUnimodular] using hv
-  have hr : ringKrullDim R < ⊤ := by
-    have hle : ringKrullDim R ≤ (1 : Nat).cast := by
-      -- A PID has Krull dimension ≤ 1.
-      exact (Ring.krullDimLE_iff (R := R) (n := 1)).1 (by infer_instance)
-    have h1 : (1 : WithBot ENat) < ⊤ := by
-      refine lt_top_iff_ne_top.2 ?_
-      intro h
-      have h' : ((1 : ENat) : WithBot ENat) = (⊤ : WithBot ENat) := by
-        simpa using h
-      have : (1 : ENat) = ⊤ := (WithBot.coe_eq_top).1 h'
-      have hne : (1 : ENat) ≠ ⊤ := by simp
-      exact hne this
-    exact lt_of_le_of_lt hle h1
-  have hI : ringKrullDim R < I.height := by
-    simpa [hItop, Ideal.height_top] using hr
-
-  rcases suslin_monic_polynomial_theorem (R := R) hr n I hI with ⟨e, f, hfI, hfmonic⟩
-
-  -- Switch to the transformed unimodular vector.
-  let v' : s → A := fun i => e (v i)
-  have hv' : IsUnimodular v' := isUnimodular_map_ringEquiv e.toRingEquiv v hv
-
-  -- Transport `f ∈ Ideal.span (Set.range v)` along `e` to obtain `e f ∈ Ideal.span (Set.range v')`.
-  let er : A →+* A := e.toRingEquiv
-  have hrange : (er : A → A) '' Set.range v = Set.range v' := by
-    ext a
-    constructor
-    · rintro ⟨b, ⟨i, rfl⟩, rfl⟩
-      exact ⟨i, rfl⟩
-    · rintro ⟨i, rfl⟩
-      exact ⟨v i, ⟨i, rfl⟩, rfl⟩
-  have hef_mem : e f ∈ Ideal.span (Set.range v') := by
-    have hmap : e f ∈ Ideal.map er (Ideal.span (Set.range v)) :=
-      Ideal.mem_map_of_mem er (I := Ideal.span (Set.range v)) (x := f) hfI
-    have hspan : e f ∈ Ideal.span ((er : A → A) '' Set.range v) := by
-      simpa [Ideal.map_span] using hmap
-    simpa [hrange] using hspan
-
-  rcases
-      exists_equiv_exists_monic_finSuccEquiv_of_mem_span (R := R) (s := s) n v' hv' (e f)
-        hef_mem hfmonic with
-    ⟨w, hvw, hmonic⟩
-  refine ⟨e, w, ?_, hmonic⟩
-  simpa [v'] using hvw
+      ∃ i : s, (MvPolynomial.finSuccEquiv R n (e (v i))).Monic := by
+  sorry
 
 end suslin_monic
 
@@ -986,14 +924,12 @@ theorem thm12 (o : s) {σ : Type*} [Fintype σ] [DecidableEq σ] (v : s → MvPo
       let φ : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] Polynomial A := MvPolynomial.finSuccEquiv k n
       let φr : MvPolynomial (Fin (n + 1)) k ≃+* Polynomial A := φ.toRingEquiv
 
-      rcases exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv n v hv with
-        ⟨e, w, hvw, ⟨i, hmonic⟩⟩
+      rcases exists_algEquiv_exists_monic_finSuccEquiv (R := k) (s := s) n v hv with ⟨e, i, hmonic⟩
+      let w : s → MvPolynomial (Fin (n + 1)) k := fun j => e (v j)
+      have hw : IsUnimodular w := isUnimodular_map_ringEquiv e.toRingEquiv v hv
 
       -- Work in `A[X]` via `φ`.
       let wpoly : s → Polynomial A := fun j => φr (w j)
-      have hw : IsUnimodular w := by
-        have hve : IsUnimodular fun j => e (v j) := isUnimodular_map_ringEquiv e.toRingEquiv v hv
-        exact (isUnimodular_iff_of_unimodularVectorEquiv_ring (s := s) hvw).1 hve
       have hwpoly : IsUnimodular wpoly := by
         simpa [wpoly] using isUnimodular_map_ringEquiv φr w hw
       have hmonic' : ∃ j : s, (wpoly j).Monic := by
@@ -1034,17 +970,12 @@ theorem thm12 (o : s) {σ : Type*} [Fintype σ] [DecidableEq σ] (v : s → MvPo
           by_cases hj : j = o <;> simp [hj]
         simpa [hcomp, hstdcomp] using this
 
-      have hevstd :
-          UnimodularVectorEquiv (fun j => e (v j))
-            (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) :=
-        unimodularVectorEquiv_equivalence.trans hvw hwstd
-
       -- Map back along `e.symm`.
       let er : MvPolynomial (Fin (n + 1)) k ≃+* MvPolynomial (Fin (n + 1)) k := e.toRingEquiv
       have :=
         unimodularVectorEquiv_map_ringEquiv er.symm (fun j => er (v j))
           (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) (by
-            simpa [er] using hevstd)
+            simpa [w, er] using hwstd)
       have hcomp : (fun j => er.symm (er (v j))) = v := by
         funext j
         simpa [er] using er.symm_apply_apply (v j)
@@ -1111,16 +1042,49 @@ end thm12_pid
 	is monic of degree $T + KN$ in $s_1$. For $K$ sufficiently large, we have $T + K \cdot N > M + K(N-1)$, so $f$ is monic as a polynomial in $s_1$.
 \end{proof}
 
+\begin{lemma}
+	Let $R$ be a commutative noetherian ring, and $(a_1, \dots, a_n) \in \operatorname{Um}_n(R)$. Then $(a_1, \dots, a_n) \sim_{\operatorname{E}_n(R)} (a'_1, \dots, a'_n)$ where, for any $r \leqslant n$, $\operatorname{ht}((a'_1, \dots, a'_r)) \geqslant r$.
+\end{lemma}
+
+\begin{proof}
+	Suppose we have already $\operatorname{ht}((a_1, \dots, a_r)) \geqslant r$, for some $r$. Consider $(\bar{a}_{r+1}, \dots, \bar{a}_n) \in \operatorname{Um}_{n-r}(\overline{R})$, where $\overline{R} = R/(a_1, \dots, a_r)$. Note that we can find an element $a'_{r+1} = a_{r+1} + b_{r+2}a_{r+2} + \dots + b_n a_n$ such that $\bar{a}'_{r+1}$ avoids all the minimal primes of $\overline{R}$. Then
+	\[
+	(a_1, \dots, a_r, a_{r+1}, \dots) \sim_{\operatorname{E}_n(R)} (a_1, \dots, a_r, a'_{r+1}, \dots).
+	\]
+	Let $\mathfrak{p}$ be any prime containing $(a_1, \dots, a_r, a'_{r+1})$. Since $\bar{\mathfrak{p}}$ cannot be minimal in $\overline{R}$, there exists another prime, $\mathfrak{p}'$, such that $(a_1, \dots, a_r) \subseteq \mathfrak{p}' \subsetneq \mathfrak{p}$. Thus,
+	\[
+	\operatorname{ht} \mathfrak{p} > \operatorname{ht} \mathfrak{p}' \geqslant \operatorname{ht} (a_1, \dots, a_r) \geqslant r,
+	\]
+	i.e., $\operatorname{ht} \mathfrak{p} \geqslant r+1$. It follows that $\operatorname{ht} (a_1, \dots, a_r, a'_{r+1}) \geqslant r+1$, so the proof proceeds by induction.
+\end{proof}
+
+\begin{lemma}\label{um}
+	Let $R$ be a commutative noetherian ring, of Krull dimension $d < \infty$, and let $A = R[t_1, \dots, t_m]$. If $f = (f_1, \dots, f_n) \in \operatorname{Um}_n(A)$, $n \geqslant d + 2$, then $f \sim_G (1, 0, \dots, 0)$.
+\end{lemma}
+
+\begin{proof}
+	We induct on $m$; the case $m=0$ is trival. To deal with the general case, find $f \sim_{\operatorname{E}_n(A)} (f'_1, \dots, f'_n)$ such that $\operatorname{ht}((f'_1, \dots, f'_r)) \geqslant r$ for every $r \leqslant n$. In particular, $\mathfrak{A} = (f'_1, \dots, f'_{n-1})$ has height $\geqslant n-1 > d$. By Suslin's Monic Polynomial Theorem, there exist new variables $s_1, \dots, s_m$ such that $A = R[s_1, \dots, s_m]$, and such that $\mathfrak{A}$ contains $f'_1 g_1 + \dots + f'_{n-1}g_{n-1}$ that is monic as a polynomial in $s_1$. Using elementary transformations, we may replace $f'_n$ by
+	\[
+	f'_n + s_1^N(f'_1 g_1 + \dots + f'_{n-1}g_{n-1}),
+	\]
+	so we may assume that $f'_n$ is already monic as a polynomial in $s_1$. By (1.7),
+	\begin{align*}
+		(f'_1, \dots, f'_n) &\sim_G (f'_1(0, s_2, \dots, s_m), \dots, f'_n(0, s_2, \dots, s_m)) \\
+		&\in \operatorname{Um}_n(R[s_2, \dots, s_m]).
+	\end{align*}
+	By the inductive hypothesis, the latter is $\sim_G (1, 0, \dots, 0)$.
+\end{proof}
+
 \begin{theorem}\label{thm:12}
 	Let $R = k[x_1, \dots, x_n]$ be a polynomial ring over a principal ideal domain $k$, and let $v \in R^n$ be a unimodular vector. Then $v \sim e_1$.
 \end{theorem}
 
 \begin{proof}
-	We can now prove this by induction on $n$. When $n = 0$, it is immediate [by Proposition \ref{prop:6}].
+	We can now prove this by induction on $n$. When $n = 0$, it is immediate (by Proposition \ref{prop:6}).
 
 	Suppose $n \geq 1$. Then we can treat $R$ as $k[x_1, \dots, x_{n-1}, X]$, where we replace $x_n$ by $X$ to make it stand out. We can think of $v = v(X)$ as a vector of polynomials in $X$ with coefficients in the smaller ring $k[x_1, \dots, x_{n-1}]$.
 
-	If $v(X)$ has a term with leading coefficient one, then the previous results [Corollary \ref{cor:11}] enable us to conclude that $v(X) \sim v(0)$, and as $v(0)$ lies in $k[x_1, \dots, x_{n-1}]$ we can use induction to work downwards. By Theorem \ref{Suslin’s Monic Polynomial Theorem}, possibly after a change of variables $x_1, \dots, x_n$, we can always arrange it so that the leading coefficient in $X = x_n$ is one. The relevant change of variables leaves $X = x_n$ constant and
+	If $v(X)$ has a term with leading coefficient one, then the previous results [Corollary \ref{cor:11}] enable us to conclude that $v(X) \sim v(0)$, and as $v(0)$ lies in $k[x_1, \dots, x_{n-1}]$ we can use induction to work downwards. By Lemma \ref{um}, possibly after a change of variables $x_1, \dots, x_n$, we can always arrange it so that the leading coefficient in $X = x_n$ is one. The relevant change of variables leaves $X = x_n$ constant and
 	$$ \displaystyle x_i \mapsto x_i - X^{M^i}, \quad M \gg 0 \quad (1 \leq i < n). $$
 	If $M$ is chosen very large, one makes by this substitution the leading term of each of the elements of $v$ monic. So, without loss of generality we can assume that this is already the case. Thus, we can apply the inductive hypothesis on $n$ to complete the proof.
 \end{proof}
