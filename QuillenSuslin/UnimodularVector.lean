@@ -839,7 +839,8 @@ The file-level comment at the end contains a proof sketch of Suslin's monic poly
 For the Quillen–Suslin induction over a PID, the most convenient interface is:
 
 * an *ideal-level* statement producing a monic polynomial after a change of variables; and
-* a *unimodular-vector* corollary producing a monic coordinate after a change of variables.
+* a *unimodular-vector* corollary producing (after a change of variables) a `GL`-equivalent
+  unimodular vector with a monic coordinate.
 
 Both statements are left as `sorry` placeholders for future formalization.
 -/
@@ -866,12 +867,14 @@ theorem suslin_monic_polynomial_theorem (hr : ringKrullDim R < ⊤) (n : ℕ)
 variable [IsPrincipalIdealRing R]
 
 /-- A unimodular-vector form of Suslin's theorem, tailored for the `thm12` induction over a PID:
-after a change of variables, one coordinate becomes monic (as a polynomial in `x₀` with
-coefficients in `R[x₁,…,xₙ]`). -/
-theorem exists_algEquiv_exists_monic_finSuccEquiv (n : ℕ)
+after a change of variables, the vector becomes `GL`-equivalent to one with a monic coordinate
+(as a polynomial in `x₀` with coefficients in `R[x₁,…,xₙ]`). -/
+theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
     (v : s → MvPolynomial (Fin (n + 1)) R) (hv : IsUnimodular v) :
     ∃ e : MvPolynomial (Fin (n + 1)) R ≃ₐ[R] MvPolynomial (Fin (n + 1)) R,
-      ∃ i : s, (MvPolynomial.finSuccEquiv R n (e (v i))).Monic := by
+      ∃ w : s → MvPolynomial (Fin (n + 1)) R,
+        UnimodularVectorEquiv (fun i : s => e (v i)) w ∧
+          ∃ i : s, (MvPolynomial.finSuccEquiv R n (w i)).Monic := by
   sorry
 
 end suslin_monic
@@ -924,17 +927,24 @@ theorem thm12 (o : s) {σ : Type*} [Fintype σ] [DecidableEq σ] (v : s → MvPo
       let φ : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] Polynomial A := MvPolynomial.finSuccEquiv k n
       let φr : MvPolynomial (Fin (n + 1)) k ≃+* Polynomial A := φ.toRingEquiv
 
-      rcases exists_algEquiv_exists_monic_finSuccEquiv (R := k) (s := s) n v hv with ⟨e, i, hmonic⟩
-      let w : s → MvPolynomial (Fin (n + 1)) k := fun j => e (v j)
-      have hw : IsUnimodular w := isUnimodular_map_ringEquiv e.toRingEquiv v hv
+      rcases
+          exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (R := k) (s := s) n v hv with
+        ⟨e, w, hvw⟩
+      rcases hvw with ⟨hvw, hmonic⟩
+      have hv' : IsUnimodular fun i : s => e (v i) := isUnimodular_map_ringEquiv e.toRingEquiv v hv
+      have hw : IsUnimodular w :=
+        (isUnimodular_iff_of_unimodularVectorEquiv_ring (s := s) (A := MvPolynomial (Fin (n + 1)) k)
+              hvw).1
+          hv'
 
       -- Work in `A[X]` via `φ`.
       let wpoly : s → Polynomial A := fun j => φr (w j)
       have hwpoly : IsUnimodular wpoly := by
         simpa [wpoly] using isUnimodular_map_ringEquiv φr w hw
       have hmonic' : ∃ j : s, (wpoly j).Monic := by
+        rcases hmonic with ⟨i, hi⟩
         refine ⟨i, ?_⟩
-        simpa [wpoly, φr, φ] using hmonic
+        simpa [wpoly, φr, φ] using hi
 
       have hcor : UnimodularVectorEquiv wpoly (fun j => Polynomial.C ((wpoly j).eval 0)) :=
         cor11 (R := A) (s := s) wpoly hwpoly hmonic'
@@ -971,11 +981,15 @@ theorem thm12 (o : s) {σ : Type*} [Fintype σ] [DecidableEq σ] (v : s → MvPo
         simpa [hcomp, hstdcomp] using this
 
       -- Map back along `e.symm`.
+      have he' :
+          UnimodularVectorEquiv (fun j : s => e (v j))
+            (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) :=
+        unimodularVectorEquiv_equivalence.trans hvw hwstd
       let er : MvPolynomial (Fin (n + 1)) k ≃+* MvPolynomial (Fin (n + 1)) k := e.toRingEquiv
       have :=
         unimodularVectorEquiv_map_ringEquiv er.symm (fun j => er (v j))
           (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) (by
-            simpa [w, er] using hwstd)
+            simpa [er] using he')
       have hcomp : (fun j => er.symm (er (v j))) = v := by
         funext j
         simpa [er] using er.symm_apply_apply (v j)
@@ -1022,6 +1036,23 @@ end thm12_pid
 	Suppose $R$ is any ring, and $v(x) \in R[x]^s$ is a unimodular vector one of whose leading coefficients is one. Then $v(x) \sim v(0)$.
 \end{corollary}
 
+Let $R$ be a commutative ring. For any ideal $\mathfrak{A}$ in $R[t]$, let $\ell(\mathfrak{A})$ be the set in $R$ consisting of zero and all the leading coefficients of polynomials in $\mathfrak{A}$. This is clearly an ideal in $R$ (containing $\mathfrak{A} \cap R$). We shall need the following lemma which relates the height of $\ell(\mathfrak{A})$ to the height of $\mathfrak{A}$. (By definition, $\mathrm{ht} I = \min \{ \mathrm{ht} \mathfrak{p} \}$ where $\mathfrak{p}$ ranges over all prime ideals $\supseteq I$. The height of the unit ideal is taken to be $\infty$.)
+
+\begin{lemma}
+	Let $R$ be a commutative noetherian ring, and $\mathfrak{A}$ be an ideal in $R[t]$. Then $\mathrm{ht} \ell(\mathfrak{A}) \geqslant \mathrm{ht} \mathfrak{A}$.
+\end{lemma}
+
+\begin{proof}
+	First assume $\mathfrak{A}$ is a prime ideal, $\mathfrak{P}$; let $\mathfrak{p} = \mathfrak{P} \cap R$. If $\mathfrak{P} = \mathfrak{p}[t]$, clearly $\ell(\mathfrak{P}) = \mathfrak{p}$, so $\mathrm{ht} \ell(\mathfrak{P}) = \mathrm{ht} \mathfrak{p} = \mathrm{ht} \mathfrak{p}[t] = \mathrm{ht} \mathfrak{P}$ by (II.7.7). If $\mathfrak{P} \supsetneq \mathfrak{p}[t]$, clearly $\ell(\mathfrak{P}) \supseteq \mathfrak{p}$, so, again by (II.7.7), $\mathrm{ht} \ell(\mathfrak{P}) > \mathrm{ht} \mathfrak{p} = \mathrm{ht} \mathfrak{P} - 1$, i.e., $\mathrm{ht} \ell(\mathfrak{P}) \geqslant \mathrm{ht} \mathfrak{P}$. For the general case, let $\mathfrak{P}_1, \dots, \mathfrak{P}_r$ be the prime ideals of $R[t]$ that are minimal over $\mathfrak{A}$. (We know that $r < \infty$ by (II.7.6), since $R[t]$ is noetherian by Hilbert's Basis Theorem. Also, we may assume $r \geqslant 1$, for if $\mathfrak{A}$ is the unit ideal, we have $\mathrm{ht}\, \ell(\mathfrak{A}) = \infty = \mathrm{ht}\, \mathfrak{A}$.) From
+	\[
+	\prod \mathfrak{P}_i \subseteq \bigcap \mathfrak{P}_i = \mathrm{rad} \mathfrak{A},
+	\]
+	we see that $(\prod \mathfrak{P}_i)^N \subseteq \mathfrak{A}$ for some $N$. Applying ``$\ell$'' to this, and using the fact that $\ell(I) \cdot \ell(J) \subseteq \ell(I \cdot J)$, we get $\prod \ell(\mathfrak{P}_i)^N \subseteq \ell(\mathfrak{A})$. Let $\mathfrak{p}$ be a prime over $\ell(\mathfrak{A})$ with $\mathrm{ht}\, \ell(\mathfrak{A}) = \mathrm{ht}\, \mathfrak{p}$. Then $\ell(\mathfrak{P}_i) \subseteq \mathfrak{p}$ for some $i$, from which we get
+	\[
+	\mathrm{ht}\, \mathfrak{A} \leqslant \mathrm{ht}\, \mathfrak{P}_i \leqslant \mathrm{ht}\, \ell(\mathfrak{P}_i) \leqslant \mathrm{ht}\, \mathfrak{p} = \mathrm{ht}\, \ell(\mathfrak{A}). \qedhere
+	\]
+\end{proof}
+
 \begin{theorem}\label{Suslin’s Monic Polynomial Theorem}
 	Let $R$ be a commutative noetherian ring of Krull dimension $d < \infty$. Let $\mathfrak{A}$ be an ideal in $A = R[t_1, \dots, t_m]$, with $\operatorname{ht} \mathfrak{A} > d$. Then there exist new ``variables'' $s_1, \dots, s_m \in A$ with $A = R[s_1, \dots, s_m]$ such that $\mathfrak{A}$ contains a polynomial that is monic as a polynomial in $s_1$.
 \end{theorem}
@@ -1042,7 +1073,7 @@ end thm12_pid
 	is monic of degree $T + KN$ in $s_1$. For $K$ sufficiently large, we have $T + K \cdot N > M + K(N-1)$, so $f$ is monic as a polynomial in $s_1$.
 \end{proof}
 
-\begin{lemma}
+\begin{lemma}\label{sim}
 	Let $R$ be a commutative noetherian ring, and $(a_1, \dots, a_n) \in \operatorname{Um}_n(R)$. Then $(a_1, \dots, a_n) \sim_{\operatorname{E}_n(R)} (a'_1, \dots, a'_n)$ where, for any $r \leqslant n$, $\operatorname{ht}((a'_1, \dots, a'_r)) \geqslant r$.
 \end{lemma}
 
