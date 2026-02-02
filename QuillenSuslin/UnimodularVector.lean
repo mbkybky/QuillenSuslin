@@ -258,8 +258,8 @@ theorem cor11IdealCarrier_exists_not_mem_maximal_of_local_equiv (v : s → R[X])
   have hs : S ≤ nonZeroDivisors R := le_nonZeroDivisors_of_noZeroDivisors hS0
   rcases lem10 hs v (by simpa [S] using hloc) with ⟨c, hc⟩
   refine ⟨(c : R), ?_, ?_⟩
-  · change UnimodularVectorEquiv (cor11vx v) (cor11vxy v (c : R))
-    change
+  · show UnimodularVectorEquiv (cor11vx v) (cor11vxy v (c : R))
+    show
       UnimodularVectorEquiv (fun i : s => C (v i))
         (fun i : s =>
           (v i).eval₂ ((C : R[X] →+* R[X][Y]).comp (C : R →+* R[X])) (C X + (c : R) • Y))
@@ -434,135 +434,6 @@ theorem unimodularVectorEquiv_map_ringEquiv {A B : Type*} [CommRing A] [CommRing
     (v w : s → A) (hvw : UnimodularVectorEquiv v w) :
     UnimodularVectorEquiv (fun i => e (v i)) (fun i => e (w i)) := by
   simpa using unimodularVectorEquiv_map (f := (e : A →+* B)) hvw
-
-omit [IsDomain R] in
-/-- Local Horrocks step: if a unimodular vector in `R[X]` becomes monic in some coordinate after
-localizing the coefficient ring at a maximal ideal, then over that localization we have
-`v(x) ∼ v(0)`. -/
-theorem local_equiv_eval0_of_monic_localization (v : s → R[X]) (hv : IsUnimodular v) {m : Ideal R}
-    (hm : m.IsMaximal)
-    (hmonic : ∃ i : s, ((v i).map (algebraMap R (Localization m.primeCompl))).Monic) :
-    UnimodularVectorEquiv
-      (fun i => (v i).map (algebraMap R (Localization m.primeCompl)))
-      (fun i => C (algebraMap R (Localization m.primeCompl) ((v i).eval 0))) := by
-  classical
-  haveI : m.IsPrime := hm.isPrime
-  haveI : IsLocalRing (Localization m.primeCompl) :=
-    by simpa using (Localization.AtPrime.isLocalRing (P := m))
-  let f : R[X] →+* (Localization m.primeCompl)[X] :=
-    Polynomial.mapRingHom (algebraMap R (Localization m.primeCompl))
-  have hvS : IsUnimodular fun i => f (v i) := isUnimodular_map_ringHom f v hv
-  have hloc0 : UnimodularVectorEquiv (fun i => f (v i)) (fun i => C ((f (v i)).eval 0)) :=
-    cor9 (v := fun i => f (v i)) hvS (by simpa [f] using hmonic)
-  have hev0 :
-      (fun i => C ((f (v i)).eval 0)) = fun i => C (algebraMap R (Localization m.primeCompl) ((v i).eval 0)) := by
-    funext i
-    have : (f (v i)).eval 0 = algebraMap R (Localization m.primeCompl) ((v i).eval 0) := by
-      simpa [f] using (Polynomial.eval_zero_map (algebraMap R (Localization m.primeCompl)) (v i))
-    simp [this]
-  simpa [hev0] using hloc0
-
-omit [IsDomain R] in
-/-- Local Horrocks step (unit leading coefficient): if a unimodular vector in `R[X]` has a
-coordinate whose leading coefficient becomes a unit after localizing at a maximal ideal, then over
-that localization we have `v(x) ∼ v(0)`. -/
-theorem local_equiv_eval0_of_isUnit_leadingCoeff_localization (v : s → R[X]) (hv : IsUnimodular v)
-    {m : Ideal R} (hm : m.IsMaximal)
-    (hunit : ∃ i : s, IsUnit (((v i).map (algebraMap R (Localization m.primeCompl))).leadingCoeff)) :
-    UnimodularVectorEquiv
-      (fun i => (v i).map (algebraMap R (Localization m.primeCompl)))
-      (fun i => C (algebraMap R (Localization m.primeCompl) ((v i).eval 0))) := by
-  classical
-  haveI : m.IsPrime := hm.isPrime
-  haveI : IsLocalRing (Localization m.primeCompl) :=
-    by simpa using (Localization.AtPrime.isLocalRing (P := m))
-  let f : R[X] →+* (Localization m.primeCompl)[X] :=
-    Polynomial.mapRingHom (algebraMap R (Localization m.primeCompl))
-  let vS : s → (Localization m.primeCompl)[X] := fun i => f (v i)
-  have hvS : IsUnimodular vS := isUnimodular_map_ringHom f v hv
-  rcases hunit with ⟨i, hu⟩
-  rcases hu with ⟨u, hu⟩
-  let b : Localization m.primeCompl := (↑(u⁻¹) : Localization m.primeCompl)
-  have hb : b * (vS i).leadingCoeff = 1 := by
-    have : (vS i).leadingCoeff = (u : Localization m.primeCompl) := by
-      simpa [vS, f] using hu.symm
-    simp [b, this]
-  have hmonic : (Polynomial.C b * vS i).Monic := monic_C_mul_of_mul_leadingCoeff_eq_one hb
-  have hunitC : IsUnit (Polynomial.C b : (Localization m.primeCompl)[X]) := by
-    have : IsUnit b := ⟨u⁻¹, rfl⟩
-    simpa [Polynomial.isUnit_C] using this
-  let vS' : s → (Localization m.primeCompl)[X] := Function.update vS i (Polynomial.C b * vS i)
-  have hvv' : UnimodularVectorEquiv vS vS' :=
-    unimodularVectorEquiv_update_mul_isUnit (R := Localization m.primeCompl) (s := s) i
-      (Polynomial.C b) hunitC vS
-  have hvS' : IsUnimodular vS' :=
-    (isUnimodular_iff_of_unimodularVectorEquiv (R := Localization m.primeCompl) (s := s) hvv').1 hvS
-  have hmonic' : ∃ j : s, (vS' j).Monic := by refine ⟨i, by simp [vS', hmonic]⟩
-  let w0 : s → (Localization m.primeCompl)[X] := fun j => C ((vS j).eval 0)
-  let w1 : s → (Localization m.primeCompl)[X] := fun j => C ((vS' j).eval 0)
-  have hcor : UnimodularVectorEquiv vS' w1 := by simpa [w1] using cor9 vS' hvS' hmonic'
-  have hw1 : w1 = Function.update w0 i (Polynomial.C b * w0 i) := by
-    funext j
-    by_cases hj : j = i
-    · subst hj
-      simp only [mul_comm, Function.update_self, eval_mul, eval_C, map_mul, w1, vS', w0]
-    · simp [w1, w0, vS', Function.update, hj]
-  have hw0w1 : UnimodularVectorEquiv w0 w1 := by
-    have :=
-      unimodularVectorEquiv_update_mul_isUnit (R := Localization m.primeCompl) (s := s) i
-        (Polynomial.C b) hunitC w0
-    simpa [hw1] using this
-  have hw1w0 : UnimodularVectorEquiv w1 w0 := unimodularVectorEquiv_equivalence.symm hw0w1
-  have htotal : UnimodularVectorEquiv vS w0 :=
-    unimodularVectorEquiv_equivalence.trans hvv' <|
-      unimodularVectorEquiv_equivalence.trans hcor hw1w0
-  have hev0 : w0 = fun j => C (algebraMap R (Localization m.primeCompl) ((v j).eval 0)) := by
-    funext j
-    have : (vS j).eval 0 = algebraMap R (Localization m.primeCompl) ((v j).eval 0) := by
-      simpa [vS, f] using (Polynomial.eval_zero_map (algebraMap R (Localization m.primeCompl)) (v j))
-    simp [w0, this]
-  simpa [vS, f, hev0, w0] using htotal
-
-/-- If `v ∼ w` and `w` has a coordinate with unit leading coefficient, then `v ∼ v(0)`. -/
-theorem cor11_of_equiv_of_isUnit_leadingCoeff (v w : s → R[X]) (hv : IsUnimodular v)
-    (hvw : UnimodularVectorEquiv v w) (hunit : ∃ i : s, IsUnit (w i).leadingCoeff) :
-    UnimodularVectorEquiv v (fun i => C ((v i).eval 0)) := by
-  classical
-  have hw : IsUnimodular w :=
-    (isUnimodular_iff_of_unimodularVectorEquiv (R := R) (s := s) hvw).1 hv
-  have hcor : UnimodularVectorEquiv w (fun i => C ((w i).eval 0)) :=
-    cor11_of_isUnit_leadingCoeff (R := R) (s := s) w hw hunit
-  let ev0 : R[X] →+* R := Polynomial.evalRingHom (R := R) 0
-  have hev : UnimodularVectorEquiv (fun i => ev0 (v i)) (fun i => ev0 (w i)) :=
-    by simpa [ev0] using unimodularVectorEquiv_map (s := s) ev0 hvw
-  have hC :
-      UnimodularVectorEquiv (fun i => C (ev0 (v i))) (fun i => C (ev0 (w i))) :=
-    by simpa using unimodularVectorEquiv_map (s := s) (Polynomial.C : R →+* R[X]) hev
-  have h0 : UnimodularVectorEquiv (fun i => C ((w i).eval 0)) (fun i => C ((v i).eval 0)) :=
-    unimodularVectorEquiv_equivalence.symm (by simpa [ev0] using hC)
-  exact unimodularVectorEquiv_equivalence.trans hvw <|
-    unimodularVectorEquiv_equivalence.trans hcor h0
-
-/-- If `w(x) ∼ w(0)` holds after localizing at every maximal ideal of `A`, then it holds globally;
-combining with an equivalence for `w(0)` yields an equivalence for `w(x)`. -/
-theorem unimodularVectorEquiv_stdBasis_of_forall_maximal_local (A : Type*) [CommRing A] [IsDomain A]
-    (o : s) (w : s → Polynomial A)
-    (hloc :
-      ∀ m : Ideal A, [m.IsMaximal] →
-        let Am := Localization m.primeCompl
-        let ι : A →+* Am := algebraMap A Am
-        UnimodularVectorEquiv (fun i => (w i).map ι) (fun i => C (ι ((w i).eval 0))))
-    (h0 : UnimodularVectorEquiv (fun i => (w i).eval 0) (fun i : s => if i = o then 1 else 0)) :
-    UnimodularVectorEquiv w (fun i : s => if i = o then 1 else 0) := by
-  classical
-  have hcor : UnimodularVectorEquiv w (fun i => C ((w i).eval 0)) :=
-    cor11_of_forall_maximal_local_equiv (R := A) (s := s) w hloc
-  have hmap :
-      UnimodularVectorEquiv (fun i => C ((w i).eval 0))
-        (fun i : s => if i = o then (1 : Polynomial A) else 0) := by
-    have := unimodularVectorEquiv_map (s := s) (Polynomial.C : A →+* Polynomial A) h0
-    simpa using this
-  exact unimodularVectorEquiv_equivalence.trans hcor hmap
 
 section monicize
 
@@ -839,7 +710,7 @@ variable {s : Type*} [Fintype s] [DecidableEq s]
 
 /-- **Suslin's monic polynomial theorem**
 
-Let `A = R[x₀,…,xₙ]`. If an ideal `I ⊆ A` has height `> dim R`, then after a change of variables
+Let `A = R[x₀,…,xₙ]`. If an ideal `I ⊆ A` has height `> dim R`, then after a show of variables
 one can find an element of `I` that is monic in `x₀`.
 
 This is a convenient `Fin (n+1)`-indexed formulation; it is equivalent to the usual “there exist
@@ -851,17 +722,99 @@ theorem suslin_monic_polynomial_theorem (hr : ringKrullDim R < ⊤) (n : ℕ)
         f ∈ I ∧ (MvPolynomial.finSuccEquiv R n (e f)).Monic := by
   sorry
 
-/-!
-### A height-preprocessing lemma (`\label{sim}` in the file-level comment)
+theorem unimodularVectorEquiv_update_add_ring {A : Type*} [CommRing A] (i j : s) (hij : i ≠ j)
+    (c : A) (v : s → A) :
+    UnimodularVectorEquiv v (Function.update v i (v i + c * v j)) := by
+  let M : Matrix s s A := Matrix.transvection i j c
+  have hdet : IsUnit (Matrix.det M) := by
+    have : Matrix.det M = 1 := by
+      simpa [M] using Matrix.det_transvection_of_ne (i := i) (j := j) hij c
+    simp [this]
+  refine ⟨Matrix.GeneralLinearGroup.mk'' M hdet, ?_⟩
+  ext k
+  by_cases hk : k = i
+  · subst hk
+    simp [M, Matrix.transvection, Matrix.mulVec, dotProduct, Matrix.one_apply, Matrix.single_apply,
+      Function.update, Finset.sum_add_distrib, add_mul]
+  · simp [M, Matrix.transvection, Matrix.mulVec, dotProduct, Function.update, hk, Ne.symm hk,
+      Matrix.one_apply]
 
-To apply Suslin's monic polynomial theorem to a unimodular vector, one first performs elementary
-`GL`-operations to ensure that the ideal generated by all but one coordinate has height exceeding
-`dim R`.  We record just the output we need for the PID-based induction.
--/
+theorem unimodularVectorEquiv_update_add_sum {A : Type*} [CommRing A] (i : s) (t : Finset s)
+    (ht : i ∉ t) (c : s → A) (v : s → A) :
+    UnimodularVectorEquiv v (Function.update v i (v i + ∑ j ∈ t, c j * v j)) := by
+  classical
+  let vOf : Finset s → s → A := fun t =>
+    Function.update v i (v i + ∑ j ∈ t, c j * v j)
+  have hvOf : ∀ t : Finset s, i ∉ t → UnimodularVectorEquiv v (vOf t) := by
+    intro t
+    refine Finset.induction_on t ?_ ?_
+    · intro _
+      have h0 : vOf (∅ : Finset s) = v := by
+        funext j
+        by_cases hj : j = i
+        · subst hj
+          simp [vOf]
+        · simp [vOf, hj]
+      simpa [h0] using (unimodularVectorEquiv_equivalence (R := A) (s := s)).1 v
+    · intro j t hj_notmem ih ht
+      have ht' : i ∉ t := by
+        intro hi
+        exact ht (Finset.mem_insert_of_mem hi)
+      have hij : j ≠ i := by
+        intro hji
+        have : i ∈ insert j t := by
+          subst j
+          exact Finset.mem_insert_self i t
+        exact ht this
+      have ih' : UnimodularVectorEquiv v (vOf t) := ih ht'
+      have hadd :
+          UnimodularVectorEquiv (vOf t)
+            (Function.update (vOf t) i ((vOf t) i + c j * (vOf t) j)) := by
+        simpa using
+          unimodularVectorEquiv_update_add_ring (A := A) (s := s) i j (Ne.symm hij) (c j) (vOf t)
+      have hstep :
+          Function.update (vOf t) i ((vOf t) i + c j * (vOf t) j) = vOf (insert j t) := by
+        funext x
+        by_cases hx : x = i
+        · subst hx
+          have hvj : (vOf t) j = v j := by
+            simp [vOf, hij]
+          simp [vOf, Function.update, hvj, Finset.sum_insert, hj_notmem, add_left_comm, add_comm]
+        · simp [vOf, Function.update, hx]
+      exact
+        (unimodularVectorEquiv_equivalence (R := A) (s := s)).trans ih'
+          (by simpa [hstep] using hadd)
+  simpa [vOf] using hvOf t ht
 
-/-- A `GL`-version of Lemma `\label{sim}` in the file-level comment, specialized to the setting we
-need: once the length is larger than `dim R + 1`, after `GL`-equivalence one can arrange that the
-ideal generated by all but one coordinate has height `> dim R`. -/
+lemma Ideal.height_add_one_le_of_forall_notMem_minimalPrimes {A : Type*} [CommRing A] (I : Ideal A)
+    (a : A) (k : ℕ∞) (hk : k ≤ I.height) (ha : ∀ p ∈ I.minimalPrimes, a ∉ p) :
+    k + 1 ≤ (I ⊔ Ideal.span ({a} : Set A)).height := by
+  classical
+  -- Unfold `Ideal.height` and bound each minimal prime from below.
+  refine le_iInf₂ ?_
+  intro P hP
+  haveI : P.IsPrime := Ideal.minimalPrimes_isPrime hP
+  -- Pick a minimal prime `q` over `I` contained in `P`.
+  have hIP : I ≤ P := le_trans le_sup_left hP.1.2
+  rcases Ideal.exists_minimalPrimes_le (I := I) (J := P) hIP with ⟨q, hq, hq_le_P⟩
+  haveI : q.IsPrime := Ideal.minimalPrimes_isPrime hq
+  have haq : a ∉ q := ha q hq
+  have hI_le_q : I.height ≤ q.primeHeight := by
+    simpa [Ideal.height] using iInf₂_le q hq
+  have hkq : k ≤ q.primeHeight := le_trans hk hI_le_q
+  -- `a ∈ P` but `a ∉ q`, hence `q < P`.
+  have haP : a ∈ P := by
+    have haSpan : a ∈ Ideal.span ({a} : Set A) := Ideal.subset_span (by simp)
+    exact (le_trans le_sup_right hP.1.2) haSpan
+  have hq_ne_P : q ≠ P := by
+    intro h
+    subst h
+    exact haq haP
+  have hq_lt_P : q < P := lt_of_le_of_ne hq_le_P hq_ne_P
+  have hqp : q.primeHeight + 1 ≤ P.primeHeight := Ideal.primeHeight_add_one_le_of_lt hq_lt_P
+  have hkq' : k + 1 ≤ q.primeHeight + 1 := add_le_add_left hkq 1
+  exact le_trans hkq' hqp
+
 theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing R]
     (v : s → MvPolynomial (Fin (n + 1)) R) (hv : IsUnimodular v)
     (hs : ringKrullDim R + 1 < (↑(Fintype.card s) : WithBot ℕ∞)) :
@@ -870,7 +823,370 @@ theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing
         UnimodularVectorEquiv v v' ∧
           ringKrullDim R <
             (Ideal.span (Set.range (fun i : s => if i = o then 0 else v' i))).height := by
-  sorry
+  classical
+  let A := MvPolynomial (Fin (n + 1)) R
+  haveI : IsNoetherianRing A := by
+    dsimp [A]
+    infer_instance
+  have hr_ne_bot : ringKrullDim R ≠ (⊥ : WithBot ℕ∞) := by
+    -- `PrimeSpectrum R` is nonempty for a domain, hence `dim R ≠ -∞`.
+    have hne : Nonempty (PrimeSpectrum R) := ⟨⟨⊥, Ideal.isPrime_bot⟩⟩
+    unfold ringKrullDim
+    exact (Order.krullDim_ne_bot_iff (α := PrimeSpectrum R)).2 hne
+  have hs_pos : 0 < Fintype.card s := by
+    by_contra h0
+    have hcard0 : Fintype.card s = 0 := Nat.eq_zero_of_not_pos h0
+    have hs0 : ringKrullDim R + 1 < (0 : WithBot ℕ∞) := by
+      simpa [hcard0] using hs
+    have hs0' : ringKrullDim R + 1 < (↑(⊥ : ℕ∞) : WithBot ℕ∞) := by
+      simpa using hs0
+    have hbot : ringKrullDim R + 1 = (⊥ : WithBot ℕ∞) := (WithBot.lt_coe_bot).1 hs0'
+    have hr_bot : ringKrullDim R = (⊥ : WithBot ℕ∞) := by
+      cases h : ringKrullDim R <;> simp [h] at hbot ⊢
+    exact hr_ne_bot hr_bot
+  have hs_nonempty : Nonempty s := (Fintype.card_pos_iff).1 hs_pos
+  let o : s := Classical.choice hs_nonempty
+  let t : Finset s := Finset.univ.erase o
+  -- For a finite subset `S ⊆ t`, let `I(S)` be the ideal generated by the coordinates in `S`.
+  let Iof (S : Finset s) (w : s → A) : Ideal A :=
+    Ideal.span (Set.range fun j : s => if j ∈ S then w j else 0)
+  have hbuild :
+      ∀ S : Finset s, S ⊆ t →
+        ∃ w : s → A, UnimodularVectorEquiv v w ∧ (S.card : ℕ∞) ≤ (Iof S w).height := by
+    intro S
+    refine Finset.induction_on S ?_ ?_
+    · intro _
+      refine ⟨v, (unimodularVectorEquiv_equivalence (R := A) (s := s)).1 v, ?_⟩
+      -- `I(∅) = ⊥`, so its height is `0`.
+      have hbot : Iof (∅ : Finset s) v = (⊥ : Ideal A) := by
+        ext x
+        simp [Iof]
+      simp [hbot]
+    · intro i S hi_notmem ih hsub
+      have hsubS : S ⊆ t := by
+        intro x hx
+        exact hsub (Finset.mem_insert_of_mem hx)
+      have hi_t : i ∈ t := hsub (Finset.mem_insert_self i S)
+      rcases ih hsubS with ⟨w, hvw, hheight⟩
+      have hw_unimod : IsUnimodular (s := s) (R := A) w := by
+        exact (isUnimodular_iff_of_unimodularVectorEquiv_ring (A := A) (s := s) hvw).1 hv
+      let I : Ideal A := Iof S w
+      -- The ideal generated by the remaining coordinates (outside `insert i S`).
+      let J : Ideal A :=
+        Ideal.span (Set.range fun j : s => if j ∈ insert i S then 0 else w j)
+      -- First choose `y ∈ J` so that `w i + y` avoids all minimal primes of `I`.
+      have hfin : (I.minimalPrimes).Finite :=
+        Ideal.finite_minimalPrimes_of_isNoetherianRing A I
+      let P : Finset (Ideal A) := hfin.toFinset
+      have hmemP : ∀ p : Ideal A, p ∈ P ↔ p ∈ I.minimalPrimes := fun p =>
+        (Set.Finite.mem_toFinset hfin)
+      have havoidP :
+          ∃ y : A, y ∈ J ∧ ∀ p ∈ P, w i + y ∉ p := by
+        -- Induct over finite subsets of `P`.
+        classical
+        let motive (Q : Finset (Ideal A)) : Prop :=
+          Q ⊆ P → ∃ y : A, y ∈ J ∧ ∀ q ∈ Q, w i + y ∉ q
+        have h0 : motive ∅ := by
+          intro _
+          refine ⟨0, by simp, ?_⟩
+          intro q hq
+          cases hq
+        have hstep :
+            ∀ (p : Ideal A) (Q : Finset (Ideal A)),
+              p ∉ Q → motive Q → motive (insert p Q) := by
+          intro p Q hp_notmemQ hQ hsubPQ
+          have hpP : p ∈ P := hsubPQ (Finset.mem_insert_self p Q)
+          have hQsub : Q ⊆ P := by
+            intro q hq
+            exact hsubPQ (Finset.mem_insert_of_mem hq)
+          rcases hQ hQsub with ⟨y, hyJ, hyavoid⟩
+          by_cases hpy : w i + y ∈ p
+          · -- We need to modify `y` by adding an element `y' ∈ J` that lies in every `q ∈ Q`
+            -- but not in `p`.
+            have hpI : p ∈ I.minimalPrimes := (hmemP p).1 hpP
+            haveI : p.IsPrime := Ideal.minimalPrimes_isPrime hpI
+            have hIp : I ≤ p := hpI.1.2
+            have hJnot : ¬ J ≤ p := by
+              intro hJle
+              have hyP : y ∈ p := hJle hyJ
+              have hwiP : w i ∈ p := by
+                have hsub' : (w i + y) - y ∈ p := p.sub_mem hpy hyP
+                have : (w i + y) - y = w i := add_sub_cancel_right (w i) y
+                simpa [this] using hsub'
+              -- Then all coordinates of `w` lie in `p`, contradicting unimodularity.
+              have hall : ∀ j : s, w j ∈ p := by
+                intro j
+                by_cases hjS : j ∈ S
+                · -- `w j ∈ I ≤ p`.
+                  have hjI : w j ∈ I := by
+                    refine Ideal.subset_span ?_
+                    refine ⟨j, ?_⟩
+                    simp [hjS]
+                  exact hIp hjI
+                · by_cases hji : j = i
+                  · subst hji
+                    exact hwiP
+                  · -- Otherwise `j ∉ insert i S`, hence `w j ∈ J ≤ p`.
+                    have hjJ : w j ∈ J := by
+                      refine Ideal.subset_span ?_
+                      refine ⟨j, ?_⟩
+                      have : j ∉ insert i S := by
+                        simp [hjS, hji]
+                      simp [this]
+                    exact hJle hjJ
+              have hspan : Ideal.span (Set.range w) ≤ p := by
+                refine Ideal.span_le.2 ?_
+                rintro _ ⟨j, rfl⟩
+                exact hall j
+              have htop : (⊤ : Ideal A) ≤ p := by
+                -- Use `span (range w) = ⊤` (unimodularity) without `simp`.
+                exact le_trans (le_of_eq hw_unimod.symm) hspan
+              exact (Ideal.IsPrime.ne_top (I := p) ‹p.IsPrime›) (top_le_iff.1 htop)
+            rcases (Set.not_subset.1 hJnot) with ⟨z, hzJ, hznot⟩
+            -- Build `t ∈ ⋂ q∈Q, q` with `t ∉ p` by multiplying elements from each `q`.
+            classical
+            have hsel : ∀ q ∈ Q, ∃ x : A, x ∈ q ∧ x ∉ p := by
+              intro q hqQ
+              have hqP : q ∈ P := hQsub hqQ
+              have hqI : q ∈ I.minimalPrimes := (hmemP q).1 hqP
+              have hq_ne_p : q ≠ p := by
+                intro hqp
+                subst hqp
+                exact hp_notmemQ hqQ
+              have hq_notle : ¬ q ≤ p := by
+                intro hle
+                have hp_le_q : p ≤ q := hpI.2 hqI.1 hle
+                exact hq_ne_p (le_antisymm hle hp_le_q)
+              rcases (Set.not_subset.1 hq_notle) with ⟨x, hxq, hxnp⟩
+              exact ⟨x, hxq, hxnp⟩
+            let x : Ideal A → A :=
+              fun q => if h : q ∈ Q then Classical.choose (hsel q h) else 1
+            have hxmem : ∀ q ∈ Q, x q ∈ q := by
+              intro q hqQ
+              have hs : Classical.choose (hsel q hqQ) ∈ q := (Classical.choose_spec (hsel q hqQ)).1
+              simpa [x, hqQ] using hs
+            have hxnot : ∀ q ∈ Q, x q ∉ p := by
+              intro q hqQ
+              have hs : Classical.choose (hsel q hqQ) ∉ p := (Classical.choose_spec (hsel q hqQ)).2
+              simpa [x, hqQ] using hs
+            let t0 : A := ∏ q ∈ Q, x q
+            have htQ : ∀ q ∈ Q, t0 ∈ q := by
+              intro q hqQ
+              have hmul :
+                  (∏ r ∈ Q.erase q, x r) * x q = ∏ r ∈ Q, x r :=
+                Finset.prod_erase_mul (s := Q) (f := x) hqQ
+              have hxq : x q ∈ q := hxmem q hqQ
+              have : (∏ r ∈ Q.erase q, x r) * x q ∈ q :=
+                Ideal.mul_mem_left q (∏ r ∈ Q.erase q, x r) hxq
+              simpa [t0, hmul] using this
+            have ht0np : t0 ∉ p := by
+              intro ht0p
+              have : ∃ q ∈ Q, x q ∈ p :=
+                (Ideal.IsPrime.prod_mem_iff (p := p) (s := Q) (x := x)).1 ht0p
+              rcases this with ⟨q, hqQ, hxqp⟩
+              exact (hxnot q hqQ) hxqp
+            let y' : A := t0 * z
+            have hy'J : y' ∈ J := Ideal.mul_mem_left J t0 hzJ
+            have hy'Q : ∀ q ∈ Q, y' ∈ q := by
+              intro q hq
+              have htq : t0 ∈ q := htQ q hq
+              simpa [y', mul_comm] using Ideal.mul_mem_left q z htq
+            have hy'not : y' ∉ p := by
+              intro hy'p
+              have : t0 ∈ p ∨ z ∈ p := (show p.IsPrime from ‹p.IsPrime›).mem_or_mem hy'p
+              cases this with
+              | inl ht0p => exact ht0np ht0p
+              | inr hzp => exact hznot hzp
+            let yNew : A := y + y'
+            refine ⟨yNew, ?_, ?_⟩
+            · -- `yNew ∈ J`
+              exact J.add_mem hyJ hy'J
+            · intro q hq
+              rcases Finset.mem_insert.1 hq with hq | hq
+              · subst q
+                -- For `p`: since `w i + y ∈ p` but `y' ∉ p`.
+                intro hpNew
+                have : y' ∈ p := by
+                  have hy'_eq : (w i + (y + y')) - (w i + y) = y' := by
+                    calc
+                      w i + (y + y') - (w i + y) =
+                          (w i + y + y') - (w i + y) := by simp [add_assoc]
+                      _ = y' := add_sub_cancel_left (w i + y) y'
+                  have hsub' : (w i + (y + y')) - (w i + y) ∈ p := p.sub_mem hpNew hpy
+                  exact hy'_eq ▸ hsub'
+                exact hy'not this
+              · -- For old primes `q ∈ Q`: since `w i + y ∉ q` and `y' ∈ q`.
+                have hyq : w i + y ∉ q := hyavoid q hq
+                have hy'q : y' ∈ q := hy'Q q hq
+                intro hsum
+                have : w i + y ∈ q := by
+                  have : w i + y = (w i + (y + y')) - y' := by
+                    simp [sub_eq_add_neg, add_assoc, add_left_comm, add_comm]
+                  have hsub' : (w i + (y + y')) - y' ∈ q := q.sub_mem hsum hy'q
+                  simpa [this] using hsub'
+                exact hyq this
+          · -- No modification needed; `y` already avoids `p`.
+            refine ⟨y, hyJ, ?_⟩
+            intro q hq
+            rcases Finset.mem_insert.1 hq with hq | hq
+            · subst hq
+              exact hpy
+            · exact hyavoid q hq
+        -- Apply the induction with `Q = P`.
+        have hmot : motive P := Finset.induction_on P h0 hstep
+        simpa using hmot (subset_rfl)
+      rcases havoidP with ⟨y, hyJ, hyavoidP⟩
+      -- Convert the avoidance statement to the set `I.minimalPrimes`.
+      have hyavoid : ∀ p ∈ I.minimalPrimes, w i + y ∉ p := by
+        intro p hpI
+        have hpP : p ∈ P := (hmemP p).2 hpI
+        exact hyavoidP p hpP
+      -- Express `y` as a linear combination of the generators of `J`, then realize the update by `GL`.
+      have hy_mem : y ∈ J := hyJ
+      rcases (Ideal.mem_span_range_iff_exists_fun).1 hy_mem with ⟨c, hc⟩
+      let U : Finset s := Finset.univ.filter fun j : s => j ∉ insert i S
+      have hiU : i ∉ U := by
+        simp [U]
+      have hy_sum :
+          ∑ j ∈ U, c j * w j = y := by
+        have hc0 :
+            (∑ j : s, c j * (if j ∈ insert i S then (0 : A) else w j)) = y := by
+          simpa [J] using hc
+        have hc1 :
+            (∑ j : s, if j ∉ insert i S then c j * w j else 0) = y := by
+          have hterm :
+              (∑ j : s, c j * (if j ∈ insert i S then (0 : A) else w j)) =
+                ∑ j : s, if j ∉ insert i S then c j * w j else 0 := by
+            refine Fintype.sum_congr _ _ ?_
+            intro j
+            by_cases hj : j ∈ insert i S
+            · simp [hj]
+            · simp [hj]
+          exact hterm ▸ hc0
+        have hc2 :
+            (∑ j ∈ (Finset.univ : Finset s), if j ∉ insert i S then c j * w j else 0) = y := by
+          simpa using hc1
+        have hfilter :
+            (∑ j ∈ (Finset.univ : Finset s), if j ∉ insert i S then c j * w j else 0) =
+              ∑ j ∈ U, c j * w j := by
+          simpa [U] using
+            (Finset.sum_filter (s := (Finset.univ : Finset s)) (p := fun j : s => j ∉ insert i S)
+                (f := fun j : s => c j * w j)).symm
+        exact hfilter.symm.trans hc2
+      let w1 : s → A := Function.update w i (w i + y)
+      have hww1 : UnimodularVectorEquiv w w1 := by
+        -- Realize the update using elementary transvections indexed by `U`.
+        have hU :
+            UnimodularVectorEquiv w
+              (Function.update w i (w i + ∑ j ∈ U, c j * w j)) :=
+          unimodularVectorEquiv_update_add_sum (A := A) (s := s) i U hiU c w
+        simpa [w1, hy_sum] using hU
+      have hvw1 : UnimodularVectorEquiv v w1 :=
+        (unimodularVectorEquiv_equivalence (R := A) (s := s)).trans hvw hww1
+      have hI_same : Iof S w1 = I := by
+        have hw1_eq : ∀ j : s, j ∈ S → w1 j = w j := by
+          intro j hj
+          have hji : j ≠ i := by
+            intro h
+            subst h
+            exact hi_notmem hj
+          simp [w1, hji]
+        have hfun :
+            (fun j : s => if j ∈ S then w1 j else 0) =
+              (fun j : s => if j ∈ S then w j else 0) := by
+          funext j
+          by_cases hj : j ∈ S
+          · simp [hj, hw1_eq j hj]
+          · simp [hj]
+        simp [Iof, I, hfun]
+      have hheight' : (S.card : ℕ∞) ≤ (Iof S w1).height := by
+        simpa [hI_same] using hheight
+      -- Height increase: adjoining the `i`-th coordinate raises the height by at least `1`.
+      have hstep_height :
+          (S.card : ℕ∞) + 1 ≤ (I ⊔ Ideal.span ({w1 i} : Set A)).height := by
+        have : (S.card : ℕ∞) ≤ I.height := by
+          -- `I` is the same as `Iof S w`, and `w1` does not show indices in `S`.
+          simpa [hI_same] using hheight'
+        have havo : ∀ p ∈ I.minimalPrimes, w1 i ∉ p := by
+          intro p hp
+          have : w1 i = w i + y := by
+            simp [w1]
+          simpa [this] using hyavoid p hp
+        exact
+          Ideal.height_add_one_le_of_forall_notMem_minimalPrimes (I := I) (a := w1 i)
+            (k := (S.card : ℕ∞)) this havo
+      -- The ideal generated by `insert i S` contains `I ⊔ (w1 i)`, so its height is at least the
+      -- same.
+      have hsup :
+          (I ⊔ Ideal.span ({w1 i} : Set A)) ≤ Iof (insert i S) w1 := by
+        refine sup_le ?_ ?_
+        · -- `I ≤ I(insert i S)`
+          refine (Ideal.span_le).2 ?_
+          rintro _ ⟨j, rfl⟩
+          by_cases hj : j ∈ S
+          · -- generator is `w1 j`, and `j ∈ insert i S`
+            have hj' : j ∈ insert i S := Finset.mem_insert_of_mem hj
+            have hji : j ≠ i := by
+              intro h
+              subst h
+              exact hi_notmem hj
+            have hw1j : w1 j = w j := by
+              simp [w1, hji]
+            -- `w j` agrees with the generator `w1 j` because `j ≠ i`.
+            exact Ideal.subset_span ⟨j, by simp [hj', hj, hw1j]⟩
+          · -- generator is `0`
+            simp [Iof, hj]
+        · -- `span {w1 i} ≤ I(insert i S)`
+          refine Ideal.span_le.2 ?_
+          intro x hx
+          -- `({w1 i} : Set A)` is a singleton set, so `x = w1 i`.
+          subst hx
+          exact Ideal.subset_span ⟨i, by simp [w1]⟩
+      have hheight_insert :
+          ((insert i S).card : ℕ∞) ≤ (Iof (insert i S) w1).height := by
+        -- `card (insert i S) = card S + 1` because `i ∉ S`.
+        -- Convert the height bound and use monotonicity.
+        have hmono : (I ⊔ Ideal.span ({w1 i} : Set A)).height ≤ (Iof (insert i S) w1).height :=
+          Ideal.height_mono hsup
+        have hstep' : (S.card : ℕ∞) + 1 ≤ (Iof (insert i S) w1).height :=
+          le_trans hstep_height hmono
+        -- Rewrite `(S.card : ℕ∞) + 1` as `((insert i S).card : ℕ∞)`.
+        -- `norm_cast` works here.
+        have : ((insert i S).card : ℕ∞) = (S.card : ℕ∞) + 1 := by
+          -- Cast the natural equality `card_insert_of_not_mem`.
+          have hcardNat : (insert i S).card = S.card + 1 := by
+            simpa using (Finset.card_insert_of_notMem (s := S) (a := i) hi_notmem)
+          exact_mod_cast hcardNat
+        simpa [this] using hstep'
+      refine ⟨w1, hvw1, ?_⟩
+      simpa [hI_same] using hheight_insert
+  -- Apply the construction to `S = t`.
+  rcases hbuild t (by intro x hx; exact hx) with ⟨v', hvv', htheight⟩
+  -- Identify `I(t)` with the ideal generated by all coordinates except `o`.
+  have hideal :
+      Iof t v' = Ideal.span (Set.range fun j : s => if j = o then 0 else v' j) := by
+    ext x
+    simp [Iof, t]
+  have htcard : (t.card : ℕ) + 1 = Fintype.card s := by
+    simpa [t] using (Finset.card_erase_add_one (s := (Finset.univ : Finset s)) (a := o)
+      (Finset.mem_univ o))
+  have hdim_lt_t : ringKrullDim R < (↑(t.card) : WithBot ℕ∞) := by
+    -- Rewrite `hs` as `dim R + 1 < t.card + 1` and cancel.
+    have hs' : ringKrullDim R + 1 < (↑(t.card + 1) : WithBot ℕ∞) := by
+      simpa [htcard] using hs
+    have hs'' : ringKrullDim R + 1 < (↑(t.card) : WithBot ℕ∞) + 1 := by
+      -- `↑(t.card + 1) = ↑t.card + 1`.
+      have : (↑(t.card + 1) : WithBot ℕ∞) = (↑(t.card) : WithBot ℕ∞) + 1 := by
+        simp [Nat.cast_add]
+      simpa [this] using hs'
+    exact lt_of_add_lt_add_right hs''
+  have htheight' :
+      (↑(t.card) : WithBot ℕ∞) ≤ (Iof t v').height := by
+    -- Coerce `t.card ≤ height`.
+    exact_mod_cast htheight
+  have hfinal : ringKrullDim R < (Iof t v').height := lt_of_lt_of_le hdim_lt_t htheight'
+  refine ⟨o, v', hvv', ?_⟩
+  simpa [hideal] using hfinal
 
 variable [IsPrincipalIdealRing R]
 
@@ -892,13 +1208,13 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
     cases m with
     | zero =>
       -- `card s = 1`.
-      have h1 : Fintype.card s = 1 := by simpa [hcard]
+      have h1 : Fintype.card s = 1 := by simp [hcard]
       rcases (Fintype.card_eq_one_iff).1 h1 with ⟨o, ho⟩
       have hrange : Set.range v = {v o} := by
         ext x
         constructor
         · rintro ⟨i, rfl⟩
-          simpa [ho i]
+          simp [ho i]
         · intro hx
           rcases hx with rfl
           exact ⟨o, rfl⟩
@@ -915,7 +1231,8 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
         have : Matrix.det D = (↑(u⁻¹) : MvPolynomial (Fin (n + 1)) R) := by
           have ho' : ∀ j : s, j = o := ho
           simp [D, d, Matrix.det_diagonal, ho', Finset.prod_const, Finset.card_univ, h1]
-        simpa [this] using (Units.isUnit (u⁻¹))
+        rw [this]
+        exact Units.isUnit (u⁻¹)
       refine ⟨AlgEquiv.refl, w, ?_, ?_⟩
       · refine ⟨Matrix.GeneralLinearGroup.mk'' D hdet, ?_⟩
         funext j
@@ -925,12 +1242,12 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
         have hvu : v j = (u : MvPolynomial (Fin (n + 1)) R) := by simpa using hu.symm
         simp [w, D, d, Matrix.mulVec_diagonal, hvu]
       · refine ⟨o, ?_⟩
-        simpa [w] using (Polynomial.monic_one : (MvPolynomial.finSuccEquiv R n (1 : MvPolynomial (Fin (n + 1)) R)).Monic)
+        simp [w]
     | succ m =>
       cases m with
       | zero =>
         -- `card s = 2`.
-        have h2 : Fintype.card s = 2 := by simpa [hcard]
+        have h2 : Fintype.card s = 2 := by simp [hcard]
         let eσ : s ≃ Fin 2 := Fintype.equivFinOfCardEq h2
         let a : s := eσ.symm 0
         let b : s := eσ.symm 1
@@ -958,14 +1275,14 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
           have hdet' : Matrix.det M = (1 : MvPolynomial (Fin (n + 1)) R) := by
             -- `det` is preserved under simultaneous reindexing.
             have hre : Matrix.det M = Matrix.det MFin := by
-              simpa [M] using (Matrix.det_reindex_self (e := eσ.symm) (A := MFin))
+              simp [M]
             -- Compute the `2×2` determinant using the Bézout relation.
             have : Matrix.det MFin = (1 : MvPolynomial (Fin (n + 1)) R) := by
               -- Keep the multiplication order to match `hc2`.
-              simp [MFin, Matrix.det_fin_two, hc2, sub_eq_add_neg, add_assoc, add_left_comm, add_comm,
-                mul_assoc]
-            simpa [hre] using this
-          simpa [hdet'] using (isUnit_one : IsUnit (1 : MvPolynomial (Fin (n + 1)) R))
+              simp [MFin, Matrix.det_fin_two, hc2, sub_eq_add_neg]
+            exact hre.trans this
+          rw [hdet']
+          exact (isUnit_one : IsUnit (1 : MvPolynomial (Fin (n + 1)) R))
         have hmul : (M.mulVec v) = w := by
           funext i
           -- Reduce to the `Fin 2` computation.
@@ -973,10 +1290,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
               ∀ (x y : s),
                 M x y = MFin (eσ x) (eσ y) := by
             intro x y
-            -- Use `reindex_apply` to unfold entries.
-            simpa [M] using
-              congrArg (fun N : Matrix s s (MvPolynomial (Fin (n + 1)) R) => N x y)
-                (Matrix.reindex_apply eσ.symm eσ.symm MFin)
+            simp [M]
           have hsum :
               (∑ j : s, M i j * v j) =
                 ∑ j : Fin 2, MFin (eσ i) j * v (eσ.symm j) := by
@@ -988,52 +1302,60 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
           cases h : eσ i using Fin.cases with
           | zero =>
             -- `eσ i = 0`
-            have : i = a := by simpa [a] using congrArg eσ.symm h
+            have : i = a := by
+              have h' := congrArg eσ.symm h
+              simp only [Equiv.symm_apply_apply, Fin.isValue] at h'
+              exact h'
             subst this
             -- first row is the Bézout combination
             have : (∑ j : s, M a j * v j) = 1 := by
-              calc
-                (∑ j : s, M a j * v j) =
-                    ∑ j : Fin 2, MFin (eσ a) j * v (eσ.symm j) := hsum
-                _ = ∑ j : Fin 2, MFin 0 j * v (eσ.symm j) := by simpa [h]
-                _ = c a * v a + c b * v b := by simp [MFin, Fin.sum_univ_two, a, b]
+              calc _ = ∑ j : Fin 2, MFin (eσ a) j * v (eσ.symm j) := hsum
+                _ = ∑ j : Fin 2, MFin 0 j * v (eσ.symm j) := by
+                  simp only [h, Fin.isValue, Fin.sum_univ_two]
+                _ = c a * v a + c b * v b := by
+                  simp only [Fin.isValue, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_fin_one, Matrix.cons_val_zero, Fin.sum_univ_two,
+                  Matrix.cons_val_one, MFin, a, b]
                 _ = 1 := hc2
-            simpa [Matrix.mulVec, dotProduct, w] using this
+            simpa only [Matrix.mulVec, dotProduct, ↓reduceIte, w] using this
           | succ j =>
             -- `eσ i = 1`
             fin_cases j
             have : i = b := by
-              -- `Fin.succ 0 = 1`
-              simpa [b] using congrArg eσ.symm h
+              have h' := congrArg eσ.symm h
+              simp only [Equiv.symm_apply_apply] at h'
+              exact h'
             subst this
             -- second row gives `-v b * v a + v a * v b = 0`.
             have : (∑ j : s, M b j * v j) = 0 := by
-              calc
-                (∑ j : s, M b j * v j) =
-                    ∑ j : Fin 2, MFin (eσ b) j * v (eσ.symm j) := hsum
-                _ = ∑ j : Fin 2, MFin 1 j * v (eσ.symm j) := by simpa [h]
-                _ = (-v b) * v a + v a * v b := by simp [MFin, Fin.sum_univ_two, a, b]
-                _ = 0 := by
-                  simp [add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc]
+              calc _ = ∑ j : Fin 2, MFin (eσ b) j * v (eσ.symm j) := hsum
+                _ = ∑ j : Fin 2, MFin 1 j * v (eσ.symm j) := by
+                  simp only [h, Fin.zero_eta, Fin.isValue, Fin.succ_zero_eq_one, Fin.sum_univ_two]
+                _ = (-v b) * v a + v a * v b := by
+                  simp only [Fin.isValue, Matrix.of_apply, Matrix.cons_val',
+                    Matrix.cons_val_fin_one, Matrix.cons_val_one, Fin.sum_univ_two,
+                    Matrix.cons_val_zero, neg_mul, MFin, a, b]
+                _ = 0 := by simp only [mul_comm, mul_neg, neg_add_cancel]
             have hb : b ≠ a := by
               intro hba
-              have : (1 : Fin 2) = 0 := by
-                have := congrArg eσ hba
-                simpa [a, b] using this
-              exact (by decide : (1 : Fin 2) ≠ 0) this
-            simpa [Matrix.mulVec, dotProduct, w, hb] using this
+              have h' : (1 : Fin 2) = 0 := by
+                simpa [a, b] using congrArg eσ hba
+              exact (by decide : (1 : Fin 2) ≠ 0) h'
+            simp [Matrix.mulVec, dotProduct, w, hb]
+            exact this
         refine ⟨AlgEquiv.refl, w, ?_, ?_⟩
         · refine ⟨Matrix.GeneralLinearGroup.mk'' M hdet, ?_⟩
-          simpa [hmul]
+          simp [hmul]
         · refine ⟨a, ?_⟩
-          simpa [w] using
-            (Polynomial.monic_one :
-              (MvPolynomial.finSuccEquiv R n (1 : MvPolynomial (Fin (n + 1)) R)).Monic)
+          simp [w]
       | succ m =>
         -- `card s ≥ 3`: use height preprocessing + Suslin's monic theorem + elementary updates.
         have hsNat : 2 < Fintype.card s := by
           -- `card s = (m+3)` in this branch.
-          simpa [hcard, Nat.succ_lt_succ_iff, Nat.succ_lt_succ_iff] using (Nat.succ_lt_succ (Nat.succ_lt_succ (Nat.succ_pos _)))
+          rw [hcard]
+          have h0 : 0 < m + 1 := Nat.succ_pos m
+          have h1 : 1 < m + 1 + 1 := Nat.succ_lt_succ h0
+          have h2 : 2 < m + 1 + 1 + 1 := Nat.succ_lt_succ h1
+          exact h2
         have hs :
             ringKrullDim R + 1 < (↑(Fintype.card s) : WithBot ℕ∞) := by
           -- In a PID, `dim R ≤ 1`, so `dim R + 1 ≤ 2`, and `2 < card s` in this branch.
@@ -1065,7 +1387,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
               have : (↑((1 : ℕ) : ℕ∞) : WithBot ℕ∞) = (↑(⊤ : ℕ∞) : WithBot ℕ∞) := by
                 simpa using h
               exact WithBot.coe_eq_coe.mp this
-            exact (WithTop.coe_ne_top (a := (1 : ℕ))) (by simpa using h')
+            exact (WithTop.coe_ne_top (a := (1 : ℕ))) h'
           exact lt_of_le_of_lt hle h1lt
         rcases suslin_monic_polynomial_theorem (R := R) hr n I (by simpa [I] using hheight) with
           ⟨α, f, hfI, hmonicf⟩
@@ -1105,8 +1427,8 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
             intro i
             by_cases hi : i = o
             · subst hi
-              simp [uPoly, u]
-            · simp [uPoly, u, hi, map_mul, mul_assoc]
+              simp [uPoly]
+            · simp [uPoly, u, hi, map_mul]
           -- Conclude.
           have hcf' := hterm.symm.trans hsum
           dsimp [fPoly]
@@ -1143,7 +1465,8 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
               have hio : i ≠ o := by
                 intro hio
                 have : o ∈ insert i t := by
-                  simpa [hio] using (Finset.mem_insert_self i t)
+                  subst i
+                  exact Finset.mem_insert_self o t
                 exact ht_insert this
               have ih' : UnimodularVectorEquiv uPoly (wPolyOf t) := ih ht
               -- Add the new term at coordinate `o`.
@@ -1187,25 +1510,25 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
                           (uPoly o +
                               ∑ j ∈ t, (Polynomial.X ^ N * φ (α (c j))) * uPoly j) +
                             (Polynomial.X ^ N * φ (α (c i))) * uPoly i := by
-                              simpa [ho_t, hi_t]
+                              simp [ho_t, hi_t]
                       _ =
                           uPoly o +
                             ((Polynomial.X ^ N * φ (α (c i))) * uPoly i +
                               ∑ j ∈ t, (Polynomial.X ^ N * φ (α (c j))) * uPoly j) := by
-                              simp [add_assoc, add_left_comm, add_comm]
+                              ac_rfl
                       _ =
                           uPoly o +
                             ∑ j ∈ insert i t, (Polynomial.X ^ N * φ (α (c j))) * uPoly j := by
-                              simp [Finset.sum_insert, hi_notmem, add_assoc]
+                              simp [Finset.sum_insert, hi_notmem]
                   simpa [Function.update_self, ho_it] using this
-                · -- `j ≠ o`: both sides are unchanged and equal to `uPoly j`.
+                · -- `j ≠ o`: both sides are unshowd and equal to `uPoly j`.
                   have hj' : j ≠ o := hj
                   have ht : (wPolyOf t) j = uPoly j := by
                     simp [wPolyOf, hj']
                   have hit : (wPolyOf (insert i t)) j = uPoly j := by
                     simp [wPolyOf, hj']
                   -- The update at `o` does not affect `j`.
-                  simpa [Function.update_of_ne hj', ht, hit]
+                  simp [Function.update_of_ne hj', ht, hit]
               exact
                 unimodularVectorEquiv_equivalence.trans ih'
                   (by simpa [hwPoly_step] using hadd)
@@ -1234,9 +1557,8 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
         have hmonic_wPoly : (MvPolynomial.finSuccEquiv R n (w o)).Monic := by
           -- First identify `finSuccEquiv` with the constructed polynomial.
           have hw : MvPolynomial.finSuccEquiv R n (w o) = wPoly o := by
-            dsimp [w]
-            change φ (φ.symm (wPoly o)) = wPoly o
-            simpa using (φ.apply_symm_apply (wPoly o))
+            show φ (φ.symm (wPoly o)) = wPoly o
+            simp
           -- Rewrite `wPoly o` as `uPoly o + X^N * fPoly`, using `hcf`.
           have hsum_cf :
               (∑ i : s, φ (α (c i)) * (if i = o then 0 else uPoly i)) =
@@ -1262,7 +1584,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
             have hs' :
                 (∑ i ∈ (Finset.univ.erase o : Finset s), h i) =
                   ∑ i ∈ (Finset.univ : Finset s), h i := by
-              simpa [ho0] using hs
+              simp [ho0]
             have :
                 (∑ i ∈ (Finset.univ.erase o : Finset s), g i) =
                   ∑ i ∈ (Finset.univ : Finset s), h i := by
@@ -1296,9 +1618,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
                       simp [mul_assoc]
                 _ =
                     Polynomial.X ^ N * ∑ i ∈ t, φ (α (c i)) * uPoly i := by
-                      simpa [Finset.mul_sum] using
-                        (Finset.mul_sum (s := t) (f := fun i => φ (α (c i)) * uPoly i)
-                          (a := Polynomial.X ^ N)).symm
+                      simp [Finset.mul_sum]
                 _ = Polynomial.X ^ N * fPoly := by
                       simp [hsum_t]
             -- Conclude.
@@ -1316,19 +1636,23 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
               have : (uPoly o).degree < (uPoly o).natDegree + 1 := lt_of_le_of_lt this (by
                 -- coe inequality
                 exact WithBot.coe_lt_coe.2 (Nat.lt_succ_self _))
-              simpa [N, Nat.cast_add, Nat.cast_one] using this
+              have hN : (N : WithBot ℕ) = (uPoly o).natDegree + 1 := by
+                simp [N, Nat.cast_add, Nat.cast_one]
+              -- Rewrite the goal using the definition of `N`.
+              rw [hN]
+              exact this
             have hN_le :
                 (N : WithBot ℕ) ≤ (Polynomial.X ^ N * fPoly).degree := by
               -- `degree (X^N * fPoly) = degree fPoly + N` and `0 ≤ degree fPoly`.
               have hdeg_Xf : (Polynomial.X ^ N * fPoly).degree = fPoly.degree + N := by
-                simpa [mul_comm] using (Polynomial.degree_mul_X_pow (p := fPoly) (n := N))
+                simp [mul_comm]
               -- `N = 0 + N ≤ degree fPoly + N`.
               have h0 : (0 : WithBot ℕ) ≤ fPoly.degree := by
                 -- `fPoly` is nonzero (monic), hence degree ≥ 0.
                 have hf0 : fPoly ≠ 0 := hmonic_fPoly.ne_zero
                 have : (0 : WithBot ℕ) ≤ (fPoly.natDegree : WithBot ℕ) :=
                   (WithBot.coe_le_coe).2 (Nat.zero_le _)
-                simpa [Polynomial.degree_eq_natDegree hf0] using this
+                simp [Polynomial.degree_eq_natDegree hf0]
               have hN_le' : (N : WithBot ℕ) ≤ fPoly.degree + N := by
                 simpa using (add_le_add_left h0 (N : WithBot ℕ))
               -- Conclude by rewriting `degree (X^N * fPoly)`.
@@ -1580,7 +1904,7 @@ Let $R$ be a commutative ring. For any ideal $\mathfrak{A}$ in $R[t]$, let $\ell
 
 	Suppose $n \geq 1$. Then we can treat $R$ as $k[x_1, \dots, x_{n-1}, X]$, where we replace $x_n$ by $X$ to make it stand out. We can think of $v = v(X)$ as a vector of polynomials in $X$ with coefficients in the smaller ring $k[x_1, \dots, x_{n-1}]$.
 
-	If $v(X)$ has a term with leading coefficient one, then the previous results [Corollary \ref{cor:11}] enable us to conclude that $v(X) \sim v(0)$, and as $v(0)$ lies in $k[x_1, \dots, x_{n-1}]$ we can use induction to work downwards. By Lemma \ref{um}, possibly after a change of variables $x_1, \dots, x_n$, we can always arrange it so that the leading coefficient in $X = x_n$ is one. The relevant change of variables leaves $X = x_n$ constant and
+	If $v(X)$ has a term with leading coefficient one, then the previous results [Corollary \ref{cor:11}] enable us to conclude that $v(X) \sim v(0)$, and as $v(0)$ lies in $k[x_1, \dots, x_{n-1}]$ we can use induction to work downwards. By Lemma \ref{um}, possibly after a show of variables $x_1, \dots, x_n$, we can always arrange it so that the leading coefficient in $X = x_n$ is one. The relevant show of variables leaves $X = x_n$ constant and
 	$$ \displaystyle x_i \mapsto x_i - X^{M^i}, \quad M \gg 0 \quad (1 \leq i < n). $$
 	If $M$ is chosen very large, one makes by this substitution the leading term of each of the elements of $v$ monic. So, without loss of generality we can assume that this is already the case. Thus, we can apply the inductive hypothesis on $n$ to complete the proof.
 \end{proof}
