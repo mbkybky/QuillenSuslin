@@ -4,8 +4,7 @@ import QuillenSuslin.SuslinMonicPolynomialThm
 
 open Module Polynomial Finset BigOperators Bivariate
 
-variable {R : Type*} [CommRing R] [IsDomain R]
-variable {s : Type*} [Fintype s] [DecidableEq s]
+variable {R : Type*} [CommRing R] [IsDomain R] {s : Type*} [Fintype s] [DecidableEq s]
 
 /-- Suppose $v(x) \sim v(0)$ over the localization $R_S[x]$. Then there exists a $c \in S$ such
   that $v(x) \sim v(x + cy)$ over $R[x, y]$. -/
@@ -252,7 +251,6 @@ theorem cor11IdealCarrier_exists_not_mem_maximal_of_local_equiv (v : s → R[X])
       let ι : R →+* Rm := algebraMap R Rm
       UnimodularVectorEquiv (fun i => (v i).map ι) (fun i => C (ι ((v i).eval 0)))) :
     ∃ q : R, q ∈ cor11IdealCarrier v ∧ q ∉ m := by
-  classical
   haveI : m.IsPrime := hm.isPrime
   let S : Submonoid R := m.primeCompl
   have hS0 : (0 : R) ∉ S := by simp [S, Ideal.mem_primeCompl_iff]
@@ -271,7 +269,6 @@ theorem cor11IdealCarrier_exists_not_mem_maximal_of_local_equiv (v : s → R[X])
 theorem cor11Ideal_eq_top_of_forall_maximal (v : s → R[X])
     (h : ∀ m : Ideal R, m.IsMaximal → ∃ q : R, q ∈ cor11IdealCarrier v ∧ q ∉ m) :
     cor11Ideal v = ⊤ := by
-  classical
   by_contra hI
   rcases Ideal.exists_le_maximal (cor11Ideal v) hI with ⟨m, hm, hIm⟩
   rcases h m hm with ⟨q, hqI, hqnm⟩
@@ -286,7 +283,6 @@ theorem cor11_of_forall_maximal_local_equiv (v : s → R[X])
         let ι : R →+* Rm := algebraMap R Rm
         UnimodularVectorEquiv (fun i => (v i).map ι) (fun i => C (ι ((v i).eval 0)))) :
     UnimodularVectorEquiv v (fun i => C ((v i).eval 0)) := by
-  classical
   let I : Ideal R := cor11Ideal v
   have hI : I = ⊤ := by
     have hmax :
@@ -347,54 +343,15 @@ theorem cor11 (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic
     simpa [hevXY_vx, hevXY_vxy] using unimodularVectorEquiv_map evXY hI1
   unimodularVectorEquiv_equivalence.symm hmain
 
-/-- A variant of `cor11`: it suffices that some component has *unit* leading coefficient. -/
-theorem cor11_of_isUnit_leadingCoeff (v : s → R[X]) (hv : IsUnimodular v)
-    (h : ∃ i : s, IsUnit (v i).leadingCoeff) :
-    UnimodularVectorEquiv v (fun i => C ((v i).eval 0)) := by
-  classical
-  rcases h with ⟨i, hi⟩
-  rcases hi with ⟨u, hu⟩
-  let b : R := (↑(u⁻¹) : R)
-  have hb : b * (v i).leadingCoeff = 1 := by
-    calc b * (v i).leadingCoeff = (↑(u⁻¹) : R) * (↑u : R) := by simp [b, hu]
-      _ = 1 := by simp
-  have hmonic : (Polynomial.C b * v i).Monic := monic_C_mul_of_mul_leadingCoeff_eq_one hb
-  have hunitC : IsUnit (Polynomial.C b : R[X]) := by
-    have : IsUnit b := ⟨u⁻¹, rfl⟩
-    simpa [Polynomial.isUnit_C] using this
-  let v' : s → R[X] := Function.update v i (Polynomial.C b * v i)
-  have hvv' : UnimodularVectorEquiv v v' :=
-    unimodularVectorEquiv_update_mul_isUnit (R := R) (s := s) i (Polynomial.C b) hunitC v
-  have hv' : IsUnimodular v' :=
-    (isUnimodular_iff_of_unimodularVectorEquiv (R := R) (s := s) hvv').1 hv
-  have hmonic' : ∃ j : s, (v' j).Monic := by refine ⟨i, by simp [v', hmonic]⟩
-  let w0 : s → R[X] := fun j => C ((v j).eval 0)
-  let w1 : s → R[X] := fun j => C ((v' j).eval 0)
-  have hcor : UnimodularVectorEquiv v' w1 := by simpa [w1] using cor11 v' hv' hmonic'
-  have hw1 : w1 = Function.update w0 i (Polynomial.C b * w0 i) := by
-    funext j
-    by_cases hj : j = i
-    · subst hj
-      simp only [mul_comm, Function.update_self, eval_mul, eval_C, map_mul, w1, v', w0]
-    · simp [w1, w0, v', Function.update, hj]
-  have hw0w1 : UnimodularVectorEquiv w0 w1 := by
-    have := unimodularVectorEquiv_update_mul_isUnit (R := R) (s := s) i (Polynomial.C b) hunitC w0
-    simpa [hw1] using this
-  have hw1w0 : UnimodularVectorEquiv w1 w0 := unimodularVectorEquiv_equivalence.symm hw0w1
-  exact unimodularVectorEquiv_equivalence.trans hvv' <|
-    unimodularVectorEquiv_equivalence.trans hcor hw1w0
-
 end cor11
 
-section thm12_field
+section isUnimodular_map
 
-variable (R : Type*) [CommRing R] [IsDomain R]
 variable {s : Type*}
 
 /-- Unimodularity is preserved under a ring homomorphism. -/
 theorem isUnimodular_map_ringHom {A B : Type*} [CommRing A] [CommRing B] (f : A →+* B)
     (v : s → A) (hv : IsUnimodular v) : IsUnimodular fun i => f (v i) := by
-  classical
   unfold IsUnimodular at hv ⊢
   have hmap : Ideal.map f (Ideal.span (Set.range v)) = ⊤ := by
     simpa [hv] using (Ideal.map_top (f := f) : Ideal.map f (⊤ : Ideal A) = (⊤ : Ideal B))
@@ -412,7 +369,6 @@ theorem isUnimodular_map_ringHom {A B : Type*} [CommRing A] [CommRing B] (f : A 
 /-- Unimodularity is preserved under an algebra equivalence. -/
 theorem isUnimodular_map_ringEquiv {A B : Type*} [CommRing A] [CommRing B] (e : A ≃+* B)
     (v : s → A) (hv : IsUnimodular v) : IsUnimodular fun i => e (v i) := by
-  classical
   unfold IsUnimodular at hv ⊢
   have hmap : Ideal.map (e : A →+* B) (Ideal.span (Set.range v)) = ⊤ := by
     have := congrArg (Ideal.map (e : A →+* B)) hv
@@ -428,281 +384,14 @@ theorem isUnimodular_map_ringEquiv {A B : Type*} [CommRing A] [CommRing B] (e : 
       exact ⟨v i, ⟨i, rfl⟩, rfl⟩
   simpa [hrange] using hspan
 
-variable [Fintype s] [DecidableEq s]
-
+variable [Fintype s] [DecidableEq s] in
 /-- Unimodular-vector equivalence is preserved under an algebra equivalence. -/
 theorem unimodularVectorEquiv_map_ringEquiv {A B : Type*} [CommRing A] [CommRing B] (e : A ≃+* B)
     (v w : s → A) (hvw : UnimodularVectorEquiv v w) :
     UnimodularVectorEquiv (fun i => e (v i)) (fun i => e (w i)) := by
   simpa using unimodularVectorEquiv_map (f := (e : A →+* B)) hvw
 
-section monicize
-
-variable {k : Type*} [Field k] {n : ℕ}
-
-open scoped BigOperators
-
-variable (f : MvPolynomial (Fin (n + 1)) k)
-
-/-- `up` is defined as `2 + f.totalDegree`. Any big enough number would work. -/
-local notation3 "up" => 2 + f.totalDegree
-
-private lemma lt_up {v : Fin (n + 1) → ℕ} (vlt : ∀ i, v i < up) :
-    ∀ l ∈ List.ofFn v, l < up := by
-  intro l hl
-  rcases ((List.mem_ofFn' v l).1 hl) with ⟨i, rfl⟩
-  exact vlt i
-
-/-- `r` maps `(i : Fin (n + 1))` to `up ^ i`. -/
-local notation3 "r" => fun (i : Fin (n + 1)) ↦ up ^ i.1
-
-/-- The triangular algebra endomorphism sending `X_i ↦ X_i + c * X_0^(r i)` for `i ≠ 0` and
-fixing `X_0`. -/
-noncomputable abbrev T1 (c : k) :
-    MvPolynomial (Fin (n + 1)) k →ₐ[k] MvPolynomial (Fin (n + 1)) k :=
-  MvPolynomial.aeval fun i ↦ if i = 0 then MvPolynomial.X 0 else MvPolynomial.X i + c • MvPolynomial.X 0 ^ r i
-
-private lemma t1_comp_t1_neg (c : k) : (T1 f c).comp (T1 f (-c)) = AlgHom.id _ _ := by
-  rw [MvPolynomial.comp_aeval, ← MvPolynomial.aeval_X_left]
-  ext i v
-  cases i using Fin.cases <;> simp [T1, add_assoc, add_comm]
-
-/-- `T1 f 1` leads to an algebra equivalence `T f`. -/
-private noncomputable abbrev T :
-    MvPolynomial (Fin (n + 1)) k ≃ₐ[k] MvPolynomial (Fin (n + 1)) k :=
-  AlgEquiv.ofAlgHom (T1 f 1) (T1 f (-1)) (t1_comp_t1_neg f 1) (by simpa using t1_comp_t1_neg f (-1))
-
-private lemma sum_r_mul_neq {v w : Fin (n + 1) →₀ ℕ} (vlt : ∀ i, v i < up) (wlt : ∀ i, w i < up)
-    (neq : v ≠ w) : (∑ x : Fin (n + 1), r x * v x) ≠ ∑ x : Fin (n + 1), r x * w x := by
-  intro h
-  refine neq <| Finsupp.ext <| congrFun <| (List.ofFn_inj.mp ?_)
-  apply Nat.ofDigits_inj_of_len_eq (Nat.lt_add_right f.totalDegree one_lt_two) (by simp)
-      (lt_up (f := f) vlt) (lt_up (f := f) wlt)
-  simpa only [Nat.ofDigits_eq_sum_mapIdx, List.mapIdx_eq_ofFn, List.get_ofFn, List.length_ofFn,
-      Fin.val_cast, mul_comm, List.sum_ofFn] using h
-
-private lemma degreeOf_zero_t {v : Fin (n + 1) →₀ ℕ} {a : k} (ha : a ≠ 0) :
-    ((T f) (MvPolynomial.monomial v a)).degreeOf 0 = ∑ i : Fin (n + 1), (r i) * v i := by
-  rw [← MvPolynomial.natDegree_finSuccEquiv, MvPolynomial.monomial_eq, Finsupp.prod_pow v fun a ↦ MvPolynomial.X a]
-  simp only [Fin.prod_univ_succ, Fin.sum_univ_succ, map_mul, map_prod, map_pow, AlgEquiv.ofAlgHom_apply,
-    MvPolynomial.aeval_C, MvPolynomial.aeval_X, if_pos, Fin.succ_ne_zero, ite_false, one_smul,
-    map_add, MvPolynomial.finSuccEquiv_X_zero, MvPolynomial.finSuccEquiv_X_succ, MvPolynomial.algebraMap_eq]
-  have h (i : Fin n) :
-      (Polynomial.C (MvPolynomial.X (R := k) i) + Polynomial.X ^ r i.succ) ^ v i.succ ≠ 0 :=
-    pow_ne_zero (v i.succ) (Polynomial.leadingCoeff_ne_zero.mp <| by
-      simp [add_comm, Polynomial.leadingCoeff_X_pow_add_C])
-  rw [Polynomial.natDegree_mul (by simp [ha])
-      (mul_ne_zero (by simp) (Finset.prod_ne_zero_iff.mpr (fun i _ ↦ h i))),
-    Polynomial.natDegree_mul (by simp) (Finset.prod_ne_zero_iff.mpr (fun i _ ↦ h i)),
-    Polynomial.natDegree_prod _ _ (fun i _ ↦ h i), MvPolynomial.natDegree_finSuccEquiv,
-    MvPolynomial.degreeOf_C]
-  simpa only [Polynomial.natDegree_pow, zero_add, Polynomial.natDegree_X, mul_one, Fin.val_zero,
-      pow_zero, one_mul, add_right_inj] using
-    Finset.sum_congr rfl (fun i _ ↦ by
-      rw [add_comm (Polynomial.C _), Polynomial.natDegree_X_pow_add_C, mul_comm])
-
-private lemma degreeOf_t_neq_of_neq {v w : Fin (n + 1) →₀ ℕ} (hv : v ∈ f.support) (hw : w ∈ f.support)
-    (neq : v ≠ w) :
-    (T f (MvPolynomial.monomial v (MvPolynomial.coeff v f))).degreeOf 0 ≠
-      (T f (MvPolynomial.monomial w (MvPolynomial.coeff w f))).degreeOf 0 := by
-  rw [degreeOf_zero_t (f := f) (a := MvPolynomial.coeff v f) (by exact (MvPolynomial.mem_support_iff.mp hv)),
-    degreeOf_zero_t (f := f) (a := MvPolynomial.coeff w f) (by exact (MvPolynomial.mem_support_iff.mp hw))]
-  refine sum_r_mul_neq (f := f) (v := v) (w := w) (fun i ↦ ?_) (fun i ↦ ?_) neq <;>
-  · exact lt_of_le_of_lt ((MvPolynomial.monomial_le_degreeOf i ‹_›).trans (MvPolynomial.degreeOf_le_totalDegree f i))
-      (by lia)
-
-private lemma leadingCoeff_finSuccEquiv_t {v : Fin (n + 1) →₀ ℕ} :
-    (MvPolynomial.finSuccEquiv k n (T f (MvPolynomial.monomial v (MvPolynomial.coeff v f)))).leadingCoeff =
-      algebraMap k _ (MvPolynomial.coeff v f) := by
-  rw [MvPolynomial.monomial_eq, Finsupp.prod_fintype]
-  · simp only [map_mul, map_prod, Polynomial.leadingCoeff_mul, Polynomial.leadingCoeff_prod]
-    rw [AlgEquiv.ofAlgHom_apply, MvPolynomial.algHom_C, MvPolynomial.algebraMap_eq,
-      MvPolynomial.finSuccEquiv_apply, MvPolynomial.eval₂Hom_C, RingHom.coe_comp]
-    simp only [AlgEquiv.ofAlgHom_apply, Function.comp_apply, Polynomial.leadingCoeff_C, map_pow,
-      Polynomial.leadingCoeff_pow, MvPolynomial.algebraMap_eq]
-    have : ∀ j, (MvPolynomial.finSuccEquiv k n ((T1 f) 1 (MvPolynomial.X j))).leadingCoeff = 1 := fun j ↦ by
-      by_cases h : j = 0
-      · simp [h, MvPolynomial.finSuccEquiv_apply]
-      · simp only [MvPolynomial.aeval_eq_bind₁, MvPolynomial.bind₁_X_right, if_neg h, one_smul,
-          map_add, map_pow]
-        obtain ⟨i, rfl⟩ := Fin.exists_succ_eq.mpr h
-        simp [MvPolynomial.finSuccEquiv_X_succ, MvPolynomial.finSuccEquiv_X_zero, add_comm]
-    simp only [this, one_pow, Finset.prod_const_one, mul_one]
-  exact fun i ↦ pow_zero _
-
-private lemma T_leadingcoeff_isUnit (fne : f ≠ 0) :
-    IsUnit (MvPolynomial.finSuccEquiv k n (T f f)).leadingCoeff := by
-  obtain ⟨v, vin, vs⟩ := Finset.exists_max_image f.support
-    (fun v ↦ (T f (MvPolynomial.monomial v (MvPolynomial.coeff v f))).degreeOf 0)
-    (MvPolynomial.support_nonempty.mpr fne)
-  set h := fun w ↦ MvPolynomial.monomial w (MvPolynomial.coeff w f)
-  simp only [← MvPolynomial.natDegree_finSuccEquiv] at vs
-  replace vs :
-      ∀ x ∈ f.support \ {v},
-        (MvPolynomial.finSuccEquiv k n (T f (h x))).degree <
-          (MvPolynomial.finSuccEquiv k n (T f (h v))).degree := by
-    intro x hx
-    obtain ⟨h1, h2⟩ := Finset.mem_sdiff.mp hx
-    apply Polynomial.degree_lt_degree <| lt_of_le_of_ne (vs x h1) ?_
-    simpa only [MvPolynomial.natDegree_finSuccEquiv] using
-      degreeOf_t_neq_of_neq (f := f) (hv := h1) (hw := vin) (neq := by
-        intro hxv
-        exact h2 (Finset.mem_singleton.2 hxv))
-  have coeff :
-      (MvPolynomial.finSuccEquiv k n (T f (h v + ∑ x ∈ f.support \ {v}, h x))).leadingCoeff =
-        (MvPolynomial.finSuccEquiv k n (T f (h v))).leadingCoeff := by
-    simp only [map_add, map_sum]
-    rw [add_comm]
-    apply Polynomial.leadingCoeff_add_of_degree_lt <| (lt_of_le_of_lt (Polynomial.degree_sum_le _ _) ?_)
-    have h2 : h v ≠ 0 := by
-      simpa [h] using (MvPolynomial.mem_support_iff.mp vin)
-    have h2' : (MvPolynomial.finSuccEquiv k n (T f (h v))) ≠ 0 := fun eq ↦ h2 <|
-      by simpa only [map_eq_zero_iff _ (AlgEquiv.injective _)] using eq
-    exact (Finset.sup_lt_iff (Ne.bot_lt (fun x ↦ h2' <| Polynomial.degree_eq_bot.mp x))).mpr vs
-  nth_rw 2 [← MvPolynomial.support_sum_monomial_coeff f]
-  rw [Finset.sum_eq_add_sum_diff_singleton vin h]
-  rw [leadingCoeff_finSuccEquiv_t (f := f)] at coeff
-  simpa only [coeff, MvPolynomial.algebraMap_eq] using (MvPolynomial.mem_support_iff.mp vin).isUnit.map MvPolynomial.C
-
-/-- For a nonzero multivariable polynomial over a field, there exists an algebra automorphism which
-makes its `finSuccEquiv` image have invertible leading coefficient (Nagata's trick). -/
-theorem exists_algEquiv_isUnit_leadingCoeff_finSuccEquiv (f : MvPolynomial (Fin (n + 1)) k) (fne : f ≠ 0) :
-    ∃ e : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] MvPolynomial (Fin (n + 1)) k,
-      IsUnit (MvPolynomial.finSuccEquiv k n (e f)).leadingCoeff := by
-  refine ⟨T f, ?_⟩
-  simpa using T_leadingcoeff_isUnit (f := f) (n := n) fne
-
-omit [DecidableEq s] in
-/-- For a unimodular vector over `k[x₀,…,xₙ]` (with `k` a field), there exists an algebra
-automorphism such that one component becomes a polynomial in `x₀` with invertible leading
-coefficient, after identifying `k[x₀,…,xₙ] ≃ₐ[k] (k[x₁,…,xₙ])[X]` via `finSuccEquiv`. -/
-theorem exists_algEquiv_exists_isUnit_leadingCoeff_finSuccEquiv (n : ℕ)
-    (v : s → MvPolynomial (Fin (n + 1)) k) (hv : IsUnimodular v) :
-    ∃ e : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] MvPolynomial (Fin (n + 1)) k,
-      ∃ i : s, IsUnit (MvPolynomial.finSuccEquiv k n (e (v i))).leadingCoeff := by
-  have h1 :
-      (1 : MvPolynomial (Fin (n + 1)) k) ∈ Ideal.span (Set.range v) := by
-    unfold IsUnimodular at hv
-    simp [hv]
-  rcases (Ideal.mem_span_range_iff_exists_fun).1 h1 with ⟨c, hc⟩
-  have hex : ∃ i : s, v i ≠ 0 := by
-    by_contra h0
-    have hv0 : ∀ i : s, v i = 0 := by
-      intro i
-      by_contra hi
-      exact h0 ⟨i, hi⟩
-    have : (∑ i : s, c i * v i) = 0 := by simp [hv0]
-    exact (one_ne_zero : (1 : MvPolynomial (Fin (n + 1)) k) ≠ 0) (by simpa [this] using hc.symm)
-  rcases hex with ⟨i, hi⟩
-  rcases exists_algEquiv_isUnit_leadingCoeff_finSuccEquiv (k := k) (n := n) (f := v i) hi with ⟨e, he⟩
-  exact ⟨e, i, he⟩
-
-end monicize
-
-/-- Field case of the “unimodular vector” theorem, with variables indexed by `Fin n`. -/
-theorem thm12_fin {k : Type*} [Field k] (n : ℕ) (o : s) (v : s → MvPolynomial (Fin n) k)
-    (hv : IsUnimodular v) : UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
-  classical
-  induction n with
-  | zero =>
-    let e : MvPolynomial (Fin 0) k ≃+* k := MvPolynomial.isEmptyRingEquiv k (Fin 0)
-    have hv' : IsUnimodular fun i => e (v i) := isUnimodular_map_ringEquiv e v hv
-    have hstd : IsUnimodular fun i : s => if i = o then (1 : k) else 0 := by
-      unfold IsUnimodular
-      refine
-        Ideal.eq_top_of_isUnit_mem
-          (I := Ideal.span (Set.range fun i : s => if i = o then (1 : k) else 0)) (x := (1 : k)) ?_
-          isUnit_one
-      exact Ideal.subset_span ⟨o, by simp⟩
-    have h' :
-        UnimodularVectorEquiv (fun i => e (v i)) (fun i => if i = o then (1 : k) else 0) := by
-      simpa using unimodularVectorEquiv_of_pid (R := k) (s := s) hv' hstd
-    have h'' :
-        UnimodularVectorEquiv v (fun i => if i = o then (1 : MvPolynomial (Fin 0) k) else 0) := by
-      have := unimodularVectorEquiv_map_ringEquiv e.symm (fun i => e (v i))
-        (fun i : s => if i = o then (1 : k) else 0) h'
-      simpa using this
-    simpa using h''
-  | succ n ih =>
-    let A := MvPolynomial (Fin n) k
-    let φ : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] Polynomial A := MvPolynomial.finSuccEquiv k n
-    rcases exists_algEquiv_exists_isUnit_leadingCoeff_finSuccEquiv (k := k) (s := s) (n := n) v hv with ⟨e, i, hu⟩
-    let w : s → Polynomial A := fun j => φ (e (v j))
-    have hw : IsUnimodular w := by
-      have hv1 : IsUnimodular fun j => e (v j) := isUnimodular_map_ringEquiv e.toRingEquiv v hv
-      simpa [w, φ] using isUnimodular_map_ringEquiv φ.toRingEquiv (fun j => e (v j)) hv1
-    rcases hu with ⟨u, hu⟩
-    let b : A := (↑(u⁻¹) : A)
-    have hb : b * (w i).leadingCoeff = 1 := by
-      have : (w i).leadingCoeff = (u : A) := by simpa [w, φ] using hu.symm
-      simp [b, this]
-    have hmonic : (Polynomial.C b * w i).Monic := monic_C_mul_of_mul_leadingCoeff_eq_one hb
-    have hunitC : IsUnit (Polynomial.C b : Polynomial A) := by
-      have : IsUnit b := ⟨u⁻¹, rfl⟩
-      simpa [Polynomial.isUnit_C] using this
-    let w' : s → Polynomial A := Function.update w i (Polynomial.C b * w i)
-    have hww' : UnimodularVectorEquiv w w' :=
-      unimodularVectorEquiv_update_mul_isUnit (R := A) (s := s) i (Polynomial.C b) hunitC w
-    have hw' : IsUnimodular w' :=
-      (isUnimodular_iff_of_unimodularVectorEquiv (R := A) (s := s) hww').1 hw
-    have hmonic' : ∃ j : s, (w' j).Monic := by
-      refine ⟨i, ?_⟩
-      simp [w', hmonic]
-    have hcor : UnimodularVectorEquiv w' (fun j => Polynomial.C ((w' j).eval 0)) :=
-      cor11 (R := A) (s := s) w' hw' hmonic'
-    let ev0 : Polynomial A →+* A := Polynomial.evalRingHom (R := A) 0
-    let v0 : s → A := fun j => ev0 (w' j)
-    have hv0 : IsUnimodular v0 := isUnimodular_map_ringHom ev0 w' hw'
-    have hih : UnimodularVectorEquiv v0 (fun j => if j = o then (1 : A) else 0) := ih v0 hv0
-    have hmap :
-        UnimodularVectorEquiv (fun j => Polynomial.C (v0 j))
-          (fun j : s => if j = o then (1 : Polynomial A) else 0) := by
-      have := unimodularVectorEquiv_map (s := s) (Polynomial.C : A →+* Polynomial A) hih
-      simpa [v0] using this
-    have hcor' : UnimodularVectorEquiv w' (fun j : s => if j = o then (1 : Polynomial A) else 0) := by
-      have hcor0 : UnimodularVectorEquiv w' (fun j => Polynomial.C (v0 j)) := by
-        simpa [v0, ev0] using hcor
-      exact unimodularVectorEquiv_equivalence.trans hcor0 hmap
-    have hwstd : UnimodularVectorEquiv w (fun j : s => if j = o then (1 : Polynomial A) else 0) :=
-      unimodularVectorEquiv_equivalence.trans hww' hcor'
-    have h' :
-        UnimodularVectorEquiv (fun j => e (v j))
-          (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) := by
-      let φr : MvPolynomial (Fin (n + 1)) k ≃+* Polynomial A := φ.toRingEquiv
-      have := unimodularVectorEquiv_map_ringEquiv φr.symm w
-        (fun j : s => if j = o then (1 : Polynomial A) else 0) hwstd
-      have hcomp : (fun j => φr.symm (w j)) = fun j => e (v j) := by
-        funext j
-        simpa [w, φr] using φr.symm_apply_apply (e (v j))
-      simpa [hcomp] using this
-    have h'' :
-        UnimodularVectorEquiv v (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) := by
-      let er : MvPolynomial (Fin (n + 1)) k ≃+* MvPolynomial (Fin (n + 1)) k := e.toRingEquiv
-      have := unimodularVectorEquiv_map_ringEquiv er.symm (fun j => er (v j))
-        (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) h'
-      have hcomp : (fun j => er.symm (er (v j))) = v := by
-        funext j
-        simpa [er] using er.symm_apply_apply (v j)
-      simpa [hcomp] using this
-    simpa using h''
-
-/-- Let `k` be a field and `σ` a finite set of variables. Any unimodular vector in `k[σ]` is
-equivalent to a standard basis vector. -/
-theorem thm12_field {k : Type*} [Field k] {σ : Type*} [Fintype σ] [DecidableEq σ]
-    (o : s) (v : s → MvPolynomial σ k) (hv : IsUnimodular v) :
-    UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
-  classical
-  let n : ℕ := Fintype.card σ
-  let eσ : σ ≃ Fin n := Fintype.equivFin σ
-  let ρ : MvPolynomial σ k ≃ₐ[k] MvPolynomial (Fin n) k := MvPolynomial.renameEquiv k eσ
-  let v' : s → MvPolynomial (Fin n) k := fun i => ρ (v i)
-  have hv' : IsUnimodular v' := isUnimodular_map_ringEquiv ρ.toRingEquiv v hv
-  have h' : UnimodularVectorEquiv v' (fun i : s => if i = o then 1 else 0) := thm12_fin n o v' hv'
-  have := unimodularVectorEquiv_map_ringEquiv ρ.symm.toRingEquiv v'
-    (fun i : s => if i = o then 1 else 0) h'
-  simpa [v', ρ] using this
-
-end thm12_field
+end isUnimodular_map
 
 section thm12_pid
 
@@ -726,7 +415,6 @@ theorem unimodularVectorEquiv_update_add_ring {A : Type*} [CommRing A] (i j : s)
 theorem unimodularVectorEquiv_update_add_sum {A : Type*} [CommRing A] (i : s) (t : Finset s)
     (ht : i ∉ t) (c : s → A) (v : s → A) :
     UnimodularVectorEquiv v (Function.update v i (v i + ∑ j ∈ t, c j * v j)) := by
-  classical
   let vOf : Finset s → s → A := fun t =>
     Function.update v i (v i + ∑ j ∈ t, c j * v j)
   have hvOf : ∀ t : Finset s, i ∉ t → UnimodularVectorEquiv v (vOf t) := by
@@ -773,7 +461,6 @@ theorem unimodularVectorEquiv_update_add_sum {A : Type*} [CommRing A] (i : s) (t
 lemma Ideal.height_add_one_le_of_forall_notMem_minimalPrimes {A : Type*} [CommRing A] (I : Ideal A)
     (a : A) (k : ℕ∞) (hk : k ≤ I.height) (ha : ∀ p ∈ I.minimalPrimes, a ∉ p) :
     k + 1 ≤ (I ⊔ Ideal.span ({a} : Set A)).height := by
-  classical
   -- Unfold `Ideal.height` and bound each minimal prime from below.
   refine le_iInf₂ ?_
   intro P hP
@@ -807,7 +494,6 @@ theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing
         UnimodularVectorEquiv v v' ∧
           ringKrullDim R <
             (Ideal.span (Set.range (fun i : s => if i = o then 0 else v' i))).height := by
-  classical
   let A := MvPolynomial (Fin (n + 1)) R
   haveI : IsNoetherianRing A := by
     dsimp [A]
@@ -1181,7 +867,6 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
       ∃ w : s → MvPolynomial (Fin (n + 1)) R,
         UnimodularVectorEquiv (fun i : s => e (v i)) w ∧
           ∃ i : s, (MvPolynomial.finSuccEquiv R n (w i)).Monic := by
-  classical
   cases hcard : Fintype.card s with
   | zero =>
     haveI : IsEmpty s := (Fintype.card_eq_zero_iff).1 hcard
@@ -1373,7 +1058,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
               exact WithBot.coe_eq_coe.mp this
             exact (WithTop.coe_ne_top (a := (1 : ℕ))) h'
           exact lt_of_le_of_lt hle h1lt
-        rcases suslin_monic_polynomial_theorem (R := R) hr n I (by simpa [I] using hheight) with
+        rcases suslin_monic_polynomial_theorem n I (by simpa [I] using hheight) with
           ⟨α, f, hfI, hmonicf⟩
         -- Express `f` as a linear combination of the generators of `I`.
         rcases (Ideal.mem_span_range_iff_exists_fun).1 hfI with ⟨c, hc⟩
@@ -1650,63 +1335,59 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
           simpa [hw] using this
         refine ⟨α, w, hαvw, ⟨o, hmonic_wPoly⟩⟩
 
-variable {k : Type*} [CommRing k] [IsDomain k] [IsPrincipalIdealRing k]
-variable {s : Type*} [Fintype s] [DecidableEq s]
-
-theorem thm12 (o : s) {σ : Type*} [Fintype σ] [DecidableEq σ] (v : s → MvPolynomial σ k)
-    (hv : IsUnimodular v) : UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
-  classical
+/-- Let $R = k[x_1, \dots, x_n]$ be a polynomial ring over a principal ideal domain $k$, and let
+  $v \in R^n$ be a unimodular vector. Then $v \sim e_1$. -/
+theorem thm12 (o : s) {σ : Type*} [Fintype σ] (v : s → MvPolynomial σ R) (hv : IsUnimodular v) :
+    UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
   let n : ℕ := Fintype.card σ
   let eσ : σ ≃ Fin n := Fintype.equivFin σ
-  let ρ : MvPolynomial σ k ≃ₐ[k] MvPolynomial (Fin n) k := MvPolynomial.renameEquiv k eσ
-  let v' : s → MvPolynomial (Fin n) k := fun i => ρ (v i)
+  let ρ : MvPolynomial σ R ≃ₐ[R] MvPolynomial (Fin n) R := MvPolynomial.renameEquiv R eσ
+  let v' : s → MvPolynomial (Fin n) R := fun i => ρ (v i)
   have hv' : IsUnimodular v' := isUnimodular_map_ringEquiv ρ.toRingEquiv v hv
 
   -- Fin-indexed (induction-on-variables) form.
   have hfin :
       ∀ n : ℕ,
-        ∀ v : s → MvPolynomial (Fin n) k,
+        ∀ v : s → MvPolynomial (Fin n) R,
           IsUnimodular v → UnimodularVectorEquiv v (fun i : s => if i = o then 1 else 0) := by
     intro n
     induction n with
     | zero =>
       intro v hv
-      let e : MvPolynomial (Fin 0) k ≃+* k := MvPolynomial.isEmptyRingEquiv k (Fin 0)
+      let e : MvPolynomial (Fin 0) R ≃+* R := MvPolynomial.isEmptyRingEquiv R (Fin 0)
       have hv' : IsUnimodular fun i => e (v i) := isUnimodular_map_ringEquiv e v hv
-      have hstd : IsUnimodular fun i : s => if i = o then (1 : k) else 0 := by
+      have hstd : IsUnimodular fun i : s => if i = o then (1 : R) else 0 := by
         unfold IsUnimodular
         refine
           Ideal.eq_top_of_isUnit_mem
-            (I := Ideal.span (Set.range fun i : s => if i = o then (1 : k) else 0)) (x := (1 : k))
+            (I := Ideal.span (Set.range fun i : s => if i = o then (1 : R) else 0)) (x := (1 : R))
             ?_ isUnit_one
         exact Ideal.subset_span ⟨o, by simp⟩
       have h' :
-          UnimodularVectorEquiv (fun i => e (v i)) (fun i : s => if i = o then (1 : k) else 0) := by
-        simpa using unimodularVectorEquiv_of_pid (R := k) (s := s) hv' hstd
+          UnimodularVectorEquiv (fun i => e (v i)) (fun i : s => if i = o then (1 : R) else 0) := by
+        simpa using unimodularVectorEquiv_of_pid (R := R) (s := s) hv' hstd
       have h'' :
-          UnimodularVectorEquiv v (fun i : s => if i = o then (1 : MvPolynomial (Fin 0) k) else 0) := by
+          UnimodularVectorEquiv v (fun i : s => if i = o then (1 : MvPolynomial (Fin 0) R) else 0) := by
         have :=
           unimodularVectorEquiv_map_ringEquiv e.symm (fun i => e (v i))
-            (fun i : s => if i = o then (1 : k) else 0) h'
+            (fun i : s => if i = o then (1 : R) else 0) h'
         simpa using this
       simpa using h''
     | succ n ih =>
       intro v hv
-      let A := MvPolynomial (Fin n) k
-      let φ : MvPolynomial (Fin (n + 1)) k ≃ₐ[k] Polynomial A := MvPolynomial.finSuccEquiv k n
-      let φr : MvPolynomial (Fin (n + 1)) k ≃+* Polynomial A := φ.toRingEquiv
+      let A := MvPolynomial (Fin n) R
+      let φ : MvPolynomial (Fin (n + 1)) R ≃ₐ[R] Polynomial A := MvPolynomial.finSuccEquiv R n
+      let φr : MvPolynomial (Fin (n + 1)) R ≃+* Polynomial A := φ.toRingEquiv
 
       rcases
-          exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (R := k) (s := s) n v hv with
+          exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (R := R) (s := s) n v hv with
         ⟨e, w, hvw⟩
       rcases hvw with ⟨hvw, hmonic⟩
       have hv' : IsUnimodular fun i : s => e (v i) := isUnimodular_map_ringEquiv e.toRingEquiv v hv
       have hw : IsUnimodular w :=
-        (isUnimodular_iff_of_unimodularVectorEquiv_ring (s := s) (A := MvPolynomial (Fin (n + 1)) k)
+        (isUnimodular_iff_of_unimodularVectorEquiv_ring (s := s) (A := MvPolynomial (Fin (n + 1)) R)
               hvw).1
           hv'
-
-      -- Work in `A[X]` via `φ`.
       let wpoly : s → Polynomial A := fun j => φr (w j)
       have hwpoly : IsUnimodular wpoly := by
         simpa [wpoly] using isUnimodular_map_ringEquiv φr w hw
@@ -1735,7 +1416,7 @@ theorem thm12 (o : s) {σ : Type*} [Fintype σ] [DecidableEq σ] (v : s → MvPo
         exact unimodularVectorEquiv_equivalence.trans hcor0 hmap
 
       have hwstd :
-          UnimodularVectorEquiv w (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) := by
+          UnimodularVectorEquiv w (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) R) else 0) := by
         have :=
           unimodularVectorEquiv_map_ringEquiv φr.symm wpoly
             (fun j : s => if j = o then (1 : Polynomial A) else 0) hwstdPoly
@@ -1744,28 +1425,26 @@ theorem thm12 (o : s) {σ : Type*} [Fintype σ] [DecidableEq σ] (v : s → MvPo
           simp [wpoly]
         have hstdcomp :
             (fun j : s => φr.symm (if j = o then (1 : Polynomial A) else 0)) =
-              fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0 := by
+              fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) R) else 0 := by
           funext j
           by_cases hj : j = o <;> simp [hj]
         simpa [hcomp, hstdcomp] using this
-
-      -- Map back along `e.symm`.
       have he' :
           UnimodularVectorEquiv (fun j : s => e (v j))
-            (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) :=
+            (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) R) else 0) :=
         unimodularVectorEquiv_equivalence.trans hvw hwstd
-      let er : MvPolynomial (Fin (n + 1)) k ≃+* MvPolynomial (Fin (n + 1)) k := e.toRingEquiv
+      let er : MvPolynomial (Fin (n + 1)) R ≃+* MvPolynomial (Fin (n + 1)) R := e.toRingEquiv
       have :=
         unimodularVectorEquiv_map_ringEquiv er.symm (fun j => er (v j))
-          (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0) (by
+          (fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) R) else 0) (by
             simpa [er] using he')
       have hcomp : (fun j => er.symm (er (v j))) = v := by
         funext j
         simpa [er] using er.symm_apply_apply (v j)
       have hstdcomp :
           (fun j : s =>
-              er.symm (if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0)) =
-            fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) k) else 0 := by
+              er.symm (if j = o then (1 : MvPolynomial (Fin (n + 1)) R) else 0)) =
+            fun j : s => if j = o then (1 : MvPolynomial (Fin (n + 1)) R) else 0 := by
         funext j
         by_cases hj : j = o <;> simp [hj, er]
       simpa [hcomp, hstdcomp] using this
