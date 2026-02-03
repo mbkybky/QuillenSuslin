@@ -108,7 +108,7 @@ Let $R$ be a commutative ring. For any ideal $\mathfrak{A}$ in $R[t]$, let $\ell
 \begin{proof}
 	First assume $\mathfrak{A}$ is a prime ideal, $\mathfrak{P}$; let $\mathfrak{p} = \mathfrak{P} \cap R$. If $\mathfrak{P} = \mathfrak{p}[t]$, clearly $\ell(\mathfrak{P}) = \mathfrak{p}$, so $\mathrm{ht} \ell(\mathfrak{P}) = \mathrm{ht} \mathfrak{p} = \mathrm{ht} \mathfrak{p}[t] = \mathrm{ht} \mathfrak{P}$ by (II.7.7). If $\mathfrak{P} \supsetneq \mathfrak{p}[t]$, clearly $\ell(\mathfrak{P}) \supseteq \mathfrak{p}$, so, again by (II.7.7), $\mathrm{ht} \ell(\mathfrak{P}) > \mathrm{ht} \mathfrak{p} = \mathrm{ht} \mathfrak{P} - 1$, i.e., $\mathrm{ht} \ell(\mathfrak{P}) \geqslant \mathrm{ht} \mathfrak{P}$. For the general case, let $\mathfrak{P}_1, \dots, \mathfrak{P}_r$ be the prime ideals of $R[t]$ that are minimal over $\mathfrak{A}$. (We know that $r < \infty$ by (II.7.6), since $R[t]$ is noetherian by Hilbert's Basis Theorem. Also, we may assume $r \geqslant 1$, for if $\mathfrak{A}$ is the unit ideal, we have $\mathrm{ht}\, \ell(\mathfrak{A}) = \infty = \mathrm{ht}\, \mathfrak{A}$.) From
 	\[
-	\prod \mathfrak{P}_i \subseteq \bigcap \mathfrak{P}_i = \mathrm{rad} \mathfrak{A},
+	\prod \mathfrak{P}_i \subseteq \bigcap \mathfrak{P}_i = \mathrm{rad}\, \mathfrak{A},
 	\]
 	we see that $(\prod \mathfrak{P}_i)^N \subseteq \mathfrak{A}$ for some $N$. Applying ``$\ell$'' to this, and using the fact that $\ell(I) \cdot \ell(J) \subseteq \ell(I \cdot J)$, we get $\prod \ell(\mathfrak{P}_i)^N \subseteq \ell(\mathfrak{A})$. Let $\mathfrak{p}$ be a prime over $\ell(\mathfrak{A})$ with $\mathrm{ht}\, \ell(\mathfrak{A}) = \mathrm{ht}\, \mathfrak{p}$. Then $\ell(\mathfrak{P}_i) \subseteq \mathfrak{p}$ for some $i$, from which we get
 	\[
@@ -184,7 +184,6 @@ Let $R$ be a commutative ring. For any ideal $\mathfrak{A}$ in $R[t]$, let $\ell
 \end{proof}
 
 \section{Stably Freeness}
-
 
 \begin{definition}
 	A finitely generated module $P$ over a commutative ring $R$ is said to be stably free if there exists a finitely generated free module $F$ such that the direct sum $P \oplus F$ is a free module.
@@ -286,7 +285,7 @@ By induction, we see:
 \section{Quillen-Suslin theorem}
 
 \begin{theorem}[Quillen-Suslin]\label{thm:13}
-	A finitely generated projective module over $k[x_1, \dots, x_n]$ for $k$ a principal ideal domain is free.
+	Any finitely generated projective module over $k[x_1, \dots, x_n]$ for $k$ a principal ideal domain is free.
 \end{theorem}
 
 \begin{proof}

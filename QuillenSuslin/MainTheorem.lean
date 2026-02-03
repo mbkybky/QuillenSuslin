@@ -239,14 +239,12 @@ theorem module_free_of_isStablyFree_of_unimodularVectorEquiv
         exact ih hQ'
   exact this n hPFin
 
-/-- Quillen–Suslin over a field:
-  every finitely generated projective module over `k[x₁, \dots, xₙ]` is free. -/
-theorem quillenSuslin_field (k : Type*) [Field k] (σ : Type*) [Fintype σ] [DecidableEq σ]
-    (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ k) P] [Module.Finite (MvPolynomial σ k) P]
-    [Projective (MvPolynomial σ k) P] : Module.Free (MvPolynomial σ k) P := by
-  have hP : IsStablyFree (MvPolynomial σ k) P :=
-    mvPolynomial_isStablyFree_of_isPrincipalIdealRing k σ P
-  refine module_free_of_isStablyFree_of_unimodularVectorEquiv (MvPolynomial σ k) ?_ P <|
-    mvPolynomial_isStablyFree_of_isPrincipalIdealRing k σ P
+/-- Any finitely generated projective module over $k[x_1, \dots, x_n]$ for $k$ a
+  principal ideal domain is free. -/
+theorem quillenSuslin [IsDomain R] [IsPrincipalIdealRing R] (σ : Type*) [Fintype σ]
+    (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ R) P] [Module.Finite (MvPolynomial σ R) P]
+    [Projective (MvPolynomial σ R) P] : Module.Free (MvPolynomial σ R) P := by
+  refine module_free_of_isStablyFree_of_unimodularVectorEquiv (MvPolynomial σ R) ?_ P <|
+    mvPolynomial_isStablyFree_of_isPrincipalIdealRing R σ P
   intro _ _ _
   exact thm12

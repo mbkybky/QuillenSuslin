@@ -1337,7 +1337,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
 
 /-- Let $R = k[x_1, \dots, x_n]$ be a polynomial ring over a principal ideal domain $k$, and let
   $v \in R^n$ be a unimodular vector. Then $v \sim e_1$. -/
-theorem thm12 (o : s) {σ : Type*} [Fintype σ] (v : s → MvPolynomial σ R) (hv : IsUnimodular v) :
+theorem thm12 {σ : Type*} [Fintype σ] (o : s) (v : s → MvPolynomial σ R) (hv : IsUnimodular v) :
     UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
   let n : ℕ := Fintype.card σ
   let eσ : σ ≃ Fin n := Fintype.equivFin σ
