@@ -193,8 +193,7 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
 theorem module_free_of_isStablyFree_of_unimodularVectorEquiv
     (hR : ∀ {s : Type} [Fintype s] [DecidableEq s] (o : s) {v : s → R} (_ : IsUnimodular v),
       UnimodularVectorEquiv v (fun i => if i = o then 1 else 0))
-    (P : Type*) [AddCommGroup P] [Module R P] (h : IsStablyFree R P) :
-    Module.Free R P := by
+    (P : Type*) [AddCommGroup P] [Module R P] (h : IsStablyFree R P) : Module.Free R P := by
   rcases h with ⟨N, _, _, _, _, _⟩
   let ι := Module.Free.ChooseBasisIndex R N
   let n : ℕ := Fintype.card ι

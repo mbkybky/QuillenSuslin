@@ -1,4 +1,6 @@
-import Mathlib
+import Mathlib.Algebra.Polynomial.Bivariate
+import Mathlib.RingTheory.KrullDimension.Field
+import Mathlib.RingTheory.KrullDimension.Polynomial
 
 open Polynomial Bivariate
 

@@ -1,4 +1,9 @@
-import Mathlib
+import Mathlib.Algebra.Polynomial.Module.TensorProduct
+import Mathlib.RingTheory.Finiteness.Prod
+import Mathlib.RingTheory.Ideal.IsPrincipal
+import Mathlib.RingTheory.Ideal.Quotient.Noetherian
+import Mathlib.RingTheory.PicardGroup
+import Mathlib.RingTheory.Polynomial.Quotient
 
 universe u v w
 
