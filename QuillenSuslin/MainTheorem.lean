@@ -1,5 +1,10 @@
-import QuillenSuslin.UnimodularVector
-import QuillenSuslin.StablyFree
+/-
+Copyright (c) 2026 Yongle Hu. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Yongle Hu
+-/
+import QuillenSuslin.UnimodularVector.PID
+import QuillenSuslin.FiniteFreeResolution.StablyFree
 
 variable (R : Type*) [CommRing R]
 

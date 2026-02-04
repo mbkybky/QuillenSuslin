@@ -1,11 +1,18 @@
-import Mathlib
+/-
+Copyright (c) 2026 Yongle Hu. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Yongle Hu
+-/
+import Mathlib.LinearAlgebra.Matrix.Permutation
+import Mathlib.RingTheory.Localization.Algebra
+import Mathlib.RingTheory.Localization.AtPrime.Basic
+import QuillenSuslin.UnimodularVector.BivariatePolynomial
 
 open Module Polynomial Finset BigOperators
 
-variable {R : Type*} [CommRing R]
-variable {s : Type*} [Fintype s] [DecidableEq s]
+variable {R : Type*} [CommRing R] {s : Type*} [Fintype s] [DecidableEq s]
 
-/-- A vector `v : s → R` is *unimodular* if its components generate the unit ideal. -/
+/-- A vector `v : s → R` is unimodular if its components generate the unit ideal. -/
 def IsUnimodular (v : s → R) : Prop := Ideal.span (Set.range v) = ⊤
 
 /-- Two vectors `v w : s → R` are equivalent if they differ by left multiplication by an element
@@ -27,96 +34,63 @@ theorem unimodularVectorEquiv_equivalence :
     calc _ = N.1.mulVec (M.1.mulVec a) := by simp
       _ = c := by simp [hM, hN]
 
-/-- Over a principal ideal domain, any two unimodular vectors are equivalent. -/
-theorem unimodularVectorEquiv_of_pid [IsDomain R] [IsPrincipalIdealRing R]
-    {v w : s → R} (hv : IsUnimodular v) (hw : IsUnimodular w) :
-    UnimodularVectorEquiv v w := by
-  -- Build, from `hu : IsUnimodular u`, a basis of `s → R` whose first basis vector is `u`.
-  have buildBasis {u : s → R} (hu : IsUnimodular u) : Σ n : ℕ,
-      { b : Basis (Sum (Fin 1) (Fin n)) R (s → R) // b (Sum.inl 0) = u } := by
-    have h1 : (1 : R) ∈ Ideal.span (Set.range u) := by
-      rw [hu]
-      exact Submodule.mem_top
-    have hex : ∃ c : s → R, (∑ i, c i * u i) = 1 := Ideal.mem_span_range_iff_exists_fun.1 h1
-    let c : s → R := Classical.choose hex
-    have hc : (∑ i, c i * u i) = 1 := Classical.choose_spec hex
-    let φ : (s → R) →ₗ[R] R :=
-      { toFun := fun x => ∑ i, c i * x i
-        map_add' _ _ := by
-          simp [mul_add, Finset.sum_add_distrib]
-        map_smul' _ _ := by
-          simp [Pi.smul_apply, smul_eq_mul, Finset.mul_sum, mul_assoc, mul_comm] }
-    let f : R →ₗ[R] (s → R) :=
-      { toFun := fun r => r • u
-        map_add' _ _ := by
-          simp [add_smul]
-        map_smul' _ _ := by
-          simp [mul_smul] }
-    have hφf : ∀ r : R, φ (f r) = r := by
-      intro r
-      calc _ = r * (∑ i : s, c i * u i) := by simp [φ, f, smul_eq_mul, mul_comm, Finset.mul_sum]
-        _ = r := by simp [hc]
-    have hf_inj : Function.Injective f := by
-      intro a b hab
-      simpa [hφf a, hφf b] using congrArg φ hab
-    let p : Submodule R (s → R) := LinearMap.range f
-    let proj : (s → R) →ₗ[R] p :=
-      { toFun := fun x => ⟨f (φ x), ⟨φ x, rfl⟩⟩
-        map_add' _ _ := by
-          ext
-          simp
-        map_smul' _ _ := by
-          ext
-          simp [f, Pi.smul_apply, smul_eq_mul, mul_assoc] }
-    have hproj : ∀ x : p, proj x = x := by
-      rintro ⟨x, ⟨r, rfl⟩⟩
-      ext
-      simp [proj, hφf r]
-    have bqSigma : Σ n : ℕ, Basis (Fin n) R (LinearMap.ker proj) :=
-      Submodule.basisOfPid (Pi.basisFun R s) (LinearMap.ker proj)
-    refine ⟨bqSigma.1, ?_⟩
-    let eP : R ≃ₗ[R] p := LinearEquiv.ofInjective f hf_inj
-    let bp : Basis (Fin 1) R p := (Basis.singleton (Fin 1) R).map eP
-    let eSum : (p × LinearMap.ker proj) ≃ₗ[R] (s → R) :=
-      Submodule.prodEquivOfIsCompl p _ <| LinearMap.isCompl_of_proj hproj
-    let bM : Basis (Sum (Fin 1) (Fin bqSigma.1)) R (s → R) :=
-      (bp.prod bqSigma.2).map eSum
-    refine ⟨bM, ?_⟩
-    have : (bp (0 : Fin 1) : (s → R)) = u := by
-      -- `bp 0 = eP 1` and `eP 1` corresponds to `f 1 = u`.
-      ext i
-      -- First reduce `bp 0` to `eP 1`.
-      simp [bp, Basis.map_apply, Basis.singleton_apply]
-      -- Now unfold `eP` via `LinearEquiv.ofInjective_apply`.
-      have he : ((eP (1 : R)) : s → R) = f 1 := by
-        simpa [eP] using
-          (LinearEquiv.ofInjective_apply (f := (f : R →ₗ[R] s → R)) (x := (1 : R)))
-      -- Finally, compute `f 1`.
-      simp [he, f, Pi.smul_apply, smul_eq_mul]
-    simp [bM, eSum, this]
-  rcases buildBasis hv with ⟨nv, ⟨bv, hbv⟩⟩
-  rcases buildBasis hw with ⟨nw, ⟨bw, hbw⟩⟩
-  -- Change basis: send the basis containing `v` to the basis containing `w`.
-  let σ : (Sum (Fin 1) (Fin nv)) ≃ (Sum (Fin 1) (Fin nw)) := bv.indexEquiv bw
-  let j : Sum (Fin 1) (Fin nw) := σ (Sum.inl 0)
-  let τ : (Sum (Fin 1) (Fin nw)) ≃ (Sum (Fin 1) (Fin nw)) := Equiv.swap (Sum.inl 0) j
-  let bw' : Basis (Sum (Fin 1) (Fin nw)) R (s → R) := bw.reindex τ
-  let eLin : (s → R) ≃ₗ[R] (s → R) :=
-    (bv.repr.trans (Finsupp.domLCongr σ)).trans bw'.repr.symm
-  have heLin : eLin v = w := by
-    -- `eLin` sends `bv i` to `bw' (σ i)`, and `bw' (σ (Sum.inl 0)) = w` by construction.
-    have : bw' (σ (Sum.inl 0)) = w := by simpa [j] using (by simp [bw', τ, j, hbw])
-    rw [← hbv]
-    simp [eLin, this]
-  -- Convert the linear equivalence to a matrix in `GL` and conclude.
-  let g : LinearMap.GeneralLinearGroup R (s → R) := LinearMap.GeneralLinearGroup.ofLinearEquiv eLin
-  let A : Matrix.GeneralLinearGroup s R := (Matrix.GeneralLinearGroup.toLin).symm g
-  refine ⟨(Matrix.GeneralLinearGroup.toLin).symm g, ?_⟩
-  have htoLin : Matrix.GeneralLinearGroup.toLin A = g := by
-    simp [A]
-  have hlin : ((Matrix.GeneralLinearGroup.toLin A : (s → R) →ₗ[R] (s → R)) v) = w := by
-    simp [htoLin, g, heLin]
-  simpa [Matrix.mulVecLin_apply] using (by simpa [Matrix.GeneralLinearGroup.coe_toLin] using hlin)
+section isUnimodular_map
+
+variable {A B : Type*} [CommRing A] [CommRing B] {s : Type*}
+
+/-- Unimodularity is preserved under a ring homomorphism. -/
+theorem isUnimodular_map_ringHom (f : A →+* B) (v : s → A) (hv : IsUnimodular v) :
+    IsUnimodular fun i => f (v i) := by
+  unfold IsUnimodular at hv ⊢
+  have hmap : Ideal.map f (Ideal.span (Set.range v)) = ⊤ := by
+    simpa [hv] using (Ideal.map_top f : Ideal.map f (⊤ : Ideal A) = (⊤ : Ideal B))
+  have hrange : (f : A → B) '' Set.range v = Set.range fun i => f (v i) := by
+    ext b
+    constructor
+    · rintro ⟨a, ⟨i, rfl⟩, rfl⟩
+      exact ⟨i, rfl⟩
+    · rintro ⟨i, rfl⟩
+      exact ⟨v i, ⟨i, rfl⟩, rfl⟩
+  have hspan : Ideal.span ((f : A → B) '' Set.range v) = ⊤ := by simpa [Ideal.map_span] using hmap
+  simpa [hrange] using hspan
+
+/-- Unimodularity is preserved under an algebra equivalence. -/
+theorem isUnimodular_map_ringEquiv (e : A ≃+* B) (v : s → A) (hv : IsUnimodular v) :
+    IsUnimodular fun i => e (v i) := by
+  unfold IsUnimodular at hv ⊢
+  have hmap : Ideal.map (e : A →+* B) (Ideal.span (Set.range v)) = ⊤ := by
+    simpa using (congrArg (Ideal.map e) hv).trans (by simpa using (Ideal.map_top (e : A →+* B)))
+  have hspan : Ideal.span ((e : A →+* B) '' Set.range v) = ⊤ := by
+    simpa [Ideal.map_span] using hmap
+  have hrange : (e : A → B) '' Set.range v = Set.range fun i => e (v i) := by
+    ext b
+    constructor
+    · rintro ⟨a, ⟨i, rfl⟩, rfl⟩
+      exact ⟨i, rfl⟩
+    · rintro ⟨i, rfl⟩
+      exact ⟨v i, ⟨i, rfl⟩, rfl⟩
+  simpa [hrange] using hspan
+
+variable [Fintype s] [DecidableEq s]
+
+/-- Push a unimodular-vector equivalence along a ring homomorphism. -/
+theorem unimodularVectorEquiv_map (f : A →+* B) {v w : s → A} (hvw : UnimodularVectorEquiv v w) :
+    UnimodularVectorEquiv (fun i => f (v i)) (fun i => f (w i)) := by
+  rcases hvw with ⟨M, hM⟩
+  refine ⟨Matrix.GeneralLinearGroup.map f M, ?_⟩
+  ext i
+  have hi : f ((M.1.mulVec v) i) = f (w i) := congrArg f (congrArg (fun u : s → A => u i) hM)
+  have hmap : (M.1.map f).mulVec (fun j => f (v j)) i = f ((M.1.mulVec v) i) := by
+    simpa [Function.comp] using (RingHom.map_mulVec f M.1 v i).symm
+  simpa [Matrix.GeneralLinearGroup.map_apply, RingHom.mapMatrix_apply] using hmap.trans hi
+
+/-- Unimodular-vector equivalence is preserved under an algebra equivalence. -/
+theorem unimodularVectorEquiv_map_ringEquiv (e : A ≃+* B) (v w : s → A)
+    (hvw : UnimodularVectorEquiv v w) :
+    UnimodularVectorEquiv (fun i => e (v i)) (fun i => e (w i)) := by
+  simpa using unimodularVectorEquiv_map e.toRingHom hvw
+
+end isUnimodular_map
 
 section degree
 
@@ -886,3 +860,255 @@ theorem cor9 [IsLocalRing R] (v : s → R[X]) (hv : IsUnimodular v)
           (Function.update v0 o ((↑(u⁻¹) : R[X]) * v0 o)) (by simp [Function.update, hu.symm]))
   simpa [v0, ev0] using unimodularVectorEquiv_equivalence.trans (horrocks o v hv h)
     (unimodularVectorEquiv_equivalence.symm hv0_to_e)
+
+open Bivariate
+
+variable {R : Type*} [CommRing R] [IsDomain R] {s : Type*} [Fintype s] [DecidableEq s]
+
+/-- Suppose $v(x) \sim v(0)$ over the localization $R_S[x]$. Then there exists a $c \in S$ such
+  that $v(x) \sim v(x + cy)$ over $R[x, y]$. -/
+theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
+    (h : UnimodularVectorEquiv (fun i => (v i).map (algebraMap R (Localization S)))
+      (fun i => C (algebraMap R (Localization S) ((v i).eval 0)))) :
+    ∃ c : S, UnimodularVectorEquiv (fun i => C (v i))
+      (fun i => (v i).eval₂ ((C : R[X] →+* R[X][Y]).comp C) (C X + (c : R) • Y)) := by
+  rcases h with ⟨M, hM⟩
+  let Sx : Submonoid R[X] := S.map C
+  let Sxy : Submonoid R[X][Y] := Sx.map (C : R[X] →+* R[X][Y])
+  let : IsLocalization Sx (Localization S)[X] := by
+    simpa [Sx] using (Polynomial.isLocalization S (Localization S))
+  let : IsLocalization Sxy ((Localization S)[X][Y]) := by
+    simpa [Sxy] using (Polynomial.isLocalization Sx (Localization S)[X])
+  rcases IsLocalization.exist_integer_multiples_of_finite Sxy (fun ij : s × s => W S M ij.1 ij.2)
+    with ⟨b, hb⟩
+  rcases b.property with ⟨rX, hrX, hrXb⟩
+  rcases hrX with ⟨rR, hrR, hrRC⟩
+  let c : S := ⟨rR, hrR⟩
+  have hrXb : (C (C (c : R)) : R[X][Y]) = (b : R[X][Y]) :=
+    (congrArg (C : R[X] →+* R[X][Y]) hrRC).trans <| by simpa [c] using hrXb
+  have hb : ∀ ij : s × s, IsLocalization.IsInteger R[X][Y]
+      ((C (C (c : R)) : R[X][Y]) • W S M ij.1 ij.2) := by
+    intro ij
+    simpa [hrXb, Algebra.smul_def] using hb ij
+  have hc : ∀ i j : s,
+      IsLocalization.IsInteger R[X][Y] ((C (C (c : R)) : R[X][Y]) • σA c (W S M i j)) := by
+    intro i j
+    have hfix : σA c (C (C ((algebraMap R (Localization S)) (c : R)))) =
+        (C (C ((algebraMap R (Localization S)) (c : R)))) := by
+      simp only [σA, algebraMap_smul, coe_eval₂RingHom, eval₂_C]
+    simpa only [Algebra.smul_def, algebraMap_def, coe_mapRingHom, map_C, map_mul, hfix] using
+      isInteger_σA c (hb (i, j))
+  have hmulVec : ((U hs M hc)⁻¹.1).mulVec (fun i => C (v i)) = _ := hU hs v M hM hc
+  exact ⟨c, (U hs M hc)⁻¹, by simpa only [Matrix.coe_units_inv] using hmulVec⟩
+
+noncomputable section cor11
+
+abbrev cor11ι : R →+* R[X][Y] := (C : R[X] →+* R[X][Y]).comp C
+
+abbrev cor11vx (v : s → R[X]) : s → R[X][Y] := fun i => C (v i)
+
+/-- The vector `v(x + qy)` in `R[X][Y]`. -/
+abbrev cor11vxy (v : s → R[X]) (q : R) : s → R[X][Y] :=
+  fun i => (v i).eval₂ cor11ι (C X + q • Y)
+
+omit [IsDomain R] in
+lemma cor11_hAlg : algebraMap R R[X][Y] = cor11ι := by
+  ext r
+  simp [cor11ι]
+
+/-- The ideal generated by the coordinates of `M.mulVec v` agrees with the ideal generated by the
+coordinates of `v` when `M ∈ GL`. (Ring-level version.) -/
+theorem ideal_span_range_mulVec_ring {A : Type*} [CommRing A] (M : Matrix.GeneralLinearGroup s A)
+    (v : s → A) : Ideal.span (Set.range (M.1.mulVec v)) = Ideal.span (Set.range v) := by
+  -- First show `span (range (M.mulVec v)) ≤ span (range v)` for all `M`.
+  have span_mulVec_le (N : Matrix.GeneralLinearGroup s A) (v : s → A) :
+      Ideal.span (Set.range (N.1.mulVec v)) ≤ Ideal.span (Set.range v) := by
+    let I : Ideal A := Ideal.span (Set.range v)
+    refine Ideal.span_le.2 ?_
+    rintro _ ⟨i, rfl⟩
+    have hvj (j : s) : v j ∈ I := Ideal.subset_span ⟨j, rfl⟩
+    have hterm (j : s) : N.1 i j * v j ∈ I := by
+      simpa [mul_comm] using I.mul_mem_left (N.1 i j) (hvj j)
+    simpa [Matrix.mulVec, dotProduct, I] using I.sum_mem (fun j _ => hterm j)
+  refine le_antisymm (span_mulVec_le M v) ?_
+  simpa only [Matrix.coe_units_inv, Matrix.mulVec_mulVec, Matrix.isUnits_det_units,
+    Matrix.nonsing_inv_mul, Matrix.one_mulVec] using span_mulVec_le (M⁻¹) (M.1.mulVec v)
+
+/-- `IsUnimodular` is invariant under `UnimodularVectorEquiv`. (Ring-level version.) -/
+theorem isUnimodular_iff_of_unimodularVectorEquiv_ring {A : Type*} [CommRing A] {v w : s → A}
+    (hvw : UnimodularVectorEquiv v w) : IsUnimodular v ↔ IsUnimodular w := by
+  rcases hvw with ⟨M, rfl⟩
+  unfold IsUnimodular
+  simp [ideal_span_range_mulVec_ring M v]
+
+/-- The ideal of `q : R` such that `v(x + qy) ∼ v(x)` in `R[X][Y]`. -/
+def cor11IdealCarrier (v : s → R[X]) : Set R :=
+  {q | UnimodularVectorEquiv (cor11vx v) (cor11vxy v q)}
+
+omit [IsDomain R] in
+/-- `0 ∈ cor11IdealCarrier v`. -/
+lemma cor11Ideal_zero_mem (v : s → R[X]) : (0 : R) ∈ cor11IdealCarrier v := by
+  have hC : (Polynomial.eval₂RingHom cor11ι (C X)) = (C : R[X] →+* R[X][Y]) := by
+    refine Polynomial.ringHom_ext' ?_ ?_
+    · ext r
+      simp [cor11ι]
+    · simp [cor11ι]
+  have h0 : cor11vxy v 0 = cor11vx v := by
+    funext i
+    simpa [cor11vxy, cor11vx] using  congrArg (fun f : R[X] →+* R[X][Y] => f (v i)) hC
+  simpa [cor11IdealCarrier, h0] using unimodularVectorEquiv_equivalence.refl (cor11vx v)
+
+lemma cor11Ideal_add_mem (v : s → R[X]) {a b : R} (ha : a ∈ cor11IdealCarrier v)
+    (hb : b ∈ cor11IdealCarrier v) :
+    a + b ∈ cor11IdealCarrier v := by
+  let shift : R[X][Y] →+* R[X][Y] := eval₂RingHom (Polynomial.eval₂RingHom cor11ι (C X + b • Y)) Y
+  have hx : (fun i : s => shift (cor11vx v i)) = cor11vxy v b := by
+    funext i
+    simp only [shift, cor11vx, cor11vxy, eval₂_C, coe_eval₂RingHom]
+  have hxy : (fun i : s => shift (cor11vxy v a i)) = cor11vxy v (a + b) := by
+    funext i
+    have hcoeff : shift.comp cor11ι = cor11ι := by
+      ext r
+      dsimp [shift, cor11ι]
+      simp only [eval₂_C, coe_eval₂RingHom, RingHom.coe_comp, Function.comp_apply]
+    have hCX : shift (C X) = C X + b • Y := by
+      dsimp [shift]
+      simp only [eval₂_C, coe_eval₂RingHom, eval₂_X]
+    have hY : shift Y = Y := by
+      dsimp [shift]
+      simp only [eval₂_X]
+    have hιa : shift (cor11ι a) = cor11ι a := by
+      have := congrArg (fun f : R →+* R[X][Y] => f a) hcoeff
+      simpa [RingHom.comp_apply] using this
+    have haY : shift (a • Y) = a • Y := by
+      calc shift (a • Y) = shift (cor11ι a * Y) := by simp [Algebra.smul_def, cor11_hAlg]
+        _ = shift (cor11ι a) * shift Y := by simp
+        _ = shift (cor11ι a) * Y := by simp [hY]
+        _ = cor11ι a * Y := by simpa [hιa]
+        _ = a • Y := by simp [Algebra.smul_def, cor11_hAlg]
+    have hX : shift (C X + a • Y) = C X + (a + b) • Y := by
+      calc shift (C X + a • Y) = shift (C X) + shift (a • Y) := by simp only [map_add]
+        _ = (C X + b • Y) + a • Y := by simp only [hCX, haY]
+        _ = C X + (a + b) • Y := by simp only [add_comm, add_smul, add_assoc]
+    have := Polynomial.hom_eval₂ (v i) cor11ι shift (C X + a • Y)
+    simpa only [cor11vxy, hcoeff, hX] using this
+  have hab : UnimodularVectorEquiv (cor11vxy v b) (cor11vxy v (a + b)) := by
+    simpa [hx, hxy] using unimodularVectorEquiv_map shift ha
+  exact (unimodularVectorEquiv_equivalence).trans hb hab
+
+omit [IsDomain R] in
+/-- `cor11IdealCarrier v` is closed under scalar multiplication (i.e. multiplication in `R`). -/
+lemma cor11Ideal_smul_mem (v : s → R[X]) (r : R) {a : R} (ha : a ∈ cor11IdealCarrier v) :
+    r * a ∈ cor11IdealCarrier v := by
+  let scaleY : R[X][Y] →+* R[X][Y] :=
+    Polynomial.eval₂RingHom (C : R[X] →+* R[X][Y]) (r • Y)
+  have hx : (fun i : s => scaleY (cor11vx v i)) = cor11vx v := by
+    funext i
+    dsimp [scaleY, cor11vx]
+    simp only [eval₂_C]
+  have hxy : (fun i : s => scaleY (cor11vxy v a i)) = cor11vxy v (r * a) := by
+    funext i
+    have hcoeff : scaleY.comp cor11ι = cor11ι := by
+      ext x
+      dsimp [scaleY, cor11ι]
+      simp only [eval₂_C]
+    have hCX : scaleY (C X) = C X := by
+      dsimp [scaleY]
+      simp only [eval₂_C]
+    have hY : scaleY Y = r • Y := by
+      dsimp [scaleY]
+      simp only [eval₂_X]
+    have hιa : scaleY (cor11ι a) = cor11ι a := by
+      simpa [RingHom.comp_apply] using congrArg (fun f : R →+* R[X][Y] => f a) hcoeff
+    have hYa : scaleY (a • Y) = (r * a) • Y := by
+      have hιr : (r : R) • Y = cor11ι r * Y := by simp [Algebra.smul_def, cor11_hAlg, cor11ι]
+      calc
+        _ = scaleY (cor11ι a) * scaleY Y := by
+          simp only [Algebra.smul_def, cor11_hAlg, RingHom.coe_comp, Function.comp_apply, map_mul]
+        _ = cor11ι a * (cor11ι r * Y) := by rw [hY, hιa, hιr]
+        _ = (cor11ι a * cor11ι r) * Y := by rw [mul_assoc]
+        _ = cor11ι (a * r) * Y := by rw [map_mul]
+        _ = cor11ι (r * a) * Y := by
+          simp only [mul_comm, RingHom.coe_comp, Function.comp_apply, map_mul]
+        _ = (r * a) • Y := by simp [Algebra.smul_def, cor11_hAlg, cor11ι]
+    have hX : scaleY (C X + a • Y) = C X + (r * a) • Y := by
+      simp only [map_add, hCX, hYa]
+    have := Polynomial.hom_eval₂ (v i) cor11ι scaleY (C X + a • Y)
+    simpa only [cor11vxy, hcoeff, hX] using this
+  simpa [cor11IdealCarrier, hx, hxy] using unimodularVectorEquiv_map scaleY ha
+
+def cor11Ideal (v : s → R[X]) : Ideal R :=
+  { carrier := cor11IdealCarrier v
+    zero_mem' := cor11Ideal_zero_mem v
+    add_mem' := cor11Ideal_add_mem v
+    smul_mem' := cor11Ideal_smul_mem v }
+
+theorem cor11Ideal_eq_top (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic) :
+    cor11Ideal v = ⊤ := by
+  let I : Ideal R := cor11Ideal v
+  by_contra hI
+  rcases Ideal.exists_le_maximal I hI with ⟨m, hm, hIm⟩
+  let S : Submonoid R := Ideal.primeCompl m
+  have hS0 : (0 : R) ∉ S := by simp [S, Ideal.primeCompl]
+  have hs : S ≤ nonZeroDivisors R := le_nonZeroDivisors_of_noZeroDivisors hS0
+  let vS : s → (Localization S)[X] := fun i => (v i).map (algebraMap R (Localization S))
+  have hvS : IsUnimodular vS := by
+    have h1 : (1 : R[X]) ∈ Ideal.span (Set.range v) := by
+      rw [hv]
+      exact Submodule.mem_top
+    rcases (Ideal.mem_span_range_iff_exists_fun).1 h1 with ⟨c, hc⟩
+    let fX : R[X] →+* (Localization S)[X] := Polynomial.mapRingHom (algebraMap R (Localization S))
+    have hc' : (∑ i : s, fX (c i) * fX (v i)) = 1 := by
+      simpa [map_sum, map_mul, fX] using congrArg fX hc
+    have : (1 : (Localization S)[X]) ∈ Ideal.span (Set.range vS) := by
+      refine (Ideal.mem_span_range_iff_exists_fun).2 ?_
+      refine ⟨fun i => fX (c i), ?_⟩
+      simpa [vS, map_sum, map_mul, fX] using hc'
+    exact (Ideal.eq_top_iff_one _).2 this
+  have hmonicS : ∃ i : s, (vS i).Monic := by
+    rcases h with ⟨i, hi⟩
+    refine ⟨i, ?_⟩
+    simpa [vS] using hi.map (algebraMap R (Localization S))
+  have : IsLocalRing (Localization S) := by
+    simpa [S, Localization.AtPrime] using Localization.AtPrime.isLocalRing m
+  have hloc : UnimodularVectorEquiv vS
+      (fun i => C (algebraMap R (Localization S) ((v i).eval 0))) := by
+    have hev0 : (fun i => C ((vS i).eval 0)) = fun i => C (algebraMap R (Localization S) ((v i).eval 0)) := by
+      funext i
+      have : (vS i).eval 0 = algebraMap R (Localization S) ((v i).eval 0) := by
+        simpa [vS] using (Polynomial.eval_zero_map (algebraMap R (Localization S)) (v i))
+      simp [this]
+    simpa [hev0] using cor9 vS hvS hmonicS
+  rcases lem10 hs v hloc with ⟨c, hc⟩
+  exact c.2 (hIm hc)
+
+/-- Suppose $R$ is any ring, and $v(x) \in R[x]^s$ is a unimodular vector one of whose
+  leading coefficients is one. Then $v(x) \sim v(0)$. -/
+theorem cor11 (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic) :
+    UnimodularVectorEquiv v (fun i => C ((v i).eval 0)) :=
+  let I : Ideal R := cor11Ideal v
+  have hI : I = ⊤ := cor11Ideal_eq_top v hv h
+  have h1 : (1 : R) ∈ I := by simp [hI]
+  have hI1 : UnimodularVectorEquiv (cor11vx v) (cor11vxy v 1) := h1
+  let ev0 : R[X] →+* R[X] := Polynomial.eval₂RingHom C 0
+  let evXY : R[X][Y] →+* R[X] := Polynomial.eval₂RingHom ev0 X
+  have hev0 (i : s) : ev0 (v i) = C ((v i).eval 0) := by
+    simp [ev0, Polynomial.coeff_zero_eq_eval_zero]
+  have hevXY_vx : (fun i => evXY (cor11vx v i)) = fun i => C ((v i).eval 0) := by
+    funext i
+    simp [evXY, ev0, hev0 i]
+  have hevXY_vxy : (fun i => evXY (cor11vxy v 1 i)) = v := by
+    funext i
+    have hcoeff : evXY.comp cor11ι = C := by
+      ext r
+      simp [evXY, ev0, cor11ι]
+    have hX : evXY (C X + Y) = X := by simp [evXY, ev0]
+    have hhom := Polynomial.hom_eval₂ (v i) cor11ι evXY (C X + Y)
+    have : evXY (cor11vxy v 1 i) = (v i).eval₂ C X := by
+      simpa [cor11vxy, cor11ι, one_smul, hcoeff, hX] using hhom
+    simpa [Polynomial.eval₂_C_X] using this
+  have hmain : UnimodularVectorEquiv (fun i => C ((v i).eval 0)) v := by
+    simpa [hevXY_vx, hevXY_vxy] using unimodularVectorEquiv_map evXY hI1
+  unimodularVectorEquiv_equivalence.symm hmain
+
+end cor11
