@@ -5,9 +5,6 @@ Authors: Yongle Hu
 -/
 import QuillenSuslin.MainTheorem
 
-open Module Polynomial Finset BigOperators Bivariate
-
-variable (R : Type*) [CommRing R] [IsDomain R] [IsPrincipalIdealRing R] (σ : Type*) [Fintype σ]
-
-theorem subsingleton_pic_of_pid : Subsingleton (CommRing.Pic (MvPolynomial σ R)) := by
-  sorry
+theorem subsingleton_pic_of_pid  (R : Type*) [CommRing R] [IsDomain R] [IsPrincipalIdealRing R]
+    (σ : Type*) [Fintype σ] : Subsingleton (CommRing.Pic (MvPolynomial σ R)) :=
+  CommRing.Pic.subsingleton_iff.2 <| fun M _ _ _ => quillenSuslin R σ M
