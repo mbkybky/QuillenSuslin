@@ -1,1 +1,9 @@
+import QuillenSuslin.FiniteFreeResolution.Basic
+import QuillenSuslin.FiniteFreeResolution.Polynomial
+import QuillenSuslin.FiniteFreeResolution.StablyFree
 import QuillenSuslin.MainTheorem
+import QuillenSuslin.PicardGroup
+import QuillenSuslin.UnimodularVector.Basic
+import QuillenSuslin.UnimodularVector.BivariatePolynomial
+import QuillenSuslin.UnimodularVector.PID
+import QuillenSuslin.UnimodularVector.SuslinMonicPolynomialThm
