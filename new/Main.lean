@@ -219,37 +219,44 @@ noncomputable def CoordMap2.id {k : Type*} [CommRing k] : CoordMap2 k :=
 
 /-- An analytic Poincaré–Dulac normal form for a contracting map of the unit bidisc.
 
-This is the main "black box" used in Step 3 of `new/Temp.md`: after an analytic change of
-coordinates, the map becomes triangular with at most one nonlinear resonant term in the second
-coordinate. -/
+This is the main black box used in Step 3 of `new/Temp.md`: after a (local) change of coordinates,
+the map is in Poincare-Dulac normal form, i.e. beyond the linear part only resonant monomials remain.
+-/
 theorem exists_poincare_dulac_normal_form
+    [IsAlgClosed k]
     (hnat : ∀ n : ℕ, n ≠ 0 → ‖(n : k)‖ = 1)
     (P Q : TateAlgebra2 k) {c : ℝ} (hc0 : 0 ≤ c) (hc1 : c < 1)
     (hcP : GaussBound k c (P : MvPowerSeries (Fin 2) k))
     (hcQ : GaussBound k c (Q : MvPowerSeries (Fin 2) k))
     (hP0 : MvPowerSeries.constantCoeff (P : MvPowerSeries (Fin 2) k) = 0)
     (hQ0 : MvPowerSeries.constantCoeff (Q : MvPowerSeries (Fin 2) k) = 0) :
-    ∃ (H K : Fin 2 → TateAlgebra2 k) (lam mu tau b : k) (m : ℕ),
-      (∀ i, MvPowerSeries.constantCoeff (H i : MvPowerSeries (Fin 2) k) = 0) ∧
-      (∀ i, MvPowerSeries.constantCoeff (K i : MvPowerSeries (Fin 2) k) = 0) ∧
+    ∃ (H K : CoordMap2 k) (lam mu tau : k),
+      (∀ i, MvPowerSeries.constantCoeff (H i) = 0) ∧
+      (∀ i, MvPowerSeries.constantCoeff (K i) = 0) ∧
       -- `K` is a two-sided inverse of `H` under composition.
-      CoordMap2.comp (k := k) (fun i => (H i : MvPowerSeries (Fin 2) k))
-          (fun i => (K i : MvPowerSeries (Fin 2) k)) = CoordMap2.id (k := k) ∧
-      CoordMap2.comp (k := k) (fun i => (K i : MvPowerSeries (Fin 2) k))
-          (fun i => (H i : MvPowerSeries (Fin 2) k)) = CoordMap2.id (k := k) ∧
-      -- Conjugating `f = (P,Q)` by `H` yields the triangular normal form.
+      CoordMap2.comp (k := k) H K = CoordMap2.id (k := k) ∧
+      CoordMap2.comp (k := k) K H = CoordMap2.id (k := k) ∧
+      -- Conjugating `f = (P,Q)` by `H` yields a (formal) Poincare-Dulac normal form.
       let P' : MvPowerSeries (Fin 2) k :=
-          MvPowerSeries.subst (substMap (K 0 : MvPowerSeries (Fin 2) k) (K 1 : MvPowerSeries (Fin 2) k))
+          MvPowerSeries.subst (substMap (K 0) (K 1))
             (P : MvPowerSeries (Fin 2) k)
       let Q' : MvPowerSeries (Fin 2) k :=
-          MvPowerSeries.subst (substMap (K 0 : MvPowerSeries (Fin 2) k) (K 1 : MvPowerSeries (Fin 2) k))
+          MvPowerSeries.subst (substMap (K 0) (K 1))
             (Q : MvPowerSeries (Fin 2) k)
       let g₁ : MvPowerSeries (Fin 2) k :=
-          MvPowerSeries.subst (substMap P' Q') (H 0 : MvPowerSeries (Fin 2) k)
+          MvPowerSeries.subst (substMap P' Q') (H 0)
       let g₂ : MvPowerSeries (Fin 2) k :=
-          MvPowerSeries.subst (substMap P' Q') (H 1 : MvPowerSeries (Fin 2) k)
-      g₁ = MvPowerSeries.C lam * MvPowerSeries.X 0 + MvPowerSeries.C tau * MvPowerSeries.X 1 ∧
-      g₂ = MvPowerSeries.C mu * MvPowerSeries.X 1 + MvPowerSeries.monomial (Finsupp.single 0 m) b := by
+          MvPowerSeries.subst (substMap P' Q') (H 1)
+      MvPowerSeries.constantCoeff g₁ = 0 ∧
+        MvPowerSeries.constantCoeff g₂ = 0 ∧
+          MvPowerSeries.coeff (Finsupp.single 0 1) g₁ = lam ∧
+            MvPowerSeries.coeff (Finsupp.single 1 1) g₁ = tau ∧
+              MvPowerSeries.coeff (Finsupp.single 0 1) g₂ = 0 ∧
+                MvPowerSeries.coeff (Finsupp.single 1 1) g₂ = mu ∧
+                  (∀ e : Fin 2 →₀ ℕ, 2 ≤ e 0 + e 1 →
+                      MvPowerSeries.coeff e g₁ ≠ 0 → lam ^ (e 0) * mu ^ (e 1) = lam) ∧
+                    (∀ e : Fin 2 →₀ ℕ, 2 ≤ e 0 + e 1 →
+                      MvPowerSeries.coeff e g₂ ≠ 0 → lam ^ (e 0) * mu ^ (e 1) = mu) := by
   sorry
 
 end NormalForm
@@ -920,6 +927,125 @@ lemma NormalizedCoeffBound.mono {f : k⟦X⟧} {M₁ M₂ r : ℝ} (hM : M₁ �
 
 end NormalizedCoeffBound
 
+/-! ### Weighted Gauss norms / Weierstrass / inverse function (statements)
+
+`new/Temp.md` uses three standard analytic ingredients:
+
+* weighted Gauss norms on a closed disc of radius `ρ`,
+* Weierstrass-type factorizations (`f = X^n * unit`),
+* inverse-function-type control for coordinate changes tangent to the identity.
+
+Mathlib already provides the formal factorization via `divXPowOrder` (and that `divXPowOrder f` is a
+unit when `f ≠ 0`). The remaining *quantitative* estimates are recorded below as statements to be
+used later in the proof of the normal-form estimate.
+-/
+
+section AnalyticStatements
+
+variable {k : Type*} [NormedField k] [CompleteSpace k] [IsUltrametricDist k]
+
+/-! #### Weighted Gauss bounds -/
+
+/-- Weighted Gauss bound for a univariate power series at radius `ρ`. -/
+def WeightedGaussBound1 (ρ C : ℝ) (f : k⟦X⟧) : Prop :=
+  ∀ n : ℕ, ‖coeff n f‖ * ρ ^ n ≤ C
+
+/-- Weighted Gauss bound for a bivariate power series with weight `i+j` at radius `ρ`. -/
+def WeightedGaussBound2 (ρ C : ℝ) (F : MvPowerSeries (Fin 2) k) : Prop :=
+  ∀ e : Fin 2 →₀ ℕ, ‖MvPowerSeries.coeff e F‖ * ρ ^ (e 0 + e 1) ≤ C
+
+lemma WeightedGaussBound1.mono {ρ C₁ C₂ : ℝ} {f : k⟦X⟧} (hC : C₁ ≤ C₂)
+    (h : WeightedGaussBound1 (k := k) ρ C₁ f) :
+    WeightedGaussBound1 (k := k) ρ C₂ f := by
+  intro n
+  exact (h n).trans hC
+
+lemma WeightedGaussBound2.mono {ρ C₁ C₂ : ℝ} {F : MvPowerSeries (Fin 2) k} (hC : C₁ ≤ C₂)
+    (h : WeightedGaussBound2 (k := k) ρ C₁ F) :
+    WeightedGaussBound2 (k := k) ρ C₂ F := by
+  intro e
+  exact (h e).trans hC
+
+theorem weightedGaussBound_qIter_iterate
+    (P Q : TateAlgebra2 k) {c ρ : ℝ}
+    (hc0 : 0 ≤ c) (hc1 : c < 1) (hρ0 : 0 ≤ ρ) (hρ1 : ρ ≤ 1)
+    (hcP : GaussBound k c (P : MvPowerSeries (Fin 2) k))
+    (hcQ : GaussBound k c (Q : MvPowerSeries (Fin 2) k))
+    (hP0 : MvPowerSeries.constantCoeff (P : MvPowerSeries (Fin 2) k) = 0)
+    (hQ0 : MvPowerSeries.constantCoeff (Q : MvPowerSeries (Fin 2) k) = 0) :
+    ∀ d : ℕ, d > 0 →
+      WeightedGaussBound1 (k := k) ρ (c ^ d * ρ)
+        (qIter k (P : MvPowerSeries (Fin 2) k) (Q : MvPowerSeries (Fin 2) k) d) := by
+  -- Temp.md Step 1: `‖q_d‖_ρ ≤ c^d ρ` for `0 < ρ ≤ 1`.
+  -- The proof uses substitution estimates in the ultrametric setting and induction on `d`.
+  sorry
+
+/-- Derivatives do not amplify weighted Gauss bounds when `‖(n : k)‖ = 1` for all `n ≠ 0`. -/
+theorem weightedGaussBound1_derivative
+    (hnat : ∀ n : ℕ, n ≠ 0 → ‖(n : k)‖ = 1) {ρ C : ℝ} (hρ : 0 < ρ)
+    {f : k⟦X⟧} (hf : WeightedGaussBound1 (k := k) ρ C f) :
+    WeightedGaussBound1 (k := k) ρ (C / ρ) (d⁄dX k f) := by
+  -- Temp.md §3.1(1): `‖f'‖_ρ ≤ ρ⁻¹ ‖f‖_ρ` (in bound form).
+  sorry
+
+/-! #### Weierstrass-type factorizations -/
+
+/-- Formal Weierstrass decomposition: any `f` factors as `X^(order f) * divXPowOrder f`. -/
+theorem X_pow_order_mul_divXPowOrder' (f : k⟦X⟧) :
+    (X : k⟦X⟧) ^ f.order.toNat * divXPowOrder f = f := by
+  simpa using (X_pow_order_mul_divXPowOrder (f := f))
+
+/-- If `f ≠ 0`, then `divXPowOrder f` is a unit (hence plays the role of `u_d` in Temp.md). -/
+theorem isUnit_divXPowOrder_of_ne_zero {f : k⟦X⟧} (hf : f ≠ 0) : IsUnit (divXPowOrder f) := by
+  simpa using (PowerSeries.isUnit_divided_by_X_pow_order (k := k) hf)
+
+/-- A quantitative unit bound: if `u = 1 + h` with `‖h‖_ρ < 1`, then `u` and `u⁻¹` have Gauss bound `1`. -/
+theorem weightedGaussBound1_unit_of_sub_lt_one
+    {ρ ε : ℝ} (hρ : 0 < ρ) (hε : ε < 1) {u : k⟦X⟧}
+    (hu0 : PowerSeries.constantCoeff u = 1)
+    (hu : WeightedGaussBound1 (k := k) ρ ε (u - 1)) :
+    WeightedGaussBound1 (k := k) ρ (1 : ℝ) u ∧
+      WeightedGaussBound1 (k := k) ρ (1 : ℝ) u⁻¹ := by
+  -- Temp.md §3.3(i): geometric series in the nonarchimedean Gauss norm.
+  sorry
+
+/-! #### Inverse-function-type statements -/
+
+/-- A bivariate coordinate map is tangent to the identity at the origin. -/
+def TangentToId2 (H : CoordMap2 k) : Prop :=
+  (∀ i, MvPowerSeries.constantCoeff (H i) = 0) ∧
+    MvPowerSeries.coeff (Finsupp.single 0 1) (H 0) = 1 ∧
+    MvPowerSeries.coeff (Finsupp.single 1 1) (H 0) = 0 ∧
+    MvPowerSeries.coeff (Finsupp.single 0 1) (H 1) = 0 ∧
+    MvPowerSeries.coeff (Finsupp.single 1 1) (H 1) = 1
+
+/-- (Formal) inverse function theorem: a coordinate map tangent to the identity has a two-sided inverse. -/
+theorem exists_formal_inverse_of_tangentToId2
+    {H : CoordMap2 k} (hH : TangentToId2 (k := k) H) :
+    ∃ K : CoordMap2 k,
+      TangentToId2 (k := k) K ∧
+        CoordMap2.comp (k := k) H K = CoordMap2.id (k := k) ∧
+          CoordMap2.comp (k := k) K H = CoordMap2.id (k := k) := by
+  -- Standard fact about the group of (bivariate) formal power series diffeomorphisms.
+  sorry
+
+/-- Quantitative inverse function theorem in the Gauss norm on a small disc (power series version). -/
+theorem exists_analytic_inverse_of_closeToId
+    {ρ c : ℝ} (hρ : 0 < ρ) (hc : c < ρ) {H : CoordMap2 k}
+    (hH0 : ∀ i, MvPowerSeries.constantCoeff (H i) = 0)
+    (hHlin : TangentToId2 (k := k) H)
+    (hHclose : ∀ i, WeightedGaussBound2 (k := k) ρ c (H i - MvPowerSeries.X i)) :
+    ∃ K : CoordMap2 k,
+      TangentToId2 (k := k) K ∧
+        (∀ i, WeightedGaussBound2 (k := k) ρ c (K i - MvPowerSeries.X i)) ∧
+          CoordMap2.comp (k := k) H K = CoordMap2.id (k := k) ∧
+            CoordMap2.comp (k := k) K H = CoordMap2.id (k := k) := by
+  -- Standard nonarchimedean analytic inverse function theorem in Gauss norms.
+  -- (This is the quantitative input used implicitly in Temp.md §3.2–§3.3.)
+  sorry
+
+end AnalyticStatements
+
 /-! ### Step 3.3: bound in triangular normal form (statement only)
 
 This is the remaining analytic estimate in the strategy of `new/Temp.md`: after conjugating to the
@@ -943,6 +1069,7 @@ variable {k : Type*} [NormedField k] [CompleteSpace k] [IsUltrametricDist k]
 
 -- TODO (Temp.md §3.3): bound the normalized coefficients after conjugacy to normal form.
 theorem normalizedCoeffBound_qIter_of_normalForm
+    [IsAlgClosed k]
     (hnat : ∀ n : ℕ, n ≠ 0 → ‖(n : k)‖ = 1)
     (P Q : TateAlgebra2 k) {c : ℝ} (hc0 : 0 ≤ c) (hc1 : c < 1)
     (hcP : GaussBound k c (P : MvPowerSeries (Fin 2) k))
@@ -971,91 +1098,44 @@ theorem normalizedCoeffBound_qIter_of_normalForm
      cancellation can occur in the leading coefficient.
   -/
 
-  -- Step 1: obtain the triangular normal form.
+  -- Step 1: obtain a Poincare-Dulac normal form conjugacy (formal statement).
   rcases
       exists_poincare_dulac_normal_form (k := k) hnat P Q (c := c) hc0 hc1 hcP hcQ hP0 hQ0 with
-    ⟨H, K, lam, mu, tau, b, m, hH0, hK0, hHK, hKH, hg₁, hg₂⟩
+    ⟨H, K, lam, mu, tau, hH0, hK0, hHK, hKH, hPD⟩
 
-  -- Underlying coordinate maps in `MvPowerSeries`.
   let f : CoordMap2 k := substMap (P : MvPowerSeries (Fin 2) k) (Q : MvPowerSeries (Fin 2) k)
-  let H' : CoordMap2 k := fun i => (H i : MvPowerSeries (Fin 2) k)
-  let K' : CoordMap2 k := fun i => (K i : MvPowerSeries (Fin 2) k)
-  let g : CoordMap2 k := CoordMap2.comp (k := k) H' (CoordMap2.comp (k := k) f K')
+  let g : CoordMap2 k := CoordMap2.comp (k := k) H (CoordMap2.comp (k := k) f K)
 
   have hf0 : ∀ i, MvPowerSeries.constantCoeff (f i) = 0 := by
     intro i
     fin_cases i <;> simp [f, substMap, hP0, hQ0]
 
-  have hH'0 : ∀ i, MvPowerSeries.constantCoeff (H' i) = 0 := by
-    intro i
-    simpa [H'] using hH0 i
-
-  have hK'0 : ∀ i, MvPowerSeries.constantCoeff (K' i) = 0 := by
-    intro i
-    simpa [K'] using hK0 i
-
   have hg0 : ∀ i, MvPowerSeries.constantCoeff (g i) = 0 := by
-    have hfK0 : ∀ i, MvPowerSeries.constantCoeff ((CoordMap2.comp (k := k) f K') i) = 0 :=
-      CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := f) (G := K') hf0 hK'0
+    have hfK0 : ∀ i, MvPowerSeries.constantCoeff ((CoordMap2.comp (k := k) f K) i) = 0 :=
+      CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := f) (G := K) hf0 hK0
     simpa [g] using
-      (CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := H') (G := CoordMap2.comp (k := k) f K') hH'0 hfK0)
-
-  -- Extract the normal-form coordinate equalities for `g`.
-  have hg₁' :
-      g 0 = MvPowerSeries.C lam * MvPowerSeries.X 0 + MvPowerSeries.C tau * MvPowerSeries.X 1 := by
-    simpa [g, f, H', K', CoordMap2.comp] using hg₁
-  have hg₂' :
-      g 1 = MvPowerSeries.C mu * MvPowerSeries.X 1 + MvPowerSeries.monomial (Finsupp.single 0 m) b := by
-    simpa [g, f, H', K', CoordMap2.comp] using hg₂
+      (CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := H) (G := CoordMap2.comp (k := k) f K) hH0 hfK0)
 
   -- Step 2: rewrite `qIter` via the conjugacy `f^d = K ∘ g^d ∘ H`.
   -- We package the axis restrictions `X_d, Y_d` and the conjugated univariate series `qConj d`.
-  let X : ℕ → k⟦X⟧ := fun d => axisIter (k := k) g H' d 0
-  let Y : ℕ → k⟦X⟧ := fun d => axisIter (k := k) g H' d 1
-  let qConj : ℕ → k⟦X⟧ := fun d => MvPowerSeries.subst (substMap1 (X d) (Y d)) (K' 1)
+  let X : ℕ → k⟦X⟧ := fun d => axisIter (k := k) g H d 0
+  let Y : ℕ → k⟦X⟧ := fun d => axisIter (k := k) g H d 1
+  let qConj : ℕ → k⟦X⟧ := fun d => MvPowerSeries.subst (substMap1 (X d) (Y d)) (K 1)
 
   have hq_conj : ∀ d : ℕ,
       qIter k (P : MvPowerSeries (Fin 2) k) (Q : MvPowerSeries (Fin 2) k) d = qConj d := by
     intro d
     -- Start from the general conjugacy rewrite lemma and simplify `restrictX` to `axisIter`.
-    simpa [qConj, X, Y, axisIter, restrictX, f, H', K', g] using
+    simpa [qConj, X, Y, axisIter, restrictX, f, g] using
       (qIter_eq_subst_conj (k := k) (P := (P : MvPowerSeries (Fin 2) k)) (Q := (Q : MvPowerSeries (Fin 2) k))
-        (g := g) (H := H') (K := K') hP0 hQ0 hg0 hH'0 hK'0 (by simpa [H', K'] using hHK)
-        (by simpa [H', K'] using hKH) (by rfl) d)
+        (g := g) (H := H) (K := K) hP0 hQ0 hg0 hH0 hK0 hHK hKH (by rfl) d)
 
-  -- Step 3: the explicit recurrences for the axis iterates.
-  have hX_succ : ∀ d : ℕ, X (d + 1) =
-      (PowerSeries.C lam : k⟦X⟧) * X d + (PowerSeries.C tau : k⟦X⟧) * Y d := by
-    intro d
-    simpa [X, Y, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using
-      (axisIter_succ_fst_of_eq (k := k) (g := g) (H := H') hg0 hH'0 lam tau hg₁' d)
-
-  have hY_succ : ∀ d : ℕ, Y (d + 1) =
-      (PowerSeries.C mu : k⟦X⟧) * Y d + (PowerSeries.C b : k⟦X⟧) * (X d) ^ m := by
-    intro d
-    simpa [X, Y, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using
-      (axisIter_succ_snd_of_eq (k := k) (g := g) (H := H') hg0 hH'0 mu b m hg₂' d)
-
-  -- Step 4: analytic estimate on the normalized coefficients (Temp.md §3.3).
-  -- The proof is a case analysis on `(mu = 0)` and `(lam = mu)` and uses `hnat` to control the
-  -- unique possible cancellation in the leading term.
+  -- Step 3: analytic estimate on the normalized coefficients (Temp.md §3.3).
+  -- This is where one uses the extra structure provided by the normal-form datum `hPD`.
   have hStep3 :
       ∃ (M r : ℝ), 0 < M ∧ 0 < r ∧ r < 1 ∧ ∀ d : ℕ, d > 0 → NormalizedCoeffBound (k := k) (qConj d) M r := by
     -- TODO: implement the nonarchimedean estimates following `new/Temp.md`.
-    -- The recurrences `hX_succ` and `hY_succ` are the starting point.
-    -- The proof splits into cases on `mu = 0` and `lam = mu` (cf. Temp.md §3.3).
-    by_cases hmu : mu = 0
-    · -- Case A: `mu = 0`. Then `Y_{d+1} = b * X_d^m` and the estimate is straightforward.
-      -- (Here one uses the unit bounds for the fixed series coming from `H` and `K`.)
-      sorry
-    · -- Case B/C: `mu ≠ 0`.
-      by_cases hlam : lam = mu
-      · -- Case B: `mu ≠ 0` and `lam = mu`. The only possible polynomial-in-`d` growth is linear.
-        -- Cancellation in the leading coefficient can occur for at most one `d` by `hnat`.
-        sorry
-      · -- Case C: `mu ≠ 0` and `lam ≠ mu`. Use the explicit closed form for the affine recursion.
-        -- The exceptional-`d` cancellation is again controlled using `hnat`.
-        sorry
+    sorry
 
   rcases hStep3 with ⟨M, r, hM0, hr0, hr1, hqd⟩
   refine ⟨M, r, hM0, hr0, hr1, ?_⟩
@@ -1082,6 +1162,7 @@ identity and unit bounds on a small radius) which are used implicitly in `new/Te
 
 /-- Formal statement of the coefficient estimate for `Q_d(x,0)` (cf. `new/Temp.md`). -/
 theorem iter_coeff_bound {k : Type*} [NormedField k] [CompleteSpace k] [IsUltrametricDist k]
+    [IsAlgClosed k]
     (hnat : ∀ n : ℕ, n ≠ 0 → ‖(n : k)‖ = 1)
     (P Q : TateAlgebra2 k) {c : ℝ} (hc0 : 0 ≤ c) (hc1 : c < 1)
     (hcP : GaussBound k c (P : MvPowerSeries (Fin 2) k))
