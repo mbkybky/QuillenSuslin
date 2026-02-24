@@ -233,6 +233,15 @@ theorem exists_poincare_dulac_normal_form
     ∃ (H K : CoordMap2 k) (lam mu tau : k),
       (∀ i, MvPowerSeries.constantCoeff (H i) = 0) ∧
       (∀ i, MvPowerSeries.constantCoeff (K i) = 0) ∧
+      -- `H` and `K` are tangent to the identity at the origin.
+      MvPowerSeries.coeff (Finsupp.single 0 1) (H 0) = 1 ∧
+      MvPowerSeries.coeff (Finsupp.single 1 1) (H 0) = 0 ∧
+      MvPowerSeries.coeff (Finsupp.single 0 1) (H 1) = 0 ∧
+      MvPowerSeries.coeff (Finsupp.single 1 1) (H 1) = 1 ∧
+      MvPowerSeries.coeff (Finsupp.single 0 1) (K 0) = 1 ∧
+      MvPowerSeries.coeff (Finsupp.single 1 1) (K 0) = 0 ∧
+      MvPowerSeries.coeff (Finsupp.single 0 1) (K 1) = 0 ∧
+      MvPowerSeries.coeff (Finsupp.single 1 1) (K 1) = 1 ∧
       -- `K` is a two-sided inverse of `H` under composition.
       CoordMap2.comp (k := k) H K = CoordMap2.id (k := k) ∧
       CoordMap2.comp (k := k) K H = CoordMap2.id (k := k) ∧
@@ -250,13 +259,24 @@ theorem exists_poincare_dulac_normal_form
       MvPowerSeries.constantCoeff g₁ = 0 ∧
         MvPowerSeries.constantCoeff g₂ = 0 ∧
           MvPowerSeries.coeff (Finsupp.single 0 1) g₁ = lam ∧
-            MvPowerSeries.coeff (Finsupp.single 1 1) g₁ = tau ∧
+              MvPowerSeries.coeff (Finsupp.single 1 1) g₁ = tau ∧
               MvPowerSeries.coeff (Finsupp.single 0 1) g₂ = 0 ∧
                 MvPowerSeries.coeff (Finsupp.single 1 1) g₂ = mu ∧
-                  (∀ e : Fin 2 →₀ ℕ, 2 ≤ e 0 + e 1 →
-                      MvPowerSeries.coeff e g₁ ≠ 0 → lam ^ (e 0) * mu ^ (e 1) = lam) ∧
+                  ‖lam‖ < 1 ∧ ‖mu‖ < 1 ∧ ‖mu‖ ≤ ‖lam‖ ∧ (tau = 0 ∨ tau = 1) ∧
                     (∀ e : Fin 2 →₀ ℕ, 2 ≤ e 0 + e 1 →
-                      MvPowerSeries.coeff e g₂ ≠ 0 → lam ^ (e 0) * mu ^ (e 1) = mu) := by
+                      MvPowerSeries.coeff e g₁ ≠ 0 → lam ^ (e 0) * mu ^ (e 1) = lam) ∧
+                      (∀ e : Fin 2 →₀ ℕ, 2 ≤ e 0 + e 1 →
+                        MvPowerSeries.coeff e g₂ ≠ 0 → lam ^ (e 0) * mu ^ (e 1) = mu) ∧
+                        (lam ≠ 0 → ∀ e : Fin 2 →₀ ℕ, 2 ≤ e 0 + e 1 → MvPowerSeries.coeff e g₁ = 0) ∧
+                          ((mu = 0 ∧ lam ≠ 0) →
+                            ∃ R : MvPowerSeries (Fin 2) k,
+                              MvPowerSeries.constantCoeff R = 0 ∧ g₂ = MvPowerSeries.X 1 * R) ∧
+                            (mu ≠ 0 →
+                              ∃ (b : k) (m : ℕ),
+                                2 ≤ m ∧ (b = 0 ∨ lam ^ m = mu) ∧
+                                  g₂ =
+                                    MvPowerSeries.C mu * MvPowerSeries.X 1 +
+                                      MvPowerSeries.C b * (MvPowerSeries.X 0) ^ m) := by
   sorry
 
 end NormalForm
@@ -966,6 +986,34 @@ lemma WeightedGaussBound2.mono {ρ C₁ C₂ : ℝ} {F : MvPowerSeries (Fin 2) k
   intro e
   exact (h e).trans hC
 
+/-- Temp.md Lemma 3.3.2 (univariate): if `f` has no constant term and is restricted, then after shrinking the
+radius its weighted Gauss bound can be made arbitrarily small. -/
+theorem exists_radius_weightedGaussBound1_of_constantCoeff_eq_zero
+    {f : k⟦X⟧} (hfT : IsTate k Unit (f : MvPowerSeries Unit k))
+    (hf0 : PowerSeries.constantCoeff f = 0) {ε : ℝ} (hε : 0 < ε) :
+    ∃ ρ : ℝ, 0 < ρ ∧ ρ ≤ 1 ∧ WeightedGaussBound1 (k := k) ρ ε f := by
+  -- Choose `ρ` small enough so that all coefficients satisfy `‖a_n‖ ρ^n ≤ ε`.
+  sorry
+
+/-- Temp.md Lemma 3.3.2 (bivariate): shrinking the radius makes the weighted Gauss bound small for a restricted
+series with zero constant term. -/
+theorem exists_radius_weightedGaussBound2_of_constantCoeff_eq_zero
+    {F : MvPowerSeries (Fin 2) k} (hFT : IsTate k (Fin 2) F)
+    (hF0 : MvPowerSeries.constantCoeff F = 0) {ε : ℝ} (hε : 0 < ε) :
+    ∃ ρ : ℝ, 0 < ρ ∧ ρ ≤ 1 ∧ WeightedGaussBound2 (k := k) ρ ε F := by
+  -- Same argument as the univariate case, using the total degree `e 0 + e 1`.
+  sorry
+
+/-- Temp.md Lemma 3.3.3: substitution does not increase the weighted Gauss bound, provided the substituted
+series stay inside the same closed disc. -/
+theorem weightedGaussBound1_subst_of_weightedGaussBound2
+    {ρ C : ℝ} {F : MvPowerSeries (Fin 2) k} (hF : WeightedGaussBound2 (k := k) ρ C F)
+    {p q : k⟦X⟧} (ha : MvPowerSeries.HasSubst (substMap1 p q))
+    (hp : WeightedGaussBound1 (k := k) ρ ρ p) (hq : WeightedGaussBound1 (k := k) ρ ρ q) :
+    WeightedGaussBound1 (k := k) ρ C (MvPowerSeries.subst (substMap1 p q) F) := by
+  -- Standard Gauss-norm estimate for substitution on a closed disc.
+  sorry
+
 theorem weightedGaussBound_qIter_iterate
     (P Q : TateAlgebra2 k) {c ρ : ℝ}
     (hc0 : 0 ≤ c) (hc1 : c < 1) (hρ0 : 0 ≤ ρ) (hρ1 : ρ ≤ 1)
@@ -1007,6 +1055,27 @@ theorem weightedGaussBound1_unit_of_sub_lt_one
     WeightedGaussBound1 (k := k) ρ (1 : ℝ) u ∧
       WeightedGaussBound1 (k := k) ρ (1 : ℝ) u⁻¹ := by
   -- Temp.md §3.3(i): geometric series in the nonarchimedean Gauss norm.
+  sorry
+
+/-! #### Implicit-function / Weierstrass (degree `1`) -/
+
+/-- A bivariate series depends only on the `X 0` variable (no `X 1`-terms). -/
+def IsXOnly (F : MvPowerSeries (Fin 2) k) : Prop :=
+  ∀ e : Fin 2 →₀ ℕ, e 1 ≠ 0 → MvPowerSeries.coeff e F = 0
+
+/-- Temp.md Lemma 3.3.5: if `∂K/∂Y (0,0)=1`, then `K(X,Y) = (Y - Φ(X)) * W(X,Y)` with `W(0,0)=1`. -/
+theorem exists_implicitFunction_weierstrass_degreeOne
+    {K : MvPowerSeries (Fin 2) k}
+    (hK0 : MvPowerSeries.constantCoeff K = 0)
+    (hKx : MvPowerSeries.coeff (Finsupp.single 0 1) K = 0)
+    (hKy : MvPowerSeries.coeff (Finsupp.single 1 1) K = 1) :
+    ∃ (Phi W : MvPowerSeries (Fin 2) k),
+      IsXOnly (k := k) Phi ∧
+        MvPowerSeries.constantCoeff Phi = 0 ∧
+          MvPowerSeries.coeff (Finsupp.single 0 1) Phi = 0 ∧
+            MvPowerSeries.constantCoeff W = 1 ∧
+              K = (MvPowerSeries.X 1 - Phi) * W := by
+  -- Nonarchimedean analytic implicit function theorem / Weierstrass division (degree `1` case).
   sorry
 
 /-! #### Inverse-function-type statements -/
@@ -1101,7 +1170,7 @@ theorem normalizedCoeffBound_qIter_of_normalForm
   -- Step 1: obtain a Poincare-Dulac normal form conjugacy (formal statement).
   rcases
       exists_poincare_dulac_normal_form (k := k) hnat P Q (c := c) hc0 hc1 hcP hcQ hP0 hQ0 with
-    ⟨H, K, lam, mu, tau, hH0, hK0, hHK, hKH, hPD⟩
+    ⟨H, K, lam, mu, tau, hH0, hK0, hH_x, hH_y, hH_yx, hH_yy, hK_x, hK_y, hK_yx, hK_yy, hHK, hKH, hPD⟩
 
   let f : CoordMap2 k := substMap (P : MvPowerSeries (Fin 2) k) (Q : MvPowerSeries (Fin 2) k)
   let g : CoordMap2 k := CoordMap2.comp (k := k) H (CoordMap2.comp (k := k) f K)
