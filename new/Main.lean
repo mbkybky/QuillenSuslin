@@ -195,6 +195,26 @@ lemma xOnlySubst_hasSubst (k : Type*) [CommRing k] : MvPowerSeries.HasSubst (xOn
 lemma qIter_zero (k : Type*) [CommRing k] (P Q : MvPowerSeries (Fin 2) k) : qIter k P Q 0 = 0 := by
   simp [qIter, iterPQ, MvPowerSeries.subst_X (xOnlySubst_hasSubst k), xOnlySubst]
 
+/-! ### Weighted Gauss norms (basic definitions)
+
+To express analyticity on smaller polydiscs as in `new/Temp.md`, we use weighted Gauss bounds at a
+radius `ρ`.
+-/
+
+section WeightedGaussBounds
+
+variable {k : Type*} [NormedRing k]
+
+/-- Weighted Gauss bound for a univariate power series at radius `ρ`. -/
+def WeightedGaussBound1 (ρ C : ℝ) (f : k⟦X⟧) : Prop :=
+  ∀ n : ℕ, ‖coeff n f‖ * ρ ^ n ≤ C
+
+/-- Weighted Gauss bound for a bivariate power series with weight `i+j` at radius `ρ`. -/
+def WeightedGaussBound2 (ρ C : ℝ) (F : MvPowerSeries (Fin 2) k) : Prop :=
+  ∀ e : Fin 2 →₀ ℕ, ‖MvPowerSeries.coeff e F‖ * ρ ^ (e 0 + e 1) ≤ C
+
+end WeightedGaussBounds
+
 /-! ### Normal form lemmas (to be proved)
 
 The proof strategy suggested by `new/Temp.md` goes through an analytic Poincaré–Dulac normal form.
@@ -208,6 +228,14 @@ variable {k : Type*} [NormedField k] [CompleteSpace k] [IsUltrametricDist k]
 
 /-- A coordinate map `(x,y) ↦ (F₀(x,y), F₁(x,y))` as a pair of bivariate power series. -/
 abbrev CoordMap2 (k : Type*) [CommRing k] := Fin 2 → MvPowerSeries (Fin 2) k
+
+/-- A bivariate coordinate map is tangent to the identity at the origin. -/
+def TangentToId2 {k : Type*} [CommRing k] (H : CoordMap2 k) : Prop :=
+  (∀ i, MvPowerSeries.constantCoeff (H i) = 0) ∧
+    MvPowerSeries.coeff (Finsupp.single 0 1) (H 0) = 1 ∧
+    MvPowerSeries.coeff (Finsupp.single 1 1) (H 0) = 0 ∧
+    MvPowerSeries.coeff (Finsupp.single 0 1) (H 1) = 0 ∧
+    MvPowerSeries.coeff (Finsupp.single 1 1) (H 1) = 1
 
 /-- Composition of coordinate maps by substitution. -/
 noncomputable def CoordMap2.comp {k : Type*} [CommRing k] (F G : CoordMap2 k) : CoordMap2 k :=
@@ -230,22 +258,18 @@ theorem exists_poincare_dulac_normal_form
     (hcQ : GaussBound k c (Q : MvPowerSeries (Fin 2) k))
     (hP0 : MvPowerSeries.constantCoeff (P : MvPowerSeries (Fin 2) k) = 0)
     (hQ0 : MvPowerSeries.constantCoeff (Q : MvPowerSeries (Fin 2) k) = 0) :
-    ∃ (H K : CoordMap2 k) (lam mu tau : k),
-      (∀ i, MvPowerSeries.constantCoeff (H i) = 0) ∧
-      (∀ i, MvPowerSeries.constantCoeff (K i) = 0) ∧
-      -- `H` and `K` are tangent to the identity at the origin.
-      MvPowerSeries.coeff (Finsupp.single 0 1) (H 0) = 1 ∧
-      MvPowerSeries.coeff (Finsupp.single 1 1) (H 0) = 0 ∧
-      MvPowerSeries.coeff (Finsupp.single 0 1) (H 1) = 0 ∧
-      MvPowerSeries.coeff (Finsupp.single 1 1) (H 1) = 1 ∧
-      MvPowerSeries.coeff (Finsupp.single 0 1) (K 0) = 1 ∧
-      MvPowerSeries.coeff (Finsupp.single 1 1) (K 0) = 0 ∧
-      MvPowerSeries.coeff (Finsupp.single 0 1) (K 1) = 0 ∧
-      MvPowerSeries.coeff (Finsupp.single 1 1) (K 1) = 1 ∧
-      -- `K` is a two-sided inverse of `H` under composition.
-      CoordMap2.comp (k := k) H K = CoordMap2.id (k := k) ∧
-      CoordMap2.comp (k := k) K H = CoordMap2.id (k := k) ∧
-      -- Conjugating `f = (P,Q)` by `H` yields a (formal) Poincare-Dulac normal form.
+    ∃ ρ₀ : ℝ, 0 < ρ₀ ∧ ρ₀ ≤ 1 ∧
+      ∃ (H K : CoordMap2 k) (lam mu tau : k),
+       (∀ i, WeightedGaussBound2 (k := k) ρ₀ ρ₀ (H i)) ∧
+       (∀ i, WeightedGaussBound2 (k := k) ρ₀ ρ₀ (K i)) ∧
+       (∀ i, MvPowerSeries.constantCoeff (H i) = 0) ∧
+       (∀ i, MvPowerSeries.constantCoeff (K i) = 0) ∧
+       -- `K` is a two-sided inverse of `H` under composition.
+       CoordMap2.comp (k := k) H K = CoordMap2.id (k := k) ∧
+       CoordMap2.comp (k := k) K H = CoordMap2.id (k := k) ∧
+       -- Tangency data used in Temp.md: `H(0)=0`, `DH(0)=Id`, hence `K(0)=0`, `DK(0)=Id`.
+       TangentToId2 H ∧ TangentToId2 K ∧
+      -- Conjugating `f = (P,Q)` by `H` yields an attracting Poincare-Dulac normal form.
       let P' : MvPowerSeries (Fin 2) k :=
           MvPowerSeries.subst (substMap (K 0) (K 1))
             (P : MvPowerSeries (Fin 2) k)
@@ -258,25 +282,31 @@ theorem exists_poincare_dulac_normal_form
           MvPowerSeries.subst (substMap P' Q') (H 1)
       MvPowerSeries.constantCoeff g₁ = 0 ∧
         MvPowerSeries.constantCoeff g₂ = 0 ∧
+          -- Linear part put in upper-triangular Jordan form by an initial linear change of coordinates
+          -- (Temp.md Thm 3.2): we record it directly as a property of the normal form.
           MvPowerSeries.coeff (Finsupp.single 0 1) g₁ = lam ∧
-              MvPowerSeries.coeff (Finsupp.single 1 1) g₁ = tau ∧
+            MvPowerSeries.coeff (Finsupp.single 1 1) g₁ = tau ∧
               MvPowerSeries.coeff (Finsupp.single 0 1) g₂ = 0 ∧
                 MvPowerSeries.coeff (Finsupp.single 1 1) g₂ = mu ∧
                   ‖lam‖ < 1 ∧ ‖mu‖ < 1 ∧ ‖mu‖ ≤ ‖lam‖ ∧ (tau = 0 ∨ tau = 1) ∧
+                    (lam ≠ mu → tau = 0) ∧
                     (∀ e : Fin 2 →₀ ℕ, 2 ≤ e 0 + e 1 →
                       MvPowerSeries.coeff e g₁ ≠ 0 → lam ^ (e 0) * mu ^ (e 1) = lam) ∧
                       (∀ e : Fin 2 →₀ ℕ, 2 ≤ e 0 + e 1 →
                         MvPowerSeries.coeff e g₂ ≠ 0 → lam ^ (e 0) * mu ^ (e 1) = mu) ∧
+                        -- Temp.md Thm 3.2(1): if `lam ≠ 0`, then `g₁` is purely linear.
                         (lam ≠ 0 → ∀ e : Fin 2 →₀ ℕ, 2 ≤ e 0 + e 1 → MvPowerSeries.coeff e g₁ = 0) ∧
+                          -- Temp.md Thm 3.2(2): if `mu ≠ 0`, then `g₂ = mu*Y + B(X)` with `B = 0` or `b*X^m`.
+                          (mu ≠ 0 →
+                            ∃ (b : k) (m : ℕ),
+                              2 ≤ m ∧ (b = 0 ∨ lam ^ m = mu) ∧
+                                g₂ =
+                                  MvPowerSeries.C mu * MvPowerSeries.X 1 +
+                                    MvPowerSeries.C b * (MvPowerSeries.X 0) ^ m) ∧
+                          -- Temp.md Thm 3.2(3): if `mu = 0` and `lam ≠ 0`, then every monomial of `g₂` is divisible by `Y`.
                           ((mu = 0 ∧ lam ≠ 0) →
                             ∃ R : MvPowerSeries (Fin 2) k,
-                              MvPowerSeries.constantCoeff R = 0 ∧ g₂ = MvPowerSeries.X 1 * R) ∧
-                            (mu ≠ 0 →
-                              ∃ (b : k) (m : ℕ),
-                                2 ≤ m ∧ (b = 0 ∨ lam ^ m = mu) ∧
-                                  g₂ =
-                                    MvPowerSeries.C mu * MvPowerSeries.X 1 +
-                                      MvPowerSeries.C b * (MvPowerSeries.X 0) ^ m) := by
+                              MvPowerSeries.constantCoeff R = 0 ∧ g₂ = MvPowerSeries.X 1 * R) := by
   sorry
 
 end NormalForm
@@ -966,14 +996,6 @@ variable {k : Type*} [NormedField k] [CompleteSpace k] [IsUltrametricDist k]
 
 /-! #### Weighted Gauss bounds -/
 
-/-- Weighted Gauss bound for a univariate power series at radius `ρ`. -/
-def WeightedGaussBound1 (ρ C : ℝ) (f : k⟦X⟧) : Prop :=
-  ∀ n : ℕ, ‖coeff n f‖ * ρ ^ n ≤ C
-
-/-- Weighted Gauss bound for a bivariate power series with weight `i+j` at radius `ρ`. -/
-def WeightedGaussBound2 (ρ C : ℝ) (F : MvPowerSeries (Fin 2) k) : Prop :=
-  ∀ e : Fin 2 →₀ ℕ, ‖MvPowerSeries.coeff e F‖ * ρ ^ (e 0 + e 1) ≤ C
-
 lemma WeightedGaussBound1.mono {ρ C₁ C₂ : ℝ} {f : k⟦X⟧} (hC : C₁ ≤ C₂)
     (h : WeightedGaussBound1 (k := k) ρ C₁ f) :
     WeightedGaussBound1 (k := k) ρ C₂ f := by
@@ -1080,14 +1102,6 @@ theorem exists_implicitFunction_weierstrass_degreeOne
 
 /-! #### Inverse-function-type statements -/
 
-/-- A bivariate coordinate map is tangent to the identity at the origin. -/
-def TangentToId2 (H : CoordMap2 k) : Prop :=
-  (∀ i, MvPowerSeries.constantCoeff (H i) = 0) ∧
-    MvPowerSeries.coeff (Finsupp.single 0 1) (H 0) = 1 ∧
-    MvPowerSeries.coeff (Finsupp.single 1 1) (H 0) = 0 ∧
-    MvPowerSeries.coeff (Finsupp.single 0 1) (H 1) = 0 ∧
-    MvPowerSeries.coeff (Finsupp.single 1 1) (H 1) = 1
-
 /-- (Formal) inverse function theorem: a coordinate map tangent to the identity has a two-sided inverse. -/
 theorem exists_formal_inverse_of_tangentToId2
     {H : CoordMap2 k} (hH : TangentToId2 (k := k) H) :
@@ -1170,7 +1184,7 @@ theorem normalizedCoeffBound_qIter_of_normalForm
   -- Step 1: obtain a Poincare-Dulac normal form conjugacy (formal statement).
   rcases
       exists_poincare_dulac_normal_form (k := k) hnat P Q (c := c) hc0 hc1 hcP hcQ hP0 hQ0 with
-    ⟨H, K, lam, mu, tau, hH0, hK0, hH_x, hH_y, hH_yx, hH_yy, hK_x, hK_y, hK_yx, hK_yy, hHK, hKH, hPD⟩
+    ⟨ρ₀, hρ₀0, hρ₀1, H, K, lam, mu, tau, hHρ, hKρ, hH0, hK0, hHK, hKH, hHtan, hKtan, hPD⟩
 
   let f : CoordMap2 k := substMap (P : MvPowerSeries (Fin 2) k) (Q : MvPowerSeries (Fin 2) k)
   let g : CoordMap2 k := CoordMap2.comp (k := k) H (CoordMap2.comp (k := k) f K)
