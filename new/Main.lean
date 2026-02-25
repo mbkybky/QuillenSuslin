@@ -237,6 +237,11 @@ def TangentToId2 {k : Type*} [CommRing k] (H : CoordMap2 k) : Prop :=
     MvPowerSeries.coeff (Finsupp.single 0 1) (H 1) = 0 ∧
     MvPowerSeries.coeff (Finsupp.single 1 1) (H 1) = 1
 
+/-- A bivariate coordinate map is (formally) linear: it has no terms of total degree `≥ 2`. -/
+def IsLinearCoordMap2 {k : Type*} [CommRing k] (L : CoordMap2 k) : Prop :=
+  (∀ i, MvPowerSeries.constantCoeff (L i) = 0) ∧
+    ∀ i (e : Fin 2 →₀ ℕ), 2 ≤ e 0 + e 1 → MvPowerSeries.coeff e (L i) = 0
+
 /-- Composition of coordinate maps by substitution. -/
 noncomputable def CoordMap2.comp {k : Type*} [CommRing k] (F G : CoordMap2 k) : CoordMap2 k :=
   fun i => MvPowerSeries.subst (substMap (G 0) (G 1)) (F i)
@@ -259,27 +264,39 @@ theorem exists_poincare_dulac_normal_form
     (hP0 : MvPowerSeries.constantCoeff (P : MvPowerSeries (Fin 2) k) = 0)
     (hQ0 : MvPowerSeries.constantCoeff (Q : MvPowerSeries (Fin 2) k) = 0) :
     ∃ ρ₀ : ℝ, 0 < ρ₀ ∧ ρ₀ ≤ 1 ∧
-      ∃ (H K : CoordMap2 k) (lam mu tau : k),
+      ∃ (L Linv H K : CoordMap2 k) (lam mu tau : k),
+       IsLinearCoordMap2 (k := k) L ∧
+       IsLinearCoordMap2 (k := k) Linv ∧
        (∀ i, WeightedGaussBound2 (k := k) ρ₀ ρ₀ (H i)) ∧
        (∀ i, WeightedGaussBound2 (k := k) ρ₀ ρ₀ (K i)) ∧
        (∀ i, MvPowerSeries.constantCoeff (H i) = 0) ∧
        (∀ i, MvPowerSeries.constantCoeff (K i) = 0) ∧
+       -- `Linv` is a two-sided inverse of `L` under composition (linear change of coordinates).
+       CoordMap2.comp (k := k) L Linv = CoordMap2.id (k := k) ∧
+       CoordMap2.comp (k := k) Linv L = CoordMap2.id (k := k) ∧
        -- `K` is a two-sided inverse of `H` under composition.
        CoordMap2.comp (k := k) H K = CoordMap2.id (k := k) ∧
        CoordMap2.comp (k := k) K H = CoordMap2.id (k := k) ∧
        -- Tangency data used in Temp.md: `H(0)=0`, `DH(0)=Id`, hence `K(0)=0`, `DK(0)=Id`.
        TangentToId2 H ∧ TangentToId2 K ∧
-      -- Conjugating `f = (P,Q)` by `H` yields an attracting Poincare-Dulac normal form.
-      let P' : MvPowerSeries (Fin 2) k :=
-          MvPowerSeries.subst (substMap (K 0) (K 1))
+      -- Conjugating `f = (P,Q)` by the composite change of coordinates `(H ∘ L)` yields an
+      -- attracting Poincaré–Dulac normal form. Here `L` is the initial linear change putting the
+      -- linear part in Jordan form, and `H` is tangent-to-identity.
+      let K₀ : CoordMap2 k := CoordMap2.comp (k := k) Linv K
+      let P₀ : MvPowerSeries (Fin 2) k :=
+          MvPowerSeries.subst (substMap (K₀ 0) (K₀ 1))
             (P : MvPowerSeries (Fin 2) k)
-      let Q' : MvPowerSeries (Fin 2) k :=
-          MvPowerSeries.subst (substMap (K 0) (K 1))
+      let Q₀ : MvPowerSeries (Fin 2) k :=
+          MvPowerSeries.subst (substMap (K₀ 0) (K₀ 1))
             (Q : MvPowerSeries (Fin 2) k)
+      let P₁ : MvPowerSeries (Fin 2) k :=
+          MvPowerSeries.subst (substMap P₀ Q₀) (L 0)
+      let Q₁ : MvPowerSeries (Fin 2) k :=
+          MvPowerSeries.subst (substMap P₀ Q₀) (L 1)
       let g₁ : MvPowerSeries (Fin 2) k :=
-          MvPowerSeries.subst (substMap P' Q') (H 0)
+          MvPowerSeries.subst (substMap P₁ Q₁) (H 0)
       let g₂ : MvPowerSeries (Fin 2) k :=
-          MvPowerSeries.subst (substMap P' Q') (H 1)
+          MvPowerSeries.subst (substMap P₁ Q₁) (H 1)
       MvPowerSeries.constantCoeff g₁ = 0 ∧
         MvPowerSeries.constantCoeff g₂ = 0 ∧
           -- Linear part put in upper-triangular Jordan form by an initial linear change of coordinates
@@ -1184,26 +1201,79 @@ theorem normalizedCoeffBound_qIter_of_normalForm
   -- Step 1: obtain a Poincare-Dulac normal form conjugacy (formal statement).
   rcases
       exists_poincare_dulac_normal_form (k := k) hnat P Q (c := c) hc0 hc1 hcP hcQ hP0 hQ0 with
-    ⟨ρ₀, hρ₀0, hρ₀1, H, K, lam, mu, tau, hHρ, hKρ, hH0, hK0, hHK, hKH, hHtan, hKtan, hPD⟩
+    ⟨ρ₀, hρ₀0, hρ₀1, L, Linv, H, K, lam, mu, tau, hLlin, hLinvlin, hHρ, hKρ, hH0, hK0,
+      hLLinv, hLinvL, hHK, hKH, hHtan, hKtan, hPD⟩
 
   let f : CoordMap2 k := substMap (P : MvPowerSeries (Fin 2) k) (Q : MvPowerSeries (Fin 2) k)
-  let g : CoordMap2 k := CoordMap2.comp (k := k) H (CoordMap2.comp (k := k) f K)
+  -- The actual conjugating maps between `f` and the normal form `g` are the composites
+  -- `Htot = H ∘ L` and `Ktot = Linv ∘ K`.
+  let Htot : CoordMap2 k := CoordMap2.comp (k := k) H L
+  let Ktot : CoordMap2 k := CoordMap2.comp (k := k) Linv K
+  let g : CoordMap2 k := CoordMap2.comp (k := k) Htot (CoordMap2.comp (k := k) f Ktot)
+
+  have hL0 : ∀ i, MvPowerSeries.constantCoeff (L i) = 0 := hLlin.1
+  have hLinv0 : ∀ i, MvPowerSeries.constantCoeff (Linv i) = 0 := hLinvlin.1
+
+  have hHtot0 : ∀ i, MvPowerSeries.constantCoeff (Htot i) = 0 :=
+    CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := H) (G := L) hH0 hL0
+  have hKtot0 : ∀ i, MvPowerSeries.constantCoeff (Ktot i) = 0 :=
+    CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := Linv) (G := K) hLinv0 hK0
+
+  have hHKtot : CoordMap2.comp (k := k) Htot Ktot = CoordMap2.id (k := k) := by
+    have hLinvK0 : ∀ i, MvPowerSeries.constantCoeff ((CoordMap2.comp (k := k) Linv K) i) = 0 :=
+      CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := Linv) (G := K) hLinv0 hK0
+    calc
+      CoordMap2.comp (k := k) Htot Ktot
+          = CoordMap2.comp (k := k) H (CoordMap2.comp (k := k) L (CoordMap2.comp (k := k) Linv K)) := by
+              simpa [Htot, Ktot] using
+                (CoordMap2.comp_assoc (k := k) (F := H) (G := L) (H := CoordMap2.comp (k := k) Linv K) hL0 hLinvK0)
+      _ = CoordMap2.comp (k := k) H (CoordMap2.comp (k := k) (CoordMap2.comp (k := k) L Linv) K) := by
+            simpa using
+              congrArg (fun T => CoordMap2.comp (k := k) H T)
+                (CoordMap2.comp_assoc (k := k) (F := L) (G := Linv) (H := K) hLinv0 hK0).symm
+      _ = CoordMap2.comp (k := k) H (CoordMap2.comp (k := k) (CoordMap2.id (k := k)) K) := by
+            simpa [hLLinv]
+      _ = CoordMap2.comp (k := k) H K := by
+            have : CoordMap2.comp (k := k) (CoordMap2.id (k := k)) K = K := by
+              simpa using (CoordMap2.comp_id_left (k := k) (F := K) hK0)
+            simpa [this]
+      _ = CoordMap2.id (k := k) := hHK
+
+  have hKHtot : CoordMap2.comp (k := k) Ktot Htot = CoordMap2.id (k := k) := by
+    have hHL0 : ∀ i, MvPowerSeries.constantCoeff ((CoordMap2.comp (k := k) H L) i) = 0 :=
+      CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := H) (G := L) hH0 hL0
+    calc
+      CoordMap2.comp (k := k) Ktot Htot
+          = CoordMap2.comp (k := k) Linv (CoordMap2.comp (k := k) K (CoordMap2.comp (k := k) H L)) := by
+              simpa [Htot, Ktot] using
+                (CoordMap2.comp_assoc (k := k) (F := Linv) (G := K) (H := CoordMap2.comp (k := k) H L) hK0 hHL0)
+      _ = CoordMap2.comp (k := k) Linv (CoordMap2.comp (k := k) (CoordMap2.comp (k := k) K H) L) := by
+            simpa using
+              congrArg (fun T => CoordMap2.comp (k := k) Linv T)
+                (CoordMap2.comp_assoc (k := k) (F := K) (G := H) (H := L) hH0 hL0).symm
+      _ = CoordMap2.comp (k := k) Linv (CoordMap2.comp (k := k) (CoordMap2.id (k := k)) L) := by
+            simpa [hKH]
+      _ = CoordMap2.comp (k := k) Linv L := by
+            have : CoordMap2.comp (k := k) (CoordMap2.id (k := k)) L = L := by
+              simpa using (CoordMap2.comp_id_left (k := k) (F := L) hL0)
+            simpa [this]
+      _ = CoordMap2.id (k := k) := hLinvL
 
   have hf0 : ∀ i, MvPowerSeries.constantCoeff (f i) = 0 := by
     intro i
     fin_cases i <;> simp [f, substMap, hP0, hQ0]
 
   have hg0 : ∀ i, MvPowerSeries.constantCoeff (g i) = 0 := by
-    have hfK0 : ∀ i, MvPowerSeries.constantCoeff ((CoordMap2.comp (k := k) f K) i) = 0 :=
-      CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := f) (G := K) hf0 hK0
+    have hfK0 : ∀ i, MvPowerSeries.constantCoeff ((CoordMap2.comp (k := k) f Ktot) i) = 0 :=
+      CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := f) (G := Ktot) hf0 hKtot0
     simpa [g] using
-      (CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := H) (G := CoordMap2.comp (k := k) f K) hH0 hfK0)
+      (CoordMap2.constantCoeff_comp_eq_zero (k := k) (F := Htot) (G := CoordMap2.comp (k := k) f Ktot) hHtot0 hfK0)
 
   -- Step 2: rewrite `qIter` via the conjugacy `f^d = K ∘ g^d ∘ H`.
   -- We package the axis restrictions `X_d, Y_d` and the conjugated univariate series `qConj d`.
-  let X : ℕ → k⟦X⟧ := fun d => axisIter (k := k) g H d 0
-  let Y : ℕ → k⟦X⟧ := fun d => axisIter (k := k) g H d 1
-  let qConj : ℕ → k⟦X⟧ := fun d => MvPowerSeries.subst (substMap1 (X d) (Y d)) (K 1)
+  let X : ℕ → k⟦X⟧ := fun d => axisIter (k := k) g Htot d 0
+  let Y : ℕ → k⟦X⟧ := fun d => axisIter (k := k) g Htot d 1
+  let qConj : ℕ → k⟦X⟧ := fun d => MvPowerSeries.subst (substMap1 (X d) (Y d)) (Ktot 1)
 
   have hq_conj : ∀ d : ℕ,
       qIter k (P : MvPowerSeries (Fin 2) k) (Q : MvPowerSeries (Fin 2) k) d = qConj d := by
@@ -1211,7 +1281,7 @@ theorem normalizedCoeffBound_qIter_of_normalForm
     -- Start from the general conjugacy rewrite lemma and simplify `restrictX` to `axisIter`.
     simpa [qConj, X, Y, axisIter, restrictX, f, g] using
       (qIter_eq_subst_conj (k := k) (P := (P : MvPowerSeries (Fin 2) k)) (Q := (Q : MvPowerSeries (Fin 2) k))
-        (g := g) (H := H) (K := K) hP0 hQ0 hg0 hH0 hK0 hHK hKH (by rfl) d)
+        (g := g) (H := Htot) (K := Ktot) hP0 hQ0 hg0 hHtot0 hKtot0 hHKtot hKHtot (by rfl) d)
 
   -- Step 3: analytic estimate on the normalized coefficients (Temp.md §3.3).
   -- This is where one uses the extra structure provided by the normal-form datum `hPD`.
