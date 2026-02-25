@@ -1031,8 +1031,134 @@ theorem exists_radius_weightedGaussBound1_of_constantCoeff_eq_zero
     {f : k⟦X⟧} (hfT : IsTate k Unit (f : MvPowerSeries Unit k))
     (hf0 : PowerSeries.constantCoeff f = 0) {ε : ℝ} (hε : 0 < ε) :
     ∃ ρ : ℝ, 0 < ρ ∧ ρ ≤ 1 ∧ WeightedGaussBound1 (k := k) ρ ε f := by
-  -- Choose `ρ` small enough so that all coefficients satisfy `‖a_n‖ ρ^n ≤ ε`.
-  sorry
+  classical
+  -- Coefficients tend to `0`, hence are eventually in the ball of radius `ε`.
+  have hball :
+      ∀ᶠ e : Unit →₀ ℕ in Filter.cofinite,
+        MvPowerSeries.coeff e (f : MvPowerSeries Unit k) ∈ Metric.ball (0 : k) ε := by
+    have hnear : ∀ᶠ x : k in nhds (0 : k), x ∈ Metric.ball (0 : k) ε := by
+      change Metric.ball (0 : k) ε ∈ nhds (0 : k)
+      exact Metric.ball_mem_nhds (0 : k) hε
+    exact hfT.eventually hnear
+  have hsmall :
+      ∀ᶠ e : Unit →₀ ℕ in Filter.cofinite,
+        ‖MvPowerSeries.coeff e (f : MvPowerSeries Unit k)‖ < ε := by
+    refine hball.mono ?_
+    intro e he
+    simpa [Metric.mem_ball, dist_eq_norm] using he
+
+  -- Let `S` be the set of indices with coefficients of size at least `ε`.
+  let T : Set (Unit →₀ ℕ) :=
+    {e : Unit →₀ ℕ | ¬ ‖MvPowerSeries.coeff e (f : MvPowerSeries Unit k)‖ < ε}
+  have hTfin : T.Finite := (Filter.eventually_cofinite.1 hsmall)
+  let S : Set ℕ := (fun n : ℕ => (Finsupp.single () n : Unit →₀ ℕ)) ⁻¹' T
+  have hSfin : S.Finite :=
+    hTfin.preimage (Set.injOn_of_injective (Finsupp.single_injective ()))
+  let sFin : Finset ℕ := hSfin.toFinset
+
+  -- The index `0` is not exceptional since the constant coefficient is `0`.
+  have h0not : (0 : ℕ) ∉ sFin := by
+    intro h0
+    have h0S : (0 : ℕ) ∈ S := (Set.Finite.mem_toFinset hSfin).1 h0
+    have h0T : (Finsupp.single () (0 : ℕ) : Unit →₀ ℕ) ∈ T := h0S
+    have hnot :
+        ¬ ‖MvPowerSeries.coeff (Finsupp.single () (0 : ℕ)) (f : MvPowerSeries Unit k)‖ < ε := by
+      simpa [T] using h0T
+    have hlt :
+        ‖MvPowerSeries.coeff (Finsupp.single () (0 : ℕ)) (f : MvPowerSeries Unit k)‖ < ε := by
+      have : ‖PowerSeries.coeff 0 f‖ < ε := by
+        simp [PowerSeries.coeff_zero_eq_constantCoeff_apply, hf0, hε]
+      simpa using this
+    exact hnot hlt
+
+  by_cases hs : sFin.Nonempty
+  · -- Nonempty exceptional set: choose `ρ = min 1 (ε / A)` where `A` bounds the exceptional coefficients.
+    let A : ℝ := sFin.sup' hs (fun n => ‖coeff n f‖)
+    have hA_ge : ∀ {n}, n ∈ sFin → ‖coeff n f‖ ≤ A := by
+      intro n hn
+      exact Finset.le_sup' (s := sFin) (f := fun n => ‖coeff n f‖) hn
+    have hA_pos : 0 < A := by
+      rcases hs with ⟨n, hn⟩
+      have hnS : n ∈ S := (Set.Finite.mem_toFinset hSfin).1 hn
+      have hnT : (Finsupp.single () n : Unit →₀ ℕ) ∈ T := hnS
+      have hnot : ¬ ‖coeff n f‖ < ε := by
+        simpa [T] using hnT
+      have hε_le : ε ≤ ‖coeff n f‖ := le_of_not_gt hnot
+      have hε_leA : ε ≤ A := le_trans hε_le (hA_ge (n := n) hn)
+      exact lt_of_lt_of_le hε hε_leA
+
+    let ρ : ℝ := min 1 (ε / A)
+    have hρ_pos : 0 < ρ := by
+      have hpos : 0 < ε / A := div_pos hε hA_pos
+      have : 0 < min (1 : ℝ) (ε / A) := lt_min (by norm_num) hpos
+      simpa [ρ] using this
+    have hρ_le1 : ρ ≤ 1 := by simp [ρ]
+    have hρ_le : ρ ≤ ε / A := by
+      simpa [ρ] using (min_le_right (1 : ℝ) (ε / A))
+    have hA_ne : A ≠ 0 := ne_of_gt hA_pos
+    have hmul : A * ρ ≤ ε := by
+      have hA0 : 0 ≤ A := le_of_lt hA_pos
+      have : A * ρ ≤ A * (ε / A) := mul_le_mul_of_nonneg_left hρ_le hA0
+      simpa [mul_div_cancel₀ (a := ε) hA_ne] using this
+
+    refine ⟨ρ, hρ_pos, hρ_le1, ?_⟩
+    intro n
+    by_cases hn : n ∈ sFin
+    · have hn_ne0 : n ≠ 0 := by
+        intro h
+        subst h
+        exact h0not hn
+      have hpow_le : ρ ^ n ≤ ρ := by
+        rcases Nat.exists_eq_succ_of_ne_zero hn_ne0 with ⟨m, rfl⟩
+        have hρ0 : 0 ≤ ρ := le_of_lt hρ_pos
+        have hρm : ρ ^ m ≤ 1 := pow_le_one₀ hρ0 hρ_le1
+        simpa [pow_succ] using mul_le_mul_of_nonneg_right hρm hρ0
+      have hcoeff_leA : ‖coeff n f‖ ≤ A := hA_ge (n := n) hn
+      calc
+        ‖coeff n f‖ * ρ ^ n ≤ ‖coeff n f‖ * ρ :=
+          mul_le_mul_of_nonneg_left hpow_le (norm_nonneg _)
+        _ ≤ A * ρ := mul_le_mul_of_nonneg_right hcoeff_leA (le_of_lt hρ_pos)
+        _ ≤ ε := hmul
+    · have hnS : n ∉ S := by
+        intro hnS
+        have : n ∈ sFin := (Set.Finite.mem_toFinset hSfin).2 hnS
+        exact hn this
+      have hcoeff_lt : ‖coeff n f‖ < ε := by
+        have : (Finsupp.single () n : Unit →₀ ℕ) ∉ T := by
+          simpa [S] using hnS
+        have :
+            ¬ ¬ ‖MvPowerSeries.coeff (Finsupp.single () n) (f : MvPowerSeries Unit k)‖ < ε := by
+          simpa [T] using this
+        have :
+            ‖MvPowerSeries.coeff (Finsupp.single () n) (f : MvPowerSeries Unit k)‖ < ε :=
+          not_not.mp this
+        simpa using this
+      have hcoeff_le : ‖coeff n f‖ ≤ ε := le_of_lt hcoeff_lt
+      have hρ0 : 0 ≤ ρ := le_of_lt hρ_pos
+      have hpow_le1 : ρ ^ n ≤ 1 := pow_le_one₀ hρ0 hρ_le1
+      calc
+        ‖coeff n f‖ * ρ ^ n ≤ ‖coeff n f‖ * 1 :=
+          mul_le_mul_of_nonneg_left hpow_le1 (norm_nonneg _)
+        _ ≤ ε := by simpa using hcoeff_le
+  · -- Empty exceptional set: take `ρ = 1`.
+    have hs_empty : sFin = ∅ := Finset.not_nonempty_iff_eq_empty.1 hs
+    refine ⟨1, by simp, le_rfl, ?_⟩
+    intro n
+    have hnS : n ∉ S := by
+      intro hnS
+      have : n ∈ sFin := (Set.Finite.mem_toFinset hSfin).2 hnS
+      simpa [hs_empty] using this
+    have hcoeff_lt : ‖coeff n f‖ < ε := by
+      have : (Finsupp.single () n : Unit →₀ ℕ) ∉ T := by
+        simpa [S] using hnS
+      have :
+          ¬ ¬ ‖MvPowerSeries.coeff (Finsupp.single () n) (f : MvPowerSeries Unit k)‖ < ε := by
+        simpa [T] using this
+      have : ‖MvPowerSeries.coeff (Finsupp.single () n) (f : MvPowerSeries Unit k)‖ < ε :=
+        not_not.mp this
+      simpa using this
+    have hcoeff_le : ‖coeff n f‖ ≤ ε := le_of_lt hcoeff_lt
+    simpa [one_pow] using hcoeff_le
 
 /-- Temp.md Lemma 3.3.2 (bivariate): shrinking the radius makes the weighted Gauss bound small for a restricted
 series with zero constant term. -/
@@ -1040,18 +1166,363 @@ theorem exists_radius_weightedGaussBound2_of_constantCoeff_eq_zero
     {F : MvPowerSeries (Fin 2) k} (hFT : IsTate k (Fin 2) F)
     (hF0 : MvPowerSeries.constantCoeff F = 0) {ε : ℝ} (hε : 0 < ε) :
     ∃ ρ : ℝ, 0 < ρ ∧ ρ ≤ 1 ∧ WeightedGaussBound2 (k := k) ρ ε F := by
-  -- Same argument as the univariate case, using the total degree `e 0 + e 1`.
-  sorry
+  classical
+  -- Coefficients tend to `0`, hence are eventually in the ball of radius `ε`.
+  have hball :
+      ∀ᶠ e : Fin 2 →₀ ℕ in Filter.cofinite, MvPowerSeries.coeff e F ∈ Metric.ball (0 : k) ε := by
+    have hnear : ∀ᶠ x : k in nhds (0 : k), x ∈ Metric.ball (0 : k) ε := by
+      change Metric.ball (0 : k) ε ∈ nhds (0 : k)
+      exact Metric.ball_mem_nhds (0 : k) hε
+    exact hFT.eventually hnear
+  have hsmall :
+      ∀ᶠ e : Fin 2 →₀ ℕ in Filter.cofinite, ‖MvPowerSeries.coeff e F‖ < ε := by
+    refine hball.mono ?_
+    intro e he
+    simpa [Metric.mem_ball, dist_eq_norm] using he
+
+  -- Let `S` be the set of indices with coefficients of size at least `ε`.
+  let S : Set (Fin 2 →₀ ℕ) := {e : Fin 2 →₀ ℕ | ¬ ‖MvPowerSeries.coeff e F‖ < ε}
+  have hSfin : S.Finite := (Filter.eventually_cofinite.1 hsmall)
+  let sFin : Finset (Fin 2 →₀ ℕ) := hSfin.toFinset
+
+  -- The constant coefficient is `0`, hence not exceptional.
+  have h0not : (0 : Fin 2 →₀ ℕ) ∉ sFin := by
+    intro h0
+    have h0S : (0 : Fin 2 →₀ ℕ) ∈ S := (Set.Finite.mem_toFinset hSfin).1 h0
+    have hnot : ¬ ‖MvPowerSeries.coeff (0 : Fin 2 →₀ ℕ) F‖ < ε := by
+      simpa [S] using h0S
+    have hlt : ‖MvPowerSeries.coeff (0 : Fin 2 →₀ ℕ) F‖ < ε := by
+      simpa [MvPowerSeries.coeff_zero_eq_constantCoeff_apply, hF0, hε]
+    exact hnot hlt
+
+  by_cases hs : sFin.Nonempty
+  · -- Nonempty exceptional set: choose `ρ = min 1 (ε / A)` where `A` bounds the exceptional coefficients.
+    let A : ℝ := sFin.sup' hs (fun e => ‖MvPowerSeries.coeff e F‖)
+    have hA_ge : ∀ {e}, e ∈ sFin → ‖MvPowerSeries.coeff e F‖ ≤ A := by
+      intro e he
+      exact Finset.le_sup' (s := sFin) (f := fun e => ‖MvPowerSeries.coeff e F‖) he
+    have hA_pos : 0 < A := by
+      rcases hs with ⟨e, he⟩
+      have heS : e ∈ S := (Set.Finite.mem_toFinset hSfin).1 he
+      have hnot : ¬ ‖MvPowerSeries.coeff e F‖ < ε := by
+        simpa [S] using heS
+      have hε_le : ε ≤ ‖MvPowerSeries.coeff e F‖ := le_of_not_gt hnot
+      have hε_leA : ε ≤ A := le_trans hε_le (hA_ge (e := e) he)
+      exact lt_of_lt_of_le hε hε_leA
+
+    let ρ : ℝ := min 1 (ε / A)
+    have hρ_pos : 0 < ρ := by
+      have hpos : 0 < ε / A := div_pos hε hA_pos
+      have : 0 < min (1 : ℝ) (ε / A) := lt_min (by norm_num) hpos
+      simpa [ρ] using this
+    have hρ_le1 : ρ ≤ 1 := by simp [ρ]
+    have hρ_le : ρ ≤ ε / A := by
+      simpa [ρ] using (min_le_right (1 : ℝ) (ε / A))
+    have hA_ne : A ≠ 0 := ne_of_gt hA_pos
+    have hmul : A * ρ ≤ ε := by
+      have hA0 : 0 ≤ A := le_of_lt hA_pos
+      have : A * ρ ≤ A * (ε / A) := mul_le_mul_of_nonneg_left hρ_le hA0
+      simpa [mul_div_cancel₀ (a := ε) hA_ne] using this
+
+    refine ⟨ρ, hρ_pos, hρ_le1, ?_⟩
+    intro e
+    by_cases he : e ∈ sFin
+    · have he_ne0 : e ≠ 0 := by
+        intro h
+        subst h
+        exact h0not he
+      have hdeg_pos : 0 < e 0 + e 1 := by
+        have : e 0 + e 1 ≠ 0 := by
+          intro hsum
+          have h0 : e 0 = 0 := Nat.eq_zero_of_add_eq_zero_right hsum
+          have h1 : e 1 = 0 := Nat.eq_zero_of_add_eq_zero_left hsum
+          apply he_ne0
+          ext i
+          fin_cases i <;> simp [h0, h1]
+        exact Nat.pos_of_ne_zero this
+      have hpow_le : ρ ^ (e 0 + e 1) ≤ ρ := by
+        rcases Nat.exists_eq_succ_of_ne_zero (ne_of_gt hdeg_pos) with ⟨m, hm⟩
+        rw [hm]
+        have hρ0 : 0 ≤ ρ := le_of_lt hρ_pos
+        have hρm : ρ ^ m ≤ 1 := pow_le_one₀ hρ0 hρ_le1
+        simpa [pow_succ] using mul_le_mul_of_nonneg_right hρm hρ0
+      have hcoeff_leA : ‖MvPowerSeries.coeff e F‖ ≤ A := hA_ge (e := e) he
+      calc
+        ‖MvPowerSeries.coeff e F‖ * ρ ^ (e 0 + e 1) ≤ ‖MvPowerSeries.coeff e F‖ * ρ :=
+          mul_le_mul_of_nonneg_left hpow_le (norm_nonneg _)
+        _ ≤ A * ρ := mul_le_mul_of_nonneg_right hcoeff_leA (le_of_lt hρ_pos)
+        _ ≤ ε := hmul
+    · have heS : e ∉ S := by
+        intro heS
+        have : e ∈ sFin := (Set.Finite.mem_toFinset hSfin).2 heS
+        exact he this
+      have hcoeff_lt : ‖MvPowerSeries.coeff e F‖ < ε := by
+        have : ¬ ¬ ‖MvPowerSeries.coeff e F‖ < ε := by
+          simpa [S] using heS
+        exact not_not.mp this
+      have hcoeff_le : ‖MvPowerSeries.coeff e F‖ ≤ ε := le_of_lt hcoeff_lt
+      have hρ0 : 0 ≤ ρ := le_of_lt hρ_pos
+      have hpow_le1 : ρ ^ (e 0 + e 1) ≤ 1 := pow_le_one₀ hρ0 hρ_le1
+      calc
+        ‖MvPowerSeries.coeff e F‖ * ρ ^ (e 0 + e 1) ≤ ‖MvPowerSeries.coeff e F‖ * 1 :=
+          mul_le_mul_of_nonneg_left hpow_le1 (norm_nonneg _)
+        _ ≤ ε := by simpa using hcoeff_le
+  · -- Empty exceptional set: take `ρ = 1`.
+    have hs_empty : sFin = ∅ := Finset.not_nonempty_iff_eq_empty.1 hs
+    refine ⟨1, by simp, le_rfl, ?_⟩
+    intro e
+    have heS : e ∉ S := by
+      intro heS
+      have : e ∈ sFin := (Set.Finite.mem_toFinset hSfin).2 heS
+      simpa [hs_empty] using this
+    have hcoeff_lt : ‖MvPowerSeries.coeff e F‖ < ε := by
+      have : ¬ ¬ ‖MvPowerSeries.coeff e F‖ < ε := by
+        simpa [S] using heS
+      exact not_not.mp this
+    have hcoeff_le : ‖MvPowerSeries.coeff e F‖ ≤ ε := le_of_lt hcoeff_lt
+    have :
+        ‖MvPowerSeries.coeff e F‖ * (1 : ℝ) ^ (e 0 + e 1) ≤ ε * (1 : ℝ) ^ (e 0 + e 1) :=
+      mul_le_mul_of_nonneg_right hcoeff_le (by positivity)
+    simpa [one_pow] using this
 
 /-- Temp.md Lemma 3.3.3: substitution does not increase the weighted Gauss bound, provided the substituted
 series stay inside the same closed disc. -/
+lemma weightedGaussBound1_one {ρ : ℝ} :
+    WeightedGaussBound1 (k := k) ρ (1 : ℝ) (1 : k⟦X⟧) := by
+  intro n
+  by_cases hn : n = 0
+  · subst hn
+    simp [WeightedGaussBound1]
+  · simp [WeightedGaussBound1, PowerSeries.coeff_one, hn]
+
+lemma weightedGaussBound1_mul {ρ C₁ C₂ : ℝ} (hρ : 0 < ρ) {f g : k⟦X⟧}
+    (hf : WeightedGaussBound1 (k := k) ρ C₁ f) (hg : WeightedGaussBound1 (k := k) ρ C₂ g) :
+    WeightedGaussBound1 (k := k) ρ (C₁ * C₂) (f * g) := by
+  classical
+  intro n
+  have hρn_pos : 0 < ρ ^ n := pow_pos hρ n
+  have hC₁0 : 0 ≤ C₁ := (norm_nonneg (PowerSeries.coeff 0 f)).trans (by simpa using hf 0)
+  have hC₂0 : 0 ≤ C₂ := (norm_nonneg (PowerSeries.coeff 0 g)).trans (by simpa using hg 0)
+  have hC0 : 0 ≤ (C₁ * C₂) / ρ ^ n :=
+    div_nonneg (mul_nonneg hC₁0 hC₂0) (le_of_lt hρn_pos)
+  -- Coefficient formula for multiplication and ultrametric triangle inequality.
+  rw [PowerSeries.coeff_mul]
+  have hterm :
+      ∀ p ∈ Finset.antidiagonal n,
+        ‖coeff p.1 f * coeff p.2 g‖ ≤ (C₁ * C₂) / ρ ^ n := by
+    intro p hp
+    have hp_add : p.1 + p.2 = n := Finset.mem_antidiagonal.mp hp
+    have hf' : ‖coeff p.1 f‖ ≤ C₁ / ρ ^ p.1 := by
+      have hρp_pos : 0 < ρ ^ p.1 := pow_pos hρ p.1
+      exact (le_div_iff₀ hρp_pos).2 (by simpa [mul_assoc] using hf p.1)
+    have hg' : ‖coeff p.2 g‖ ≤ C₂ / ρ ^ p.2 := by
+      have hρp_pos : 0 < ρ ^ p.2 := pow_pos hρ p.2
+      exact (le_div_iff₀ hρp_pos).2 (by simpa [mul_assoc] using hg p.2)
+    have hC₁_div0 : 0 ≤ C₁ / ρ ^ p.1 := div_nonneg hC₁0 (le_of_lt (pow_pos hρ _))
+    have hmul :
+        ‖coeff p.1 f * coeff p.2 g‖ ≤ (C₁ / ρ ^ p.1) * (C₂ / ρ ^ p.2) := by
+      calc
+        ‖coeff p.1 f * coeff p.2 g‖ ≤ ‖coeff p.1 f‖ * ‖coeff p.2 g‖ := norm_mul_le _ _
+        _ ≤ (C₁ / ρ ^ p.1) * (C₂ / ρ ^ p.2) :=
+          mul_le_mul hf' hg' (norm_nonneg _) hC₁_div0
+    -- Simplify the RHS to `(C₁ * C₂) / ρ^n`.
+    have hρpow_ne : (ρ ^ p.1) * (ρ ^ p.2) ≠ 0 := by
+      have : 0 < (ρ ^ p.1) * (ρ ^ p.2) :=
+        mul_pos (pow_pos hρ _) (pow_pos hρ _)
+      exact ne_of_gt this
+    have hρn_ne : ρ ^ n ≠ 0 := ne_of_gt hρn_pos
+    have :
+        (C₁ / ρ ^ p.1) * (C₂ / ρ ^ p.2) = (C₁ * C₂) / ρ ^ n := by
+      -- Clear denominators using `pow_add` and commutativity.
+      -- We work in `ℝ`, so `simp` can handle this.
+      -- `hp_add` allows rewriting `ρ^n` as `ρ^(p.1+p.2)`.
+      -- Then `pow_add` gives `ρ^(p.1+p.2) = ρ^p.1 * ρ^p.2`.
+      calc
+        (C₁ / ρ ^ p.1) * (C₂ / ρ ^ p.2)
+            = (C₁ * C₂) / ((ρ ^ p.1) * (ρ ^ p.2)) := by
+                field_simp [hρpow_ne]
+        _ = (C₁ * C₂) / (ρ ^ (p.1 + p.2)) := by
+                simp [pow_add, mul_comm, mul_left_comm, mul_assoc]
+        _ = (C₁ * C₂) / (ρ ^ n) := by
+                simpa [hp_add]
+    simpa [this] using hmul
+  have hsum :
+      ‖∑ p ∈ Finset.antidiagonal n, coeff p.1 f * coeff p.2 g‖ ≤ (C₁ * C₂) / ρ ^ n :=
+    IsUltrametricDist.norm_sum_le_of_forall_le_of_nonneg hC0 hterm
+  -- Multiply by `ρ^n` to obtain the desired bound.
+  have :=
+      mul_le_mul_of_nonneg_right hsum (le_of_lt hρn_pos)
+  -- `(C₁ * C₂) / ρ^n * ρ^n = C₁ * C₂` since `ρ^n ≠ 0`.
+  simpa [WeightedGaussBound1, div_eq_mul_inv, hρn_pos.ne'] using this
+
+lemma weightedGaussBound1_pow {ρ C : ℝ} (hρ : 0 < ρ) {f : k⟦X⟧}
+    (hf : WeightedGaussBound1 (k := k) ρ C f) :
+    ∀ n : ℕ, WeightedGaussBound1 (k := k) ρ (C ^ n) (f ^ n) := by
+  classical
+  intro n
+  induction n with
+  | zero =>
+      simpa using (weightedGaussBound1_one (k := k) (ρ := ρ))
+  | succ n ih =>
+      simpa [pow_succ] using
+        (weightedGaussBound1_mul (k := k) (ρ := ρ) (C₁ := C ^ n) (C₂ := C) hρ ih hf)
+
 theorem weightedGaussBound1_subst_of_weightedGaussBound2
     {ρ C : ℝ} {F : MvPowerSeries (Fin 2) k} (hF : WeightedGaussBound2 (k := k) ρ C F)
     {p q : k⟦X⟧} (ha : MvPowerSeries.HasSubst (substMap1 p q))
     (hp : WeightedGaussBound1 (k := k) ρ ρ p) (hq : WeightedGaussBound1 (k := k) ρ ρ q) :
     WeightedGaussBound1 (k := k) ρ C (MvPowerSeries.subst (substMap1 p q) F) := by
-  -- Standard Gauss-norm estimate for substitution on a closed disc.
-  sorry
+  classical
+  have hC0 : 0 ≤ C := (norm_nonneg (MvPowerSeries.constantCoeff F)).trans (by simpa using hF 0)
+  have hρ0 : 0 ≤ ρ := (norm_nonneg (PowerSeries.coeff 0 p)).trans (by simpa using hp 0)
+  by_cases hρ : ρ = 0
+  · subst hρ
+    intro n
+    by_cases hn : n = 0
+    · subst hn
+      -- The constant coefficient is preserved by substitution when `p(0)=q(0)=0`.
+      have hp0 : PowerSeries.constantCoeff p = 0 := by
+        have : ‖PowerSeries.constantCoeff p‖ ≤ (0 : ℝ) := by simpa using hp 0
+        simpa [norm_eq_zero] using le_antisymm this (by positivity : (0 : ℝ) ≤ ‖PowerSeries.constantCoeff p‖)
+      have hq0 : PowerSeries.constantCoeff q = 0 := by
+        have : ‖PowerSeries.constantCoeff q‖ ≤ (0 : ℝ) := by simpa using hq 0
+        simpa [norm_eq_zero] using le_antisymm this (by positivity : (0 : ℝ) ≤ ‖PowerSeries.constantCoeff q‖)
+      have hconst :
+          PowerSeries.constantCoeff (MvPowerSeries.subst (substMap1 p q) F) =
+            MvPowerSeries.constantCoeff F := by
+        classical
+        have hp0' : MvPowerSeries.constantCoeff p = 0 := by
+          simpa using hp0
+        have hq0' : MvPowerSeries.constantCoeff q = 0 := by
+          simpa using hq0
+        have ha0 : ∀ i : Fin 2, MvPowerSeries.constantCoeff (substMap1 p q i) = 0 := by
+          intro i
+          fin_cases i
+          · simpa [substMap1] using hp0'
+          · simpa [substMap1] using hq0'
+        -- Expand the constant coefficient as a `finsum` and observe only `d = 0` contributes.
+        change
+            MvPowerSeries.constantCoeff (MvPowerSeries.subst (substMap1 p q) F) =
+              MvPowerSeries.constantCoeff F
+        rw [MvPowerSeries.constantCoeff_subst ha F]
+        rw [finsum_eq_single (a := (0 : Fin 2 →₀ ℕ))]
+        · simp [MvPowerSeries.coeff_zero_eq_constantCoeff_apply]
+        · intro d hd
+          have : MvPowerSeries.constantCoeff (d.prod fun s e => (substMap1 p q s) ^ e) = 0 := by
+            classical
+            obtain ⟨i, hi⟩ : ∃ i : Fin 2, d i ≠ 0 := by
+              by_contra! hc
+              exact hd (Finsupp.ext hc)
+            simp [map_finsuppProd, Finsupp.prod]
+            refine Finset.prod_eq_zero (s := d.support)
+              (f := fun j => MvPowerSeries.constantCoeff (substMap1 p q j) ^ d j) (i := i) ?_ ?_
+            · simpa [Finsupp.mem_support_iff] using hi
+            · simpa [ha0 i, zero_pow hi]
+          -- Rewrite first so `simp` doesn't expand the product before using `this`.
+          rw [this]
+          simp
+      -- Now use the bivariate bound at `e=0`.
+      simpa [WeightedGaussBound1, hconst] using (hF 0)
+    · -- For `n>0`, the left-hand side is `0`.
+      have hpow : (0 : ℝ) ^ n = 0 := by
+        exact zero_pow (M₀ := ℝ) hn
+      simpa [WeightedGaussBound1, hpow] using (show (0 : ℝ) ≤ C from hC0)
+  · have hρpos : 0 < ρ := lt_of_le_of_ne hρ0 (Ne.symm hρ)
+    intro n
+    -- Rewrite the coefficient using the substitution formula (finite `finsum`).
+    -- We work with `MvPowerSeries.coeff (Finsupp.single () n)` for uniformity.
+    have hρn_pos : 0 < ρ ^ n := pow_pos hρpos n
+    -- Coefficient identity.
+    have hcoeff :
+        coeff n (MvPowerSeries.subst (substMap1 p q) F) =
+          finsum (fun d : Fin 2 →₀ ℕ =>
+            MvPowerSeries.coeff d F *
+              coeff n (d.prod fun s m => (substMap1 p q s) ^ m)) := by
+      -- `MvPowerSeries.coeff_subst` specialized to the univariate index `Finsupp.single () n`.
+      -- In the univariate case, `coeff n` is the same as `MvPowerSeries.coeff (single () n)`.
+      simpa [PowerSeries.coeff, smul_eq_mul] using
+        (MvPowerSeries.coeff_subst (a := substMap1 p q) ha (f := F) (e := (Finsupp.single () n)))
+    -- Turn the `finsum` into a finite sum and apply the ultrametric bound.
+    set g : (Fin 2 →₀ ℕ) → k := fun d =>
+      MvPowerSeries.coeff d F * coeff n (d.prod fun s m => (substMap1 p q s) ^ m)
+    have hfinite : (Function.support g).Finite := by
+      simpa [g, smul_eq_mul] using
+        (MvPowerSeries.coeff_subst_finite (a := substMap1 p q) ha (f := F) (e := Finsupp.single () n))
+    -- Uniform bound for each term.
+    have hterm :
+        ∀ d ∈ Function.support g, ‖g d‖ ≤ C / ρ ^ n := by
+      intro d hd
+      have hd0 : d.prod (fun i m => ρ ^ m) = ρ ^ (d 0 + d 1) := by
+        -- `d.prod` over `Fin 2` is the product of the two powers.
+        classical
+        -- Expand as a product over all indices.
+        calc
+          d.prod (fun i m => ρ ^ m) = ∏ i : Fin 2, ρ ^ (d i) := by
+              simpa using (Finsupp.prod_fintype d (fun i m => ρ ^ m) (fun _ => by simp))
+          _ = ρ ^ (d 0) * ρ ^ (d 1) := by simp
+          _ = ρ ^ (d 0 + d 1) := by simp [pow_add, mul_comm, mul_left_comm, mul_assoc]
+      have hF_d : ‖MvPowerSeries.coeff d F‖ ≤ C / ρ ^ (d 0 + d 1) := by
+        have hρd_pos : 0 < ρ ^ (d 0 + d 1) := pow_pos hρpos (d 0 + d 1)
+        exact (le_div_iff₀ hρd_pos).2 (by simpa [mul_assoc] using hF d)
+      have hprod_bound :
+          WeightedGaussBound1 (k := k) ρ (ρ ^ (d 0 + d 1))
+            (d.prod fun s m => (substMap1 p q s) ^ m) := by
+        -- Reduce to the explicit product `p^(d0) * q^(d1)`.
+        have hpPow :
+            WeightedGaussBound1 (k := k) ρ (ρ ^ (d 0)) (p ^ (d 0)) := by
+          simpa using (weightedGaussBound1_pow (k := k) (ρ := ρ) (C := ρ) hρpos hp (d 0))
+        have hqPow :
+            WeightedGaussBound1 (k := k) ρ (ρ ^ (d 1)) (q ^ (d 1)) := by
+          simpa using (weightedGaussBound1_pow (k := k) (ρ := ρ) (C := ρ) hρpos hq (d 1))
+        have hmul :
+            WeightedGaussBound1 (k := k) ρ (ρ ^ (d 0) * ρ ^ (d 1)) (p ^ (d 0) * q ^ (d 1)) :=
+          weightedGaussBound1_mul (k := k) (ρ := ρ) (C₁ := ρ ^ (d 0)) (C₂ := ρ ^ (d 1)) hρpos hpPow hqPow
+        -- Rewrite `d.prod` and the bound.
+        simpa [Finsupp.prod_fintype, substMap1, pow_add, mul_comm, mul_left_comm, mul_assoc] using hmul
+      have hcoeffProd :
+          ‖coeff n (d.prod fun s m => (substMap1 p q s) ^ m)‖ ≤ ρ ^ (d 0 + d 1) / ρ ^ n := by
+        have hρn_pos' : 0 < ρ ^ n := pow_pos hρpos n
+        exact (le_div_iff₀ hρn_pos').2 (by simpa [mul_assoc] using hprod_bound n)
+      have hρn_ne : ρ ^ n ≠ 0 := ne_of_gt hρn_pos
+      have hC_div0 : 0 ≤ C / ρ ^ n := div_nonneg hC0 (le_of_lt hρn_pos)
+      -- Now bound the term `g d`.
+      have : ‖g d‖ ≤ C / ρ ^ n := by
+        calc
+          ‖g d‖ = ‖MvPowerSeries.coeff d F * coeff n (d.prod fun s m => (substMap1 p q s) ^ m)‖ := by
+              simp [g]
+          _ ≤ ‖MvPowerSeries.coeff d F‖ * ‖coeff n (d.prod fun s m => (substMap1 p q s) ^ m)‖ :=
+              norm_mul_le _ _
+          _ ≤ (C / ρ ^ (d 0 + d 1)) * (ρ ^ (d 0 + d 1) / ρ ^ n) := by
+              refine mul_le_mul hF_d hcoeffProd (norm_nonneg _) ?_
+              exact div_nonneg hC0 (le_of_lt (pow_pos hρpos _))
+          _ = (C / ρ ^ n) := by
+              -- Simplify using `field_simp`.
+              have hρd_ne : ρ ^ (d 0 + d 1) ≠ 0 := ne_of_gt (pow_pos hρpos _)
+              field_simp [hρd_ne, hρn_ne, mul_comm, mul_left_comm, mul_assoc]
+        -- done
+      simpa [Function.mem_support, g] using this
+    -- Apply the ultrametric inequality to the finite sum.
+    have hsum :
+        ‖∑ d ∈ hfinite.toFinset, g d‖ ≤ C / ρ ^ n := by
+      refine IsUltrametricDist.norm_sum_le_of_forall_le_of_nonneg ?_ ?_
+      · exact div_nonneg hC0 (le_of_lt hρn_pos)
+      · intro d hd
+        have : d ∈ Function.support g := by
+          simpa [Set.Finite.mem_toFinset] using (Set.Finite.mem_toFinset hfinite).1 hd
+        exact hterm d this
+    -- Relate back to the coefficient and multiply by `ρ^n`.
+    have hcoeff_sum :
+        ‖coeff n (MvPowerSeries.subst (substMap1 p q) F)‖ ≤ C / ρ ^ n := by
+      -- Rewrite the coefficient using `hcoeff`, then use the bound `hsum`.
+      have hcoeff_norm := congrArg (fun x => ‖x‖) hcoeff
+      -- The RHS is exactly our `g`.
+      have hsum' : ‖finsum g‖ ≤ C / ρ ^ n := by
+        -- Rewrite `finsum` as a finite sum over the support.
+        simpa [finsum_eq_sum g hfinite] using hsum
+      -- Conclude by rewriting the LHS using `hcoeff_norm`.
+      exact (le_of_eq (by simpa [g] using hcoeff_norm)).trans hsum'
+    have := mul_le_mul_of_nonneg_right hcoeff_sum (le_of_lt hρn_pos)
+    simpa [WeightedGaussBound1, div_eq_mul_inv, hρn_pos.ne'] using this
 
 theorem weightedGaussBound_qIter_iterate
     (P Q : TateAlgebra2 k) {c ρ : ℝ}
@@ -1094,7 +1565,116 @@ theorem weightedGaussBound1_unit_of_sub_lt_one
     WeightedGaussBound1 (k := k) ρ (1 : ℝ) u ∧
       WeightedGaussBound1 (k := k) ρ (1 : ℝ) u⁻¹ := by
   -- Temp.md §3.3(i): geometric series in the nonarchimedean Gauss norm.
-  sorry
+  classical
+  have hu' : WeightedGaussBound1 (k := k) ρ (1 : ℝ) u := by
+    intro n
+    by_cases hn : n = 0
+    · subst hn
+      simp [WeightedGaussBound1, hu0]
+    · have hcoeff : ‖coeff n u‖ * ρ ^ n ≤ ε := by
+        -- For `n>0`, the `n`-th coefficient of `u` equals that of `u-1`.
+        simpa [WeightedGaussBound1, PowerSeries.coeff_one, hn] using hu n
+      exact hcoeff.trans (le_of_lt hε)
+  have huinv' : WeightedGaussBound1 (k := k) ρ (1 : ℝ) u⁻¹ := by
+    -- Strong induction on the coefficient index using the recursive formula for inverse coefficients.
+    intro n
+    refine Nat.strong_induction_on n ?_
+    intro n ih
+    by_cases hn : n = 0
+    · subst hn
+      -- Base case: the constant coefficient of `u⁻¹` is `(constantCoeff u)⁻¹ = 1`.
+      change ‖PowerSeries.coeff 0 u⁻¹‖ * ρ ^ 0 ≤ (1 : ℝ)
+      simp [PowerSeries.coeff_zero_eq_constantCoeff, PowerSeries.constantCoeff_inv, hu0]
+    · have hn0 : n ≠ 0 := hn
+      have hρn_pos : 0 < ρ ^ n := pow_pos hρ n
+      -- Use the recursive formula for the inverse coefficients.
+      have hcoeffInv :
+          (coeff n) u⁻¹ =
+            -(PowerSeries.constantCoeff u)⁻¹ *
+              ∑ x ∈ Finset.antidiagonal n,
+                if x.2 < n then coeff x.1 u * coeff x.2 u⁻¹ else 0 := by
+        simpa [hn] using (PowerSeries.coeff_inv (n := n) u)
+      -- Bound the inner sum.
+      have hinner :
+          ‖∑ x ∈ Finset.antidiagonal n, if x.2 < n then coeff x.1 u * coeff x.2 u⁻¹ else 0‖ ≤
+            ε / ρ ^ n := by
+        have hε0 : 0 ≤ ε :=
+          (norm_nonneg (PowerSeries.coeff 0 (u - 1))).trans (by simpa using hu 0)
+        have hC0 : 0 ≤ ε / ρ ^ n := div_nonneg hε0 (le_of_lt hρn_pos)
+        refine IsUltrametricDist.norm_sum_le_of_forall_le_of_nonneg hC0 ?_
+        intro x hx
+        by_cases hx2 : x.2 < n
+        · -- Here `x.1 > 0`, so the coefficient of `u` is controlled by `u-1`.
+          have hx_add : x.1 + x.2 = n := Finset.mem_antidiagonal.mp hx
+          have hx1_pos : 0 < x.1 := by
+            have hx1_eq : x.1 = n - x.2 := Nat.eq_sub_of_add_eq hx_add
+            have : 0 < n - x.2 := Nat.sub_pos_of_lt hx2
+            simpa [hx1_eq] using this
+          have hx1_ne0 : x.1 ≠ 0 := Nat.ne_of_gt hx1_pos
+          have hu_x1 :
+              ‖coeff x.1 u‖ ≤ ε / ρ ^ x.1 := by
+            have hρx1_pos : 0 < ρ ^ x.1 := pow_pos hρ x.1
+            exact (le_div_iff₀ hρx1_pos).2 (by
+              -- `hu x.1` bounds `coeff x.1 (u-1)`; simplify.
+              simpa [WeightedGaussBound1, PowerSeries.coeff_one, hx1_ne0, mul_assoc] using hu x.1)
+          have huinv_x2 :
+              ‖coeff x.2 u⁻¹‖ ≤ (1 : ℝ) / ρ ^ x.2 := by
+            have hρx2_pos : 0 < ρ ^ x.2 := pow_pos hρ x.2
+            have hx2_lt : x.2 < n := hx2
+            have hx2_bound : ‖coeff x.2 u⁻¹‖ * ρ ^ x.2 ≤ (1 : ℝ) := ih x.2 hx2_lt
+            exact (le_div_iff₀ hρx2_pos).2 (by simpa [mul_assoc] using hx2_bound)
+          have hmul :
+              ‖coeff x.1 u * coeff x.2 u⁻¹‖ ≤ (ε / ρ ^ x.1) * ((1 : ℝ) / ρ ^ x.2) := by
+            have hε_div0 : 0 ≤ ε / ρ ^ x.1 := by
+              have hε0 : 0 ≤ ε :=
+                (norm_nonneg (PowerSeries.coeff 0 (u - 1))).trans (by simpa using hu 0)
+              exact div_nonneg hε0 (le_of_lt (pow_pos hρ _))
+            calc
+              ‖coeff x.1 u * coeff x.2 u⁻¹‖ ≤ ‖coeff x.1 u‖ * ‖coeff x.2 u⁻¹‖ := norm_mul_le _ _
+              _ ≤ (ε / ρ ^ x.1) * ((1 : ℝ) / ρ ^ x.2) :=
+                mul_le_mul hu_x1 huinv_x2 (norm_nonneg _) hε_div0
+          -- Simplify the RHS using `x.1 + x.2 = n`.
+          have hρpow_ne : (ρ ^ x.1) * (ρ ^ x.2) ≠ 0 := by
+            have : 0 < (ρ ^ x.1) * (ρ ^ x.2) := mul_pos (pow_pos hρ _) (pow_pos hρ _)
+            exact ne_of_gt this
+          have hdiv :
+              (ε / ρ ^ x.1) * ((1 : ℝ) / ρ ^ x.2) = ε / ρ ^ n := by
+            calc
+              (ε / ρ ^ x.1) * ((1 : ℝ) / ρ ^ x.2) = ε / ((ρ ^ x.1) * (ρ ^ x.2)) := by
+                field_simp [hρpow_ne]
+              _ = ε / (ρ ^ (x.1 + x.2)) := by
+                simp [pow_add]
+              _ = ε / (ρ ^ n) := by simpa [hx_add]
+          -- Use `hdiv` to reach the desired bound.
+          have hmul' : ‖coeff x.1 u * coeff x.2 u⁻¹‖ ≤ ε / ρ ^ n :=
+            le_trans hmul (le_of_eq hdiv)
+          simpa [hx2] using hmul'
+        · -- The term is `0`.
+          simpa [hx2] using hC0
+      -- Now bound `‖coeff n u⁻¹‖ * ρ^n`.
+      have hnorm :
+          ‖coeff n u⁻¹‖ * ρ ^ n ≤ ε := by
+        have hcoeffEq : ‖coeff n u⁻¹‖ =
+            ‖∑ x ∈ Finset.antidiagonal n, if x.2 < n then coeff x.1 u * coeff x.2 u⁻¹ else 0‖ := by
+          -- From `hcoeffInv` and `hu0`.
+          -- The scalar has norm `1`, and multiplication by `-1` is an isometry.
+          -- We keep it simple by `simp`.
+          simp [hcoeffInv, hu0]
+        -- Multiply the bound on the inner sum by `ρ^n`.
+        have hmul :=
+            mul_le_mul_of_nonneg_right hinner (le_of_lt hρn_pos)
+        have hsum :
+            ‖∑ x ∈ Finset.antidiagonal n, if x.2 < n then coeff x.1 u * coeff x.2 u⁻¹ else 0‖ *
+                ρ ^ n ≤
+              ε := by
+          have hρn_ne : (ρ ^ n) ≠ 0 := pow_ne_zero n (ne_of_gt hρ)
+          have : (ε / ρ ^ n) * ρ ^ n = ε := by
+            field_simp [hρn_ne]
+          simpa [this] using hmul
+        simpa [hcoeffEq] using hsum
+      -- Finally, `ε < 1`.
+      exact hnorm.trans (le_of_lt hε)
+  exact ⟨hu', huinv'⟩
 
 /-! #### Implicit-function / Weierstrass (degree `1`) -/
 
@@ -1102,7 +1682,109 @@ theorem weightedGaussBound1_unit_of_sub_lt_one
 def IsXOnly (F : MvPowerSeries (Fin 2) k) : Prop :=
   ∀ e : Fin 2 →₀ ℕ, e 1 ≠ 0 → MvPowerSeries.coeff e F = 0
 
-/-- Temp.md Lemma 3.3.5: if `∂K/∂Y (0,0)=1`, then `K(X,Y) = (Y - Φ(X)) * W(X,Y)` with `W(0,0)=1`. -/
+/-!
+`PowerSeries.exists_isWeierstrassFactorization` (used below) requires that the coefficient ring is complete
+with respect to its maximal ideal. For `k⟦X⟧` this is true by construction: congruence modulo `(X^n)` is
+exactly agreement of the first `n` coefficients.
+-/
+
+private lemma mem_span_X_pow_iff_dvd (n : ℕ) (φ : PowerSeries k) :
+    φ ∈ (Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) ^ n ↔
+      (PowerSeries.X : PowerSeries k) ^ n ∣ φ := by
+  simp [Ideal.span_singleton_pow, Ideal.mem_span_singleton]
+
+private instance isAdicComplete_span_X : IsAdicComplete
+    (Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) (PowerSeries k) where
+  haus' := by
+    intro x hx
+    -- Show all coefficients vanish using divisibility by `X^(n+1)` for each `n`.
+    apply PowerSeries.ext
+    intro n
+    have hxmem : x ∈ (Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) ^ (n + 1) := by
+      have : x - 0 ∈
+          ((Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) ^ (n + 1) •
+            (⊤ : Submodule (PowerSeries k) (PowerSeries k))) :=
+        (SModEq.sub_mem).1 (hx (n + 1))
+      have : x ∈
+          ((Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) ^ (n + 1) •
+            (⊤ : Submodule (PowerSeries k) (PowerSeries k))) := by
+        simpa using this
+      simpa [smul_eq_mul, Ideal.mul_top] using this
+    have hxdiv :
+        (PowerSeries.X : PowerSeries k) ^ (n + 1) ∣ x :=
+      (mem_span_X_pow_iff_dvd (k := k) (n := n + 1) x).1 hxmem
+    have hcoeff0 :=
+      (PowerSeries.X_pow_dvd_iff (n := n + 1) (φ := x)).1 hxdiv
+    exact hcoeff0 n (Nat.lt_succ_self n)
+  prec' := by
+    intro f hf
+    classical
+    -- Define the limit series by the stabilized coefficients.
+    let L : PowerSeries k := PowerSeries.mk (fun n : ℕ => PowerSeries.coeff n (f (n + 1)))
+    refine ⟨L, ?_⟩
+    intro n
+    -- It suffices to show `f n - L ∈ (X)^n`, i.e. `X^n ∣ f n - L`.
+    have hXdvd : (PowerSeries.X : PowerSeries k) ^ n ∣ (f n - L) := by
+      refine (PowerSeries.X_pow_dvd_iff (n := n) (φ := (f n - L))).2 ?_
+      intro m hm
+      have hmle : m + 1 ≤ n := Nat.succ_le_of_lt hm
+      have hmn :
+          f (m + 1) ≡ f n [SMOD
+            ((Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) ^ (m + 1) •
+              (⊤ : Submodule (PowerSeries k) (PowerSeries k)))] :=
+        hf (m := m + 1) (n := n) hmle
+      have hdiffmem :
+          f (m + 1) - f n ∈ (Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) ^ (m + 1) := by
+        have : f (m + 1) - f n ∈
+            ((Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) ^ (m + 1) •
+              (⊤ : Submodule (PowerSeries k) (PowerSeries k))) :=
+          (SModEq.sub_mem).1 hmn
+        simpa [smul_eq_mul, Ideal.mul_top] using this
+      have hdiffdiv :
+          (PowerSeries.X : PowerSeries k) ^ (m + 1) ∣ (f (m + 1) - f n) :=
+        (mem_span_X_pow_iff_dvd (k := k) (n := m + 1) (f (m + 1) - f n)).1 hdiffmem
+      have hcoeffdiff0 :
+          PowerSeries.coeff m (f (m + 1) - f n) = 0 := by
+        have hcoeff0 :=
+          (PowerSeries.X_pow_dvd_iff (n := m + 1) (φ := f (m + 1) - f n)).1 hdiffdiv
+        exact hcoeff0 m (Nat.lt_succ_self m)
+      have hcoeff_eq :
+          PowerSeries.coeff m (f n) = PowerSeries.coeff m (f (m + 1)) := by
+        have : PowerSeries.coeff m (f (m + 1)) - PowerSeries.coeff m (f n) = 0 := by
+          simpa using hcoeffdiff0
+        exact (sub_eq_zero.mp this).symm
+      -- Now compute the `m`-th coefficient of `f n - L`.
+      have hcoeffL : PowerSeries.coeff m L = PowerSeries.coeff m (f (m + 1)) := by
+        simp [L, PowerSeries.coeff_mk]
+      calc
+        PowerSeries.coeff m (f n - L)
+            = PowerSeries.coeff m (f n) - PowerSeries.coeff m L := by simp
+        _ = PowerSeries.coeff m (f n) - PowerSeries.coeff m (f (m + 1)) := by
+            simp [hcoeffL]
+        _ = 0 := by simp [hcoeff_eq]
+    have hmem : f n - L ∈ (Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) ^ n := by
+      -- Convert divisibility by `X^n` into membership in `(X)^n`.
+      have : f n - L ∈ Ideal.span ({(PowerSeries.X : PowerSeries k) ^ n} : Set (PowerSeries k)) :=
+        (Ideal.mem_span_singleton).2 hXdvd
+      simpa [Ideal.span_singleton_pow] using this
+    have hmem' :
+        f n - L ∈
+          ((Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) ^ n •
+            (⊤ : Submodule (PowerSeries k) (PowerSeries k))) := by
+      simpa [smul_eq_mul, Ideal.mul_top] using hmem
+    exact (SModEq.sub_mem).2 hmem'
+
+-- The maximal ideal of `k⟦X⟧` is generated by `X`, so the previous instance gives the desired one.
+private instance isAdicComplete_maximalIdeal_powerSeries :
+    IsAdicComplete (IsLocalRing.maximalIdeal (PowerSeries k)) (PowerSeries k) := by
+  -- `PowerSeries.maximalIdeal_eq_span_X` rewrites the ideal.
+  simpa [PowerSeries.maximalIdeal_eq_span_X] using
+    (show IsAdicComplete (Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) (PowerSeries k) from
+      (by infer_instance :
+        IsAdicComplete (Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) (PowerSeries k)))
+
+-- Temp.md Lemma 3.3.5: if `∂K/∂Y (0,0)=1`, then `K(X,Y) = (Y - Φ(X)) * W(X,Y)` with `W(0,0)=1`.
+set_option maxHeartbeats 800000 in
 theorem exists_implicitFunction_weierstrass_degreeOne
     {K : MvPowerSeries (Fin 2) k}
     (hK0 : MvPowerSeries.constantCoeff K = 0)
@@ -1115,7 +1797,744 @@ theorem exists_implicitFunction_weierstrass_degreeOne
             MvPowerSeries.constantCoeff W = 1 ∧
               K = (MvPowerSeries.X 1 - Phi) * W := by
   -- Nonarchimedean analytic implicit function theorem / Weierstrass division (degree `1` case).
-  sorry
+  classical
+  -- View `K(X,Y)` as a power series in `Y` with coefficients in `k⟦X⟧`.
+  let g : (PowerSeries k)⟦X⟧ :=
+    PowerSeries.mk (fun j : ℕ =>
+      PowerSeries.mk (fun i : ℕ =>
+        MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) i + Finsupp.single 1 j) K))
+  have hcoeff_g : ∀ i j : ℕ,
+      PowerSeries.coeff i (PowerSeries.coeff j g) =
+        MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) i + Finsupp.single 1 j) K := by
+    intro i j
+    simp [g]
+
+  -- The `Y`-linear coefficient has constant term `1`, hence is a unit; therefore the reduction of `g`
+  -- modulo the maximal ideal is nonzero, so Weierstrass preparation applies.
+  have hg_ne :
+      (PowerSeries.map (IsLocalRing.residue (PowerSeries k)) g) ≠ 0 := by
+    -- It suffices to show the coefficient of `X^1` is nonzero in the residue field.
+    have hunit :
+        IsUnit (PowerSeries.coeff 1 g : PowerSeries k) := by
+      -- `constantCoeff (coeff 1 g) = coeff (0,1) K = 1`.
+      have hconst :
+          PowerSeries.constantCoeff (PowerSeries.coeff 1 g : PowerSeries k) = 1 := by
+        -- `constantCoeff` is `coeff 0` for univariate series.
+        simpa [PowerSeries.coeff_zero_eq_constantCoeff_apply] using
+          (hcoeff_g 0 1).trans (by simpa using hKy)
+      -- Use the standard unit criterion for power series.
+      exact (PowerSeries.isUnit_iff_constantCoeff).2 (hconst ▸ isUnit_one)
+    have hcoeff1 :
+        PowerSeries.coeff 1 (PowerSeries.map (IsLocalRing.residue (PowerSeries k)) g) ≠ 0 := by
+      -- Coefficients commute with `map`.
+      have :
+          PowerSeries.coeff 1 (PowerSeries.map (IsLocalRing.residue (PowerSeries k)) g) =
+            IsLocalRing.residue (PowerSeries k) (PowerSeries.coeff 1 g) := by
+        simpa using (PowerSeries.coeff_map (IsLocalRing.residue (PowerSeries k)) 1 g)
+      -- The image of a unit is a unit, hence nonzero.
+      have hunit' :
+          IsUnit (IsLocalRing.residue (PowerSeries k) (PowerSeries.coeff 1 g)) :=
+        hunit.map (IsLocalRing.residue (PowerSeries k))
+      simpa [this] using hunit'.ne_zero
+    -- A power series is nonzero iff some coefficient is nonzero.
+    exact
+      (PowerSeries.exists_coeff_ne_zero_iff_ne_zero (φ := PowerSeries.map (IsLocalRing.residue (PowerSeries k)) g)).1
+        ⟨1, hcoeff1⟩
+
+  -- Apply Weierstrass preparation in the `Y`-variable.
+  obtain ⟨f, h, Hwh⟩ :=
+    PowerSeries.exists_isWeierstrassFactorization (A := PowerSeries k) (g := g) hg_ne
+
+  -- The reduction of `g` modulo the maximal ideal has order exactly `1`.
+  have horder :
+      (PowerSeries.map (IsLocalRing.residue (PowerSeries k)) g).order = (1 : ℕ) := by
+    -- Coefficient `0` vanishes because `K(0,0)=0`, hence `coeff 0 g` lies in the maximal ideal.
+    have hcoeff0 :
+        PowerSeries.coeff 0 (PowerSeries.map (IsLocalRing.residue (PowerSeries k)) g) = 0 := by
+      have hconst0 :
+          PowerSeries.constantCoeff (PowerSeries.coeff 0 g : PowerSeries k) = 0 := by
+        simpa [PowerSeries.coeff_zero_eq_constantCoeff_apply] using
+          (hcoeff_g 0 0).trans (by simpa [MvPowerSeries.coeff_zero_eq_constantCoeff] using hK0)
+      -- `coeff 0 g ∈ maximalIdeal` because it is divisible by `X`.
+      have hmem :
+          (PowerSeries.coeff 0 g : PowerSeries k) ∈ IsLocalRing.maximalIdeal (PowerSeries k) := by
+        -- Use `maximalIdeal_eq_span_X` and the divisibility criterion `X_dvd_iff`.
+        have hXdvd : (PowerSeries.X : PowerSeries k) ∣ (PowerSeries.coeff 0 g : PowerSeries k) := by
+          -- `X ∣ φ` iff `constantCoeff φ = 0`.
+          simpa [PowerSeries.X_dvd_iff] using hconst0
+        -- Membership in `Ideal.span {X}`.
+        have hspan : (PowerSeries.coeff 0 g : PowerSeries k) ∈ Ideal.span ({PowerSeries.X} : Set (PowerSeries k)) := by
+          simpa [Ideal.mem_span_singleton] using hXdvd
+        simpa [PowerSeries.maximalIdeal_eq_span_X] using hspan
+      -- Now `residue` of an element in the maximal ideal is `0`.
+      have hres0 :
+          IsLocalRing.residue (PowerSeries k) (PowerSeries.coeff 0 g) = 0 := by
+        exact (IsLocalRing.residue_eq_zero_iff (R := PowerSeries k) (x := PowerSeries.coeff 0 g)).2 hmem
+      -- Translate to the coefficient statement.
+      -- We avoid `simpa` here, since it would also simplify the goal using
+      -- `IsLocalRing.residue_eq_zero_iff` into a nonunit statement.
+      rw [PowerSeries.coeff_map (IsLocalRing.residue (PowerSeries k)) 0 g]
+      exact hres0
+
+    -- Coefficient `1` is nonzero, as in the proof of `hg_ne`.
+    have hcoeff1 :
+        PowerSeries.coeff 1 (PowerSeries.map (IsLocalRing.residue (PowerSeries k)) g) ≠ 0 := by
+      have hunit :
+          IsUnit (PowerSeries.coeff 1 g : PowerSeries k) := by
+        have hconst :
+            PowerSeries.constantCoeff (PowerSeries.coeff 1 g : PowerSeries k) = 1 := by
+          simpa [PowerSeries.coeff_zero_eq_constantCoeff_apply] using
+            (hcoeff_g 0 1).trans (by simpa using hKy)
+        exact (PowerSeries.isUnit_iff_constantCoeff).2 (hconst ▸ isUnit_one)
+      have :
+          PowerSeries.coeff 1 (PowerSeries.map (IsLocalRing.residue (PowerSeries k)) g) =
+            IsLocalRing.residue (PowerSeries k) (PowerSeries.coeff 1 g) := by
+        simpa using (PowerSeries.coeff_map (IsLocalRing.residue (PowerSeries k)) 1 g)
+      have hunit' :
+          IsUnit (IsLocalRing.residue (PowerSeries k) (PowerSeries.coeff 1 g)) :=
+        hunit.map (IsLocalRing.residue (PowerSeries k))
+      simpa [this] using hunit'.ne_zero
+
+    -- Characterize the order using `order_eq_nat`.
+    refine (PowerSeries.order_eq_nat (φ := PowerSeries.map (IsLocalRing.residue (PowerSeries k)) g) (n := 1)).2 ?_
+    refine ⟨hcoeff1, ?_⟩
+    intro i hi
+    have : i = 0 := Nat.lt_one_iff.mp hi
+    subst this
+    simpa using hcoeff0
+
+  -- Hence the distinguished polynomial has degree `1`, so it is `X + C b`.
+  have hf_nat : f.natDegree = 1 := by
+    -- `natDegree f = order(map residue g).toNat`.
+    have := PowerSeries.IsWeierstrassFactorization.natDegree_eq_toNat_order_map (H := Hwh)
+    simpa [horder] using this
+  have hfX : f = Polynomial.X + Polynomial.C (f.coeff 0) := by
+    -- `f` is monic since it is distinguished.
+    exact Hwh.isDistinguishedAt.monic.eq_X_add_C hf_nat
+
+  -- Put `g` in the form `(Y - Φ) * W` where `Φ` only depends on `X`.
+  let b : PowerSeries k := f.coeff 0
+  let Phi : MvPowerSeries (Fin 2) k :=
+    fun e : Fin 2 →₀ ℕ => if e 1 = 0 then -PowerSeries.coeff (e 0) b else 0
+  let W : MvPowerSeries (Fin 2) k :=
+    fun e : Fin 2 →₀ ℕ => PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1) h)
+
+  have hPhi_xOnly : IsXOnly (k := k) Phi := by
+    intro e he1
+    simpa [MvPowerSeries.coeff_apply, Phi, he1]
+
+  -- Main identity `K = (Y - Φ) * W`, proved coefficientwise using the Weierstrass factorization of `g`.
+  have hKW : K = (MvPowerSeries.X 1 - Phi) * W := by
+    -- `MvPowerSeries` is just a function type; ext on coefficients.
+    ext e
+    -- Decompose multi-index `e` into its two coordinates.
+    have he :
+        e = Finsupp.single (0 : Fin 2) (e 0) + Finsupp.single 1 (e 1) := by
+      ext t <;> fin_cases t <;> simp
+    -- Rewrite the coefficient of `K` via the definition of `g`.
+    have hK_as_g :
+        MvPowerSeries.coeff e K = PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1) g) := by
+      -- Use `he` to rewrite `e` as `single 0 i + single 1 j`.
+      have : MvPowerSeries.coeff e K =
+          MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) (e 0) + Finsupp.single 1 (e 1)) K := by
+        exact congrArg (fun d => MvPowerSeries.coeff d K) he
+      -- Now use `hcoeff_g`.
+      exact this.trans (hcoeff_g (e 0) (e 1)).symm
+
+    -- Rewrite `g` using the Weierstrass factorization with `f = X + C b`.
+    have hg_fac :
+        g = (PowerSeries.X + PowerSeries.C b) * h := by
+      -- `g = f * h` and `f = X + C b`.
+      -- Coercions from polynomials to power series are handled by `simp`.
+      -- Avoid `simp` here (it can hit the recursion-depth limit); rewrite step-by-step.
+      calc
+        g = (f : (PowerSeries k)⟦X⟧) * h := by
+            simpa [Hwh.eq_mul]
+        _ = ((Polynomial.X + Polynomial.C b : Polynomial (PowerSeries k)) : (PowerSeries k)⟦X⟧) * h := by
+            -- Rewrite `f` and unfold `b` without `simp` (avoids recursion-depth issues).
+            -- `Hwh.eq_mul` gives `g = f * h` where `f` is coerced to a power series.
+            -- Here we only need to rewrite that polynomial factor.
+            rw [hfX]
+            -- `b` was defined as `f.coeff 0`.
+            -- (No further work needed: the goal is definitional after rewriting.)
+        _ = (PowerSeries.X + PowerSeries.C b) * h := by
+            -- simplify the polynomial coercions
+            simp [Polynomial.coe_add, Polynomial.coe_X, Polynomial.coe_C]
+
+    -- It suffices to compare coefficients of both sides.
+    -- We compute the coefficient of `(e 0, e 1)` in the RHS explicitly.
+    -- First, compute the `Y`-shift term coming from `X 1 * W`.
+    have hcoeff_X1W :
+        MvPowerSeries.coeff e (MvPowerSeries.X 1 * W) =
+          if (e 1 = 0) then 0 else PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1 - 1) h) := by
+      -- Use the monomial multiplication formula for `X 1`.
+      -- `X 1 = monomial (single 1 1) 1`.
+      by_cases hj : e 1 = 0
+      ·
+        -- Not enough `Y`-degree, so the coefficient is `0`.
+        have hle : ¬ (Finsupp.single 1 1 : Fin 2 →₀ ℕ) ≤ e := by
+          intro hle
+          have : (1 : ℕ) ≤ e 1 := by simpa using hle 1
+          -- rewrite using `hj : e 1 = 0` to get `1 ≤ 0`, contradiction.
+          have : (1 : ℕ) ≤ 0 := by simpa [hj] using this
+          exact (Nat.not_succ_le_zero 0) this
+        simp [MvPowerSeries.X, W, MvPowerSeries.coeff_monomial_mul, hle, hj]
+      · -- `e 1 ≥ 1`, so the shift contributes.
+        have hle : (Finsupp.single 1 1 : Fin 2 →₀ ℕ) ≤ e := by
+          intro t
+          fin_cases t
+          · simp
+          · have : 1 ≤ e 1 := Nat.succ_le_iff.2 (Nat.pos_of_ne_zero hj)
+            simpa using this
+        have hsub :
+            e - (Finsupp.single 1 1 : Fin 2 →₀ ℕ) =
+              Finsupp.single (0 : Fin 2) (e 0) + Finsupp.single 1 (e 1 - 1) := by
+          ext t <;> fin_cases t <;> simp [Finsupp.tsub_apply]
+        -- Apply the formula.
+        -- First rewrite the index `e - single 1 1` to a clean `single 0 + single 1` form, then unfold `W`.
+        rw [MvPowerSeries.X, MvPowerSeries.coeff_monomial_mul, if_pos hle]
+        -- `1` is the coefficient of `X 1`, so it disappears.
+        simp [hsub, W, MvPowerSeries.coeff_apply, hj]
+
+    -- Next, compute the `X`-convolution term coming from `Phi * W`.
+    have hcoeff_PhiW :
+        MvPowerSeries.coeff e (Phi * W) =
+          -PowerSeries.coeff (e 0) (b * PowerSeries.coeff (e 1) h) := by
+      -- Expand the coefficient using `MvPowerSeries.coeff_mul` and reindex the finite sum.
+      -- Only pairs with `Y`-degree `0` on the left contribute, since `Phi` is `X`-only.
+      set i : ℕ := e 0
+      set j : ℕ := e 1
+      -- Rewrite `e` as `single 0 i + single 1 j`.
+      have he' :
+          e = Finsupp.single (0 : Fin 2) i + Finsupp.single 1 j := by
+        simpa [i, j] using he
+      -- Start from the coefficient formula.
+      have hmul :
+          MvPowerSeries.coeff e (Phi * W) =
+            ∑ p ∈ Finset.antidiagonal e, MvPowerSeries.coeff p.1 Phi * MvPowerSeries.coeff p.2 W := by
+        -- `coeff_mul` for multivariate series.
+        simpa using (MvPowerSeries.coeff_mul (φ := Phi) (ψ := W) (n := e))
+      -- Filter to the pairs where the left `Y`-exponent is `0`.
+      have hfilter :
+          (∑ p ∈ Finset.antidiagonal e, MvPowerSeries.coeff p.1 Phi * MvPowerSeries.coeff p.2 W) =
+            ∑ p ∈ (Finset.antidiagonal e).filter (fun p : (Fin 2 →₀ ℕ) × (Fin 2 →₀ ℕ) => p.1 1 = 0),
+              MvPowerSeries.coeff p.1 Phi * MvPowerSeries.coeff p.2 W := by
+        classical
+        -- If `p.1 1 ≠ 0`, then `coeff p.1 Phi = 0`, so the summand is `0`.
+        have hne :
+            ∀ p ∈ Finset.antidiagonal e,
+              (MvPowerSeries.coeff p.1 Phi * MvPowerSeries.coeff p.2 W ≠ 0 →
+                (p.1 1 = 0)) := by
+          intro p hp hpnz
+          by_contra hbad
+          have hPhi0 : MvPowerSeries.coeff p.1 Phi = 0 := hPhi_xOnly p.1 hbad
+          exact hpnz (by simp [hPhi0])
+        -- Apply `sum_filter_of_ne`.
+        simpa using (Finset.sum_filter_of_ne hne).symm
+
+      -- Reindex the filtered sum by the ordinary antidiagonal of `i`.
+      have hreindex :
+          (∑ p ∈ (Finset.antidiagonal e).filter (fun p : (Fin 2 →₀ ℕ) × (Fin 2 →₀ ℕ) => p.1 1 = 0),
+              MvPowerSeries.coeff p.1 Phi * MvPowerSeries.coeff p.2 W) =
+            ∑ q ∈ Finset.antidiagonal i,
+              MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.1) Phi *
+                MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.2 + Finsupp.single 1 j) W := by
+        classical
+        -- Bijection between decompositions in `x` and the filtered antidiagonal in `Fin 2 →₀ ℕ`.
+        -- We use `Finset.sum_bij` with domain `t = filtered antidiagonal` and codomain `s = antidiagonal i`.
+        -- This produces `∑_{p∈t} ... = ∑_{q∈s} ...`, exactly our goal.
+        refine (Finset.sum_bij
+          (s := (Finset.antidiagonal e).filter (fun p : (Fin 2 →₀ ℕ) × (Fin 2 →₀ ℕ) => p.1 1 = 0))
+          (t := Finset.antidiagonal i)
+          (f := fun p => MvPowerSeries.coeff p.1 Phi * MvPowerSeries.coeff p.2 W)
+          (g := fun q =>
+            MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.1) Phi *
+              MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.2 + Finsupp.single 1 j) W)
+          (i := fun p hp => (p.1 0, p.2 0)) ?_ ?_ ?_ ?_)
+        · -- image membership in `antidiagonal i`
+          intro p hp
+          have hpanti : p ∈ Finset.antidiagonal e := (Finset.mem_filter.mp hp).1
+          have hp_add : p.1 + p.2 = e := Finset.mem_antidiagonal.mp hpanti
+          have h0 : (p.1 0) + (p.2 0) = e 0 := by
+            have := congrArg (fun q : Fin 2 →₀ ℕ => q 0) hp_add
+            simpa [Finsupp.add_apply] using this
+          have he0 : e 0 = i := by
+            have := congrArg (fun q : Fin 2 →₀ ℕ => q 0) he'
+            simpa [Finsupp.add_apply] using this
+          exact Finset.mem_antidiagonal.mpr (h0.trans he0)
+        · -- injectivity
+          intro p₁ hp₁ p₂ hp₂ h
+          -- ext on both components using the `0`-coordinate and `hp₁, hp₂` to control the `1`-coordinate
+          have h0 : p₁.1 0 = p₂.1 0 := congrArg Prod.fst h
+          have h1 : p₁.2 0 = p₂.2 0 := congrArg Prod.snd h
+          -- show p₁ = p₂ by ext on `Fin 2`
+          apply Prod.ext <;> ext t <;> fin_cases t
+          · simpa using h0
+          ·
+            -- from membership in filtered antidiagonal we get `p.1 1 = 0`, hence `p₁.1 1 = p₂.1 1 = 0`
+            have hp1y₁ : p₁.1 1 = 0 := (Finset.mem_filter.mp hp₁).2
+            have hp1y₂ : p₂.1 1 = 0 := (Finset.mem_filter.mp hp₂).2
+            simpa [hp1y₁, hp1y₂]
+          · simpa using h1
+          ·
+            -- for the second component, use `p.2 1 = j` coming from antidiagonal relation and `p.1 1 = 0`
+            have hp1y₁ : p₁.1 1 = 0 := (Finset.mem_filter.mp hp₁).2
+            have hp1y₂ : p₂.1 1 = 0 := (Finset.mem_filter.mp hp₂).2
+            have hp2y₁ : p₁.2 1 = j := by
+              have hpanti : p₁ ∈ Finset.antidiagonal e := (Finset.mem_filter.mp hp₁).1
+              have hp_add : p₁.1 + p₁.2 = e := Finset.mem_antidiagonal.mp hpanti
+              have h1 := congrArg (fun q : Fin 2 →₀ ℕ => q 1) hp_add
+              have h1' : p₁.1 1 + p₁.2 1 = e 1 := by
+                simpa [Finsupp.add_apply] using h1
+              have hp2y₁' : p₁.2 1 = e 1 := by
+                simpa [hp1y₁] using h1'
+              have he1 : e 1 = j := by
+                have := congrArg (fun q : Fin 2 →₀ ℕ => q 1) he'
+                simpa [Finsupp.add_apply] using this
+              exact hp2y₁'.trans he1
+            have hp2y₂ : p₂.2 1 = j := by
+              have hpanti : p₂ ∈ Finset.antidiagonal e := (Finset.mem_filter.mp hp₂).1
+              have hp_add : p₂.1 + p₂.2 = e := Finset.mem_antidiagonal.mp hpanti
+              have h1 := congrArg (fun q : Fin 2 →₀ ℕ => q 1) hp_add
+              have h1' : p₂.1 1 + p₂.2 1 = e 1 := by
+                simpa [Finsupp.add_apply] using h1
+              have hp2y₂' : p₂.2 1 = e 1 := by
+                simpa [hp1y₂] using h1'
+              have he1 : e 1 = j := by
+                have := congrArg (fun q : Fin 2 →₀ ℕ => q 1) he'
+                simpa [Finsupp.add_apply] using this
+              exact hp2y₂'.trans he1
+            simpa [hp2y₁, hp2y₂]
+        · -- surjectivity onto `antidiagonal i`
+          intro q hq
+          -- build the corresponding pair in the filtered antidiagonal
+          have hq_add : q.1 + q.2 = i := Finset.mem_antidiagonal.mp hq
+          refine ⟨(Finsupp.single (0 : Fin 2) q.1, Finsupp.single (0 : Fin 2) q.2 + Finsupp.single 1 j), ?_, ?_⟩
+          · -- membership
+            have hp_add :
+                (Finsupp.single (0 : Fin 2) q.1 + (Finsupp.single (0 : Fin 2) q.2 + Finsupp.single 1 j)) =
+                  Finsupp.single (0 : Fin 2) i + Finsupp.single 1 j := by
+              ext t <;> fin_cases t <;> simp [hq_add, add_assoc, add_left_comm, add_comm]
+            -- membership in the filtered antidiagonal
+            refine Finset.mem_filter.2 ?_
+            refine ⟨?_, ?_⟩
+            · -- antidiagonal condition
+              refine Finset.mem_antidiagonal.2 ?_
+              -- use `hp_add` and rewrite `e` via `he'`
+              simpa [he', add_assoc] using hp_add
+            · -- filter condition: the first component has `Y`-degree `0`
+              simp
+          · -- mapping sends it back to `q`
+            simp
+        · -- summand compatibility
+          intro p hp
+          have hpanti : p ∈ Finset.antidiagonal e := (Finset.mem_filter.mp hp).1
+          have hp_add : p.1 + p.2 = e := Finset.mem_antidiagonal.mp hpanti
+          have hp1y : p.1 1 = 0 := (Finset.mem_filter.mp hp).2
+          have hp2y : p.2 1 = j := by
+            have h1 := congrArg (fun q : Fin 2 →₀ ℕ => q 1) hp_add
+            have h1' : p.1 1 + p.2 1 = e 1 := by
+              simpa [Finsupp.add_apply] using h1
+            have hp2y' : p.2 1 = e 1 := by
+              simpa [hp1y] using h1'
+            have he1 : e 1 = j := by
+              have := congrArg (fun q : Fin 2 →₀ ℕ => q 1) he'
+              simpa [Finsupp.add_apply] using this
+            exact hp2y'.trans he1
+          have hp1 : p.1 = Finsupp.single (0 : Fin 2) (p.1 0) := by
+            ext t <;> fin_cases t <;> simp [hp1y]
+          have hp2 : p.2 = Finsupp.single (0 : Fin 2) (p.2 0) + Finsupp.single 1 j := by
+            ext t <;> fin_cases t <;> simp [hp2y]
+          -- Rewrite both indices using the `Y`-degree facts and conclude by reflexivity.
+          -- Work with the evaluation form of coefficients.
+          simp [MvPowerSeries.coeff_apply]
+          have hPhi' : Phi p.1 = Phi (Finsupp.single (0 : Fin 2) (p.1 0)) := by
+            simpa using congrArg Phi hp1
+          have hW' : W p.2 = W (Finsupp.single (0 : Fin 2) (p.2 0) + Finsupp.single 1 j) := by
+            simpa using congrArg W hp2
+          rw [hPhi', hW']
+          -- goal is now definally true
+
+      -- Finish: substitute the reindexed expression and simplify to the univariate coefficient formula.
+      have hsum' :
+          MvPowerSeries.coeff e (Phi * W) =
+            ∑ q ∈ Finset.antidiagonal i,
+              MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.1) Phi *
+                MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.2 + Finsupp.single 1 j) W := by
+        simpa [hmul, hfilter, hreindex] using hmul
+      -- Evaluate the coefficients of `Phi` and `W`.
+      -- `Phi` is the embedding of `-b`, hence `coeff (single 0 a) Phi = -coeff a b`.
+      -- `W` records the coefficients of `h`.
+      -- Rewrite the RHS sum as `- coeff i (b * coeff j h)` using `PowerSeries.coeff_mul`.
+      -- First, simplify the summand.
+      have hsimp :
+          (∑ q ∈ Finset.antidiagonal i,
+              MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.1) Phi *
+                MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.2 + Finsupp.single 1 j) W) =
+            -∑ q ∈ Finset.antidiagonal i,
+              PowerSeries.coeff q.1 b * PowerSeries.coeff q.2 (PowerSeries.coeff j h) := by
+        -- Push the minus sign out.
+        classical
+        -- `simp` on coefficients of `Phi` and `W`.
+        have : ∀ q : ℕ × ℕ,
+            MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.1) Phi *
+              MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.2 + Finsupp.single 1 j) W =
+                -(PowerSeries.coeff q.1 b * PowerSeries.coeff q.2 (PowerSeries.coeff j h)) := by
+          intro q
+          -- Coefficients of `Phi` and `W` by definition.
+          have hPhi :
+              MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.1) Phi = -PowerSeries.coeff q.1 b := by
+            -- Here the `Y`-degree is `0`.
+            simpa [MvPowerSeries.coeff_apply, Phi]
+          have hW :
+              MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.2 + Finsupp.single 1 j) W =
+                PowerSeries.coeff q.2 (PowerSeries.coeff j h) := by
+            simpa [MvPowerSeries.coeff_apply, W]
+          simp [hPhi, hW, mul_assoc, mul_left_comm, mul_comm]
+        -- Sum the pointwise identity.
+        simpa [Finset.sum_congr rfl (fun q hq => this q)] using (by
+          -- Replace each term and factor `-` outside using distributivity.
+          simp)
+      -- Now relate to the univariate product coefficient.
+      have hmul_univ :
+          ∑ q ∈ Finset.antidiagonal i,
+              PowerSeries.coeff q.1 b * PowerSeries.coeff q.2 (PowerSeries.coeff j h) =
+            PowerSeries.coeff i (b * PowerSeries.coeff j h) := by
+        -- This is exactly the coefficient formula for multiplication in `PowerSeries k`.
+        simpa [PowerSeries.coeff_mul] using (rfl : (PowerSeries.coeff i (b * PowerSeries.coeff j h) =
+          ∑ q ∈ Finset.antidiagonal i, PowerSeries.coeff q.1 b * PowerSeries.coeff q.2 (PowerSeries.coeff j h)))
+      -- Combine everything.
+      have : MvPowerSeries.coeff e (Phi * W) = -PowerSeries.coeff i (b * PowerSeries.coeff j h) := by
+        -- Use `hsum'` and simplify.
+        -- This block is intentionally verbose to help later refactoring.
+        calc
+          MvPowerSeries.coeff e (Phi * W)
+              = ∑ q ∈ Finset.antidiagonal i,
+                  MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.1) Phi *
+                    MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) q.2 + Finsupp.single 1 j) W := by
+                    simpa [i, j] using hsum'
+          _ = -∑ q ∈ Finset.antidiagonal i,
+                PowerSeries.coeff q.1 b * PowerSeries.coeff q.2 (PowerSeries.coeff j h) := by
+                simpa [i, j] using hsimp
+          _ = -PowerSeries.coeff i (b * PowerSeries.coeff j h) := by
+                simpa [hmul_univ]
+      simpa [i, j] using this
+
+    -- Compute the coefficient of the RHS and match it with the coefficient of `g`.
+    have hRHS :
+        MvPowerSeries.coeff e ((MvPowerSeries.X 1 - Phi) * W) =
+          PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1) g) := by
+      -- Expand `(X 1 - Phi) * W = X 1 * W - Phi * W` and use the computations above.
+      have :
+          MvPowerSeries.coeff e ((MvPowerSeries.X 1 - Phi) * W) =
+            MvPowerSeries.coeff e (MvPowerSeries.X 1 * W) - MvPowerSeries.coeff e (Phi * W) := by
+        -- `coeff` is a ring hom, so it respects `mul` and `sub`.
+        -- Use distributivity and linearity of `MvPowerSeries.coeff`.
+        simp [sub_mul]
+      -- Rewrite the RHS using `hg_fac` and the corresponding univariate coefficient computation.
+      -- We compute `coeff (e 0) (coeff (e 1) g)` from `hg_fac`.
+      have hcoeffg :
+          PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1) g) =
+            PowerSeries.coeff (e 0) (b * PowerSeries.coeff (e 1) h) +
+              (if e 1 = 0 then 0 else PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1 - 1) h)) := by
+        -- Use `hg_fac` and compute coefficients in the outer variable.
+        have hg' :
+            PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1) g) =
+              PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1) ((PowerSeries.X + PowerSeries.C b) * h)) := by
+          simpa [hg_fac] using
+            congrArg (fun φ : PowerSeries k => PowerSeries.coeff (e 0) φ)
+              (show PowerSeries.coeff (e 1) g =
+                    PowerSeries.coeff (e 1) ((PowerSeries.X + PowerSeries.C b) * h) from by
+                  simpa [hg_fac])
+        -- Expand `(X + C b) * h` and split into the `X * h` shift term and the `C b * h` term.
+        -- We keep the inner-variable multiplication `b * coeff _ h` unevaluated.
+        by_cases hj : e 1 = 0
+        · -- `e 1 = 0`: the shift term vanishes.
+          -- `coeff 0` of `X * h` is `0`, and `coeff 0` of `C b * h` is `b * coeff 0 h`.
+          have hcoeff0 :
+              PowerSeries.coeff 0 ((PowerSeries.X + PowerSeries.C b) * h) =
+                b * PowerSeries.coeff 0 h := by
+            simp [mul_add, add_mul, add_assoc, add_left_comm, add_comm,
+              PowerSeries.coeff_zero_X_mul, PowerSeries.coeff_C_mul]
+          have hcoeff0' :
+              PowerSeries.coeff (e 0) (PowerSeries.coeff 0 ((PowerSeries.X + PowerSeries.C b) * h)) =
+                PowerSeries.coeff (e 0) (b * PowerSeries.coeff 0 h) :=
+            congrArg (fun φ : PowerSeries k => PowerSeries.coeff (e 0) φ) hcoeff0
+          have hg0 :
+              PowerSeries.coeff (e 0) (PowerSeries.coeff 0 g) =
+                PowerSeries.coeff (e 0) (PowerSeries.coeff 0 ((PowerSeries.X + PowerSeries.C b) * h)) := by
+            simpa [hj] using hg'
+          have : PowerSeries.coeff (e 0) (PowerSeries.coeff 0 g) =
+              PowerSeries.coeff (e 0) (b * PowerSeries.coeff 0 h) :=
+            hg0.trans hcoeff0'
+          simpa [hj] using this
+        · -- `e 1 ≠ 0`: use the successor formula.
+          rcases Nat.exists_eq_succ_of_ne_zero hj with ⟨n, hn⟩
+          -- rewrite `e 1` using `hn`
+          have hshift : PowerSeries.coeff (e 1) (PowerSeries.X * h) = PowerSeries.coeff (e 1 - 1) h := by
+            -- rewrite to the `succ` case
+            -- `simp` turns `(n.succ - 1)` into `n`.
+            simpa [hn] using (PowerSeries.coeff_succ_X_mul (n := n) (φ := h))
+          -- Now simplify the coefficient computation.
+          -- The `if` is in the "else" branch since `hj`.
+          -- We also need `hn` to rewrite `e 1 - 1` to `n`.
+          have hn' : e 1 - 1 = n := by
+            -- `hn : e 1 = n.succ`
+            simpa [hn] using rfl
+          -- Finish by rewriting and simplifying.
+          -- `coeff (n+1)` of `(X + C b) * h` is `coeff n h + b * coeff (n+1) h`.
+          -- Applying `coeff (e 0)` gives the desired formula.
+          -- We avoid `simp` loops by being explicit.
+          have : PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1) ((PowerSeries.X + PowerSeries.C b) * h)) =
+              PowerSeries.coeff (e 0) (b * PowerSeries.coeff (e 1) h) +
+                PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1 - 1) h) := by
+            -- Expand and use `hshift` and `coeff_C_mul`.
+            -- First compute the outer coefficient.
+            -- `(X + C b) * h = X * h + C b * h`.
+            -- Then take `coeff (e 1)`.
+            -- Finally take `coeff (e 0)` in the coefficient ring.
+            simp [mul_add, add_mul, add_assoc, add_left_comm, add_comm, hshift,
+              PowerSeries.coeff_C_mul, hn, hj]
+          -- Combine with `hg'` and the `if` simplification.
+          -- `hj` ensures the `if` is in the else branch.
+          simpa [hg', hj, this, add_assoc, add_left_comm, add_comm]
+      -- Now compare with `hcoeff_X1W` and `hcoeff_PhiW`.
+      -- Note that `hcoeff_PhiW` already includes a minus sign.
+      calc
+        MvPowerSeries.coeff e ((MvPowerSeries.X 1 - Phi) * W)
+            = MvPowerSeries.coeff e (MvPowerSeries.X 1 * W) - MvPowerSeries.coeff e (Phi * W) := this
+        _ = (if e 1 = 0 then 0 else PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1 - 1) h))
+              - (-PowerSeries.coeff (e 0) (b * PowerSeries.coeff (e 1) h)) := by
+                simp [hcoeff_X1W, hcoeff_PhiW]
+        _ = PowerSeries.coeff (e 0) (b * PowerSeries.coeff (e 1) h) +
+              (if e 1 = 0 then 0 else PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1 - 1) h)) := by
+                ring
+        _ = PowerSeries.coeff (e 0) (PowerSeries.coeff (e 1) g) := by
+                simpa [hcoeffg, add_comm, add_left_comm, add_assoc]
+
+    -- Combine the two representations.
+    simpa [hK_as_g] using hRHS.symm
+
+  -- Deduce the constant-term and `X`-linear-term conditions from the coefficient assumptions on `K`.
+  have hW0 : MvPowerSeries.constantCoeff W = 1 := by
+    -- Take the `(0,1)` coefficient in the identity `hKW`.
+    have hconstW_ne : MvPowerSeries.constantCoeff W ≠ 0 := by
+      -- `W` comes from a unit `h`, hence its constant coefficient is nonzero.
+      have hu : IsUnit h := Hwh.isUnit
+      have hu0 : IsUnit (PowerSeries.constantCoeff h : PowerSeries k) :=
+        (PowerSeries.isUnit_iff_constantCoeff).1 hu
+      have hWconst :
+          MvPowerSeries.constantCoeff W =
+            PowerSeries.constantCoeff (PowerSeries.constantCoeff h : PowerSeries k) := by
+        -- Rewrite both sides as `(0,0)` coefficients of `h`.
+        rw [(MvPowerSeries.coeff_zero_eq_constantCoeff_apply (φ := W)).symm]
+        rw [(PowerSeries.coeff_zero_eq_constantCoeff_apply (φ := (PowerSeries.constantCoeff h : PowerSeries k))).symm]
+        rw [(PowerSeries.coeff_zero_eq_constantCoeff_apply (φ := h)).symm]
+        rfl
+      have hconst :
+          (PowerSeries.constantCoeff (PowerSeries.constantCoeff h : PowerSeries k)) ≠ 0 := by
+        -- In a field, units are nonzero.
+        have :
+            IsUnit (PowerSeries.constantCoeff (PowerSeries.constantCoeff h : PowerSeries k)) :=
+          (PowerSeries.isUnit_iff_constantCoeff).1 hu0
+        exact this.ne_zero
+      simpa [hWconst] using hconst
+    -- Now compute the `(0,1)` coefficient of `K = (X 1 - Phi) * W`.
+    have h01 :
+        MvPowerSeries.coeff (Finsupp.single 1 1) K =
+          MvPowerSeries.coeff (Finsupp.single 1 1) ((MvPowerSeries.X 1 - Phi) * W) := by
+      simpa [hKW]
+    -- Expand the RHS coefficient: since `constantCoeff Phi = 0` (proved next), only `X 1` contributes.
+    -- We get `coeff (0,1) = constantCoeff W`.
+    -- This step is kept simple by `simp` using the explicit definition of `Phi`.
+    -- First show `constantCoeff Phi = 0` from the `(0,0)` coefficient and `hconstW_ne`.
+    have hPhi0 : MvPowerSeries.constantCoeff Phi = 0 := by
+      have h00 :
+          MvPowerSeries.coeff (0 : Fin 2 →₀ ℕ) K =
+            MvPowerSeries.coeff (0 : Fin 2 →₀ ℕ) ((MvPowerSeries.X 1 - Phi) * W) := by
+        simpa [hKW]
+      -- `coeff 0 K = 0`.
+      have h00K : MvPowerSeries.coeff (0 : Fin 2 →₀ ℕ) K = 0 := by
+        simpa [MvPowerSeries.coeff_zero_eq_constantCoeff] using hK0
+      -- Compute the constant coefficient of the RHS.
+      -- Constant coefficient of `X 1` is `0`, so it is `-(constantCoeff Phi) * constantCoeff W`.
+      have h00R :
+          MvPowerSeries.coeff (0 : Fin 2 →₀ ℕ) ((MvPowerSeries.X 1 - Phi) * W) =
+            -(MvPowerSeries.constantCoeff Phi) * MvPowerSeries.constantCoeff W := by
+        -- Constant term computation, abstracted to avoid unfolding the (large) `Phi`.
+        have coeff0_mul_sub (Φ Ω : MvPowerSeries (Fin 2) k) :
+            MvPowerSeries.coeff (0 : Fin 2 →₀ ℕ) ((MvPowerSeries.X 1 - Φ) * Ω) =
+              -(MvPowerSeries.constantCoeff Φ) * MvPowerSeries.constantCoeff Ω := by
+          classical
+          simp [MvPowerSeries.coeff_mul, MvPowerSeries.coeff_zero_eq_constantCoeff, MvPowerSeries.constantCoeff_X]
+        simpa using coeff0_mul_sub Phi W
+      -- Solve for `constantCoeff Phi`.
+      -- From `0 = -Phi₀ * W₀` and `W₀ ≠ 0`, deduce `Phi₀ = 0`.
+      have hneg : -(MvPowerSeries.constantCoeff Phi) * MvPowerSeries.constantCoeff W = 0 := by
+        -- Use `h00K` to rewrite the LHS and then compare with the RHS.
+        have : MvPowerSeries.coeff (0 : Fin 2 →₀ ℕ) ((MvPowerSeries.X 1 - Phi) * W) = 0 := by
+          exact h00.symm.trans h00K
+        -- Rewrite using `h00R`.
+        simpa [h00R] using this
+      -- Cancel `constantCoeff W`.
+      have hcancel : MvPowerSeries.constantCoeff Phi = 0 := by
+        have hneg' :
+            -(MvPowerSeries.constantCoeff Phi * MvPowerSeries.constantCoeff W) = 0 := by
+          simpa [neg_mul] using hneg
+        have hmul : MvPowerSeries.constantCoeff Phi * MvPowerSeries.constantCoeff W = 0 :=
+          (neg_eq_zero.mp hneg')
+        exact (mul_eq_zero.mp hmul).resolve_right hconstW_ne
+      simpa using hcancel
+    -- Now compute the `(0,1)` coefficient.
+    have h01R :
+        MvPowerSeries.coeff (Finsupp.single 1 1) ((MvPowerSeries.X 1 - Phi) * W) =
+          MvPowerSeries.constantCoeff W := by
+      classical
+      have hPhi_y1 : MvPowerSeries.coeff (Finsupp.single 1 1) Phi = 0 := by
+        refine hPhi_xOnly (Finsupp.single 1 1) ?_
+        simp
+      -- Compute the `(0,1)` coefficient without unfolding `Phi`.
+      have coeff_e01_mul_sub_eq_const (Φ Ω : MvPowerSeries (Fin 2) k)
+          (hΦ0 : MvPowerSeries.constantCoeff Φ = 0)
+          (hΦe01 : MvPowerSeries.coeff (Finsupp.single 1 1) Φ = 0) :
+          MvPowerSeries.coeff (Finsupp.single 1 1) ((MvPowerSeries.X 1 - Φ) * Ω) =
+            MvPowerSeries.constantCoeff Ω := by
+        classical
+        let e01 : Fin 2 →₀ ℕ := Finsupp.single 1 1
+        have hantiNat : Finset.antidiagonal 1 = ({(0, 1), (1, 0)} : Finset (ℕ × ℕ)) := by
+          decide
+        have hantiF : Finset.antidiagonal e01 =
+            ({((0 : Fin 2 →₀ ℕ), e01), (e01, 0)} : Finset ((Fin 2 →₀ ℕ) × (Fin 2 →₀ ℕ))) := by
+          ext p
+          simp [e01, Finsupp.antidiagonal_single, hantiNat]
+        rw [show (Finsupp.single 1 1 : Fin 2 →₀ ℕ) = e01 by rfl]
+        rw [MvPowerSeries.coeff_mul]
+        rw [hantiF]
+        have hne0 : (0 : Fin 2 →₀ ℕ) ≠ e01 := by
+          intro h
+          have h1 := congrArg (fun d : Fin 2 →₀ ℕ => d 1) h
+          simpa [e01] using h1
+        have hne : ((0 : Fin 2 →₀ ℕ), e01) ≠ (e01, 0) := by
+          intro h
+          apply hne0
+          exact congrArg Prod.fst h
+        have hmem :
+            ((0 : Fin 2 →₀ ℕ), e01) ∉ ({(e01, 0)} : Finset ((Fin 2 →₀ ℕ) × (Fin 2 →₀ ℕ))) := by
+          simpa [Finset.mem_singleton] using hne
+        rw [Finset.sum_insert hmem]
+        rw [Finset.sum_singleton]
+        simp [e01, MvPowerSeries.coeff_zero_eq_constantCoeff, hΦ0, hΦe01]
+      exact coeff_e01_mul_sub_eq_const Phi W hPhi0 hPhi_y1
+    -- Conclude `W(0,0)=1` from the `(0,1)` coefficient of `K`.
+    calc
+      MvPowerSeries.constantCoeff W =
+          MvPowerSeries.coeff (Finsupp.single 1 1) ((MvPowerSeries.X 1 - Phi) * W) := by
+            simpa using h01R.symm
+      _ = MvPowerSeries.coeff (Finsupp.single 1 1) K := by
+            simpa using h01.symm
+      _ = (1 : k) := by
+            simpa using hKy
+
+  -- Now `constantCoeff Phi = 0` and `coeff (X) Phi = 0` follow from the corresponding coefficients of `K`.
+  have hPhi0 : MvPowerSeries.constantCoeff Phi = 0 := by
+    -- Compare constant coefficients in `K = (X 1 - Phi) * W`.
+    have h00 :
+        MvPowerSeries.constantCoeff K = MvPowerSeries.constantCoeff ((MvPowerSeries.X 1 - Phi) * W) := by
+      simpa using congrArg (fun F => MvPowerSeries.constantCoeff F) hKW
+    have hcc0 : MvPowerSeries.constantCoeff ((MvPowerSeries.X 1 - Phi) * W) = 0 :=
+      h00.symm.trans hK0
+    have h00R :
+        MvPowerSeries.constantCoeff ((MvPowerSeries.X 1 - Phi) * W) =
+          -(MvPowerSeries.constantCoeff Phi) * MvPowerSeries.constantCoeff W := by
+      simp [MvPowerSeries.constantCoeff_X]
+    have hneg : -(MvPowerSeries.constantCoeff Phi) * MvPowerSeries.constantCoeff W = 0 := by
+      simpa [h00R] using hcc0
+    have hneg1 : -(MvPowerSeries.constantCoeff Phi) = 0 := by
+      have : -(MvPowerSeries.constantCoeff Phi) * (1 : k) = 0 := by
+        simpa [hW0] using hneg
+      simpa using this
+    exact neg_eq_zero.mp hneg1
+
+  have hPhiX : MvPowerSeries.coeff (Finsupp.single 0 1) Phi = 0 := by
+    -- Compare the `(1,0)` coefficient in `K = (X 1 - Phi) * W`.
+    let e10 : Fin 2 →₀ ℕ := Finsupp.single 0 1
+    have h10 :
+        MvPowerSeries.coeff e10 K =
+          MvPowerSeries.coeff e10 ((MvPowerSeries.X 1 - Phi) * W) := by
+      simpa [e10] using congrArg (fun F => MvPowerSeries.coeff e10 F) hKW
+    have hRHS0 : MvPowerSeries.coeff e10 ((MvPowerSeries.X 1 - Phi) * W) = 0 :=
+      (h10.symm.trans (by simpa [e10] using hKx))
+    have h10R :
+        MvPowerSeries.coeff e10 ((MvPowerSeries.X 1 - Phi) * W) =
+          -(MvPowerSeries.coeff e10 Phi) * MvPowerSeries.constantCoeff W := by
+      classical
+      -- Work with an abstract `Φ` to avoid unfolding the (large) definition of `Phi`.
+      have coeff_e10_mul_sub (Φ Ω : MvPowerSeries (Fin 2) k)
+          (hΦ0 : MvPowerSeries.constantCoeff Φ = 0) :
+          MvPowerSeries.coeff e10 ((MvPowerSeries.X 1 - Φ) * Ω) =
+            -(MvPowerSeries.coeff e10 Φ) * MvPowerSeries.constantCoeff Ω := by
+        classical
+        have hantiNat :
+            Finset.antidiagonal 1 = ({(0, 1), (1, 0)} : Finset (ℕ × ℕ)) := by
+          decide
+        have hantiF :
+            Finset.antidiagonal e10 =
+              ({((0 : Fin 2 →₀ ℕ), e10), (e10, 0)} : Finset ((Fin 2 →₀ ℕ) × (Fin 2 →₀ ℕ))) := by
+          classical
+          ext p
+          simp [e10, Finsupp.antidiagonal_single, hantiNat]
+        -- Expand the coefficient of the product using the explicit antidiagonal.
+        rw [MvPowerSeries.coeff_mul]
+        rw [hantiF]
+        have hne0 : (0 : Fin 2 →₀ ℕ) ≠ e10 := by
+          intro h
+          have h0 := congrArg (fun d : Fin 2 →₀ ℕ => d 0) h
+          simpa [e10] using h0
+        have hne : ((0 : Fin 2 →₀ ℕ), e10) ≠ (e10, 0) := by
+          intro h
+          apply hne0
+          exact congrArg Prod.fst h
+        have hmem :
+            ((0 : Fin 2 →₀ ℕ), e10) ∉ ({(e10, 0)} : Finset ((Fin 2 →₀ ℕ) × (Fin 2 →₀ ℕ))) := by
+          simpa [Finset.mem_singleton] using hne
+        rw [Finset.sum_insert hmem]
+        rw [Finset.sum_singleton]
+        -- The `(0,e10)` term vanishes using `hΦ0`.
+        have hΦ_y0 : MvPowerSeries.coeff (0 : Fin 2 →₀ ℕ) Φ = 0 := by
+          simpa [MvPowerSeries.coeff_zero_eq_constantCoeff] using hΦ0
+        have hX1_0 :
+            MvPowerSeries.coeff (0 : Fin 2 →₀ ℕ)
+                (MvPowerSeries.X (1 : Fin 2) : MvPowerSeries (Fin 2) k) = 0 := by
+          simpa using (MvPowerSeries.coeff_zero_X (σ := Fin 2) (R := k) (s := (1 : Fin 2)))
+        have hX1_e10 :
+            MvPowerSeries.coeff e10 (MvPowerSeries.X (1 : Fin 2) : MvPowerSeries (Fin 2) k) = 0 := by
+          have hne : (e10 : Fin 2 →₀ ℕ) ≠ Finsupp.single (1 : Fin 2) 1 := by
+            intro h
+            have h1 := congrArg (fun d : Fin 2 →₀ ℕ => d 1) h
+            simpa [e10] using h1
+          simp [MvPowerSeries.coeff_X, hne, e10]
+        have hcoeff0 :
+            MvPowerSeries.coeff (0 : Fin 2 →₀ ℕ) (MvPowerSeries.X (1 : Fin 2) - Φ) = 0 := by
+          simp [hX1_0, hΦ0]
+        have hcoeff_e10 :
+            MvPowerSeries.coeff e10 (MvPowerSeries.X (1 : Fin 2) - Φ) = -(MvPowerSeries.coeff e10 Φ) := by
+          simp [hX1_e10]
+        rw [hcoeff0]
+        rw [zero_mul]
+        rw [zero_add]
+        rw [hcoeff_e10]
+        rw [MvPowerSeries.coeff_zero_eq_constantCoeff]
+      -- Apply the abstract lemma to the concrete `Phi` and `W`.
+      exact coeff_e10_mul_sub Phi W hPhi0
+    have hneg : -(MvPowerSeries.coeff e10 Phi) * MvPowerSeries.constantCoeff W = 0 := by
+      simpa [h10R] using hRHS0
+    have hneg1 : -(MvPowerSeries.coeff e10 Phi) = 0 := by
+      have : -(MvPowerSeries.coeff e10 Phi) * (1 : k) = 0 := by
+        simpa [hW0] using hneg
+      simpa using this
+    exact neg_eq_zero.mp hneg1
+
+  refine ⟨Phi, W, hPhi_xOnly, hPhi0, hPhiX, hW0, hKW⟩
 
 /-! #### Inverse-function-type statements -/
 
