@@ -1783,19 +1783,18 @@ private instance isAdicComplete_maximalIdeal_powerSeries :
       (by infer_instance :
         IsAdicComplete (Ideal.span ({PowerSeries.X} : Set (PowerSeries k))) (PowerSeries k)))
 
--- Temp.md Lemma 3.3.5: if `∂K/∂Y (0,0)=1`, then `K(X,Y) = (Y - Φ(X)) * W(X,Y)` with `W(0,0)=1`.
+-- Temp.md Lemma 3.3.5 (core): if `∂K/∂Y (0,0)=1`, then
+-- `K(X,Y) = (Y - Φ(X)) * W(X,Y)` with `W(0,0)=1`.
 set_option maxHeartbeats 800000 in
-theorem exists_implicitFunction_weierstrass_degreeOne
+theorem exists_implicitFunction_weierstrass_degreeOne_core
     {K : MvPowerSeries (Fin 2) k}
     (hK0 : MvPowerSeries.constantCoeff K = 0)
-    (hKx : MvPowerSeries.coeff (Finsupp.single 0 1) K = 0)
     (hKy : MvPowerSeries.coeff (Finsupp.single 1 1) K = 1) :
     ∃ (Phi W : MvPowerSeries (Fin 2) k),
       IsXOnly (k := k) Phi ∧
         MvPowerSeries.constantCoeff Phi = 0 ∧
-          MvPowerSeries.coeff (Finsupp.single 0 1) Phi = 0 ∧
-            MvPowerSeries.constantCoeff W = 1 ∧
-              K = (MvPowerSeries.X 1 - Phi) * W := by
+          MvPowerSeries.constantCoeff W = 1 ∧
+            K = (MvPowerSeries.X 1 - Phi) * W := by
   -- Nonarchimedean analytic implicit function theorem / Weierstrass division (degree `1` case).
   classical
   -- View `K(X,Y)` as a power series in `Y` with coefficients in `k⟦X⟧`.
@@ -2435,7 +2434,7 @@ theorem exists_implicitFunction_weierstrass_degreeOne
       _ = (1 : k) := by
             simpa using hKy
 
-  -- Now `constantCoeff Phi = 0` and `coeff (X) Phi = 0` follow from the corresponding coefficients of `K`.
+  -- Now `constantCoeff Phi = 0` follows by comparing constant coefficients.
   have hPhi0 : MvPowerSeries.constantCoeff Phi = 0 := by
     -- Compare constant coefficients in `K = (X 1 - Phi) * W`.
     have h00 :
@@ -2455,6 +2454,24 @@ theorem exists_implicitFunction_weierstrass_degreeOne
       simpa using this
     exact neg_eq_zero.mp hneg1
 
+  refine ⟨Phi, W, hPhi_xOnly, hPhi0, hW0, hKW⟩
+
+-- Temp.md Lemma 3.3.5 (useful corollary): if `∂K/∂Y (0,0)=1` and there is no `X 0`-linear term, then
+-- the implicit function has no `X 0`-linear term either.
+theorem exists_implicitFunction_weierstrass_degreeOne
+    {K : MvPowerSeries (Fin 2) k}
+    (hK0 : MvPowerSeries.constantCoeff K = 0)
+    (hKx : MvPowerSeries.coeff (Finsupp.single 0 1) K = 0)
+    (hKy : MvPowerSeries.coeff (Finsupp.single 1 1) K = 1) :
+    ∃ (Phi W : MvPowerSeries (Fin 2) k),
+      IsXOnly (k := k) Phi ∧
+        MvPowerSeries.constantCoeff Phi = 0 ∧
+          MvPowerSeries.coeff (Finsupp.single 0 1) Phi = 0 ∧
+            MvPowerSeries.constantCoeff W = 1 ∧
+              K = (MvPowerSeries.X 1 - Phi) * W := by
+  classical
+  rcases exists_implicitFunction_weierstrass_degreeOne_core (k := k) (K := K) hK0 hKy with
+    ⟨Phi, W, hPhi_xOnly, hPhi0, hW0, hKW⟩
   have hPhiX : MvPowerSeries.coeff (Finsupp.single 0 1) Phi = 0 := by
     -- Compare the `(1,0)` coefficient in `K = (X 1 - Phi) * W`.
     let e10 : Fin 2 →₀ ℕ := Finsupp.single 0 1
@@ -2535,6 +2552,68 @@ theorem exists_implicitFunction_weierstrass_degreeOne
     exact neg_eq_zero.mp hneg1
 
   refine ⟨Phi, W, hPhi_xOnly, hPhi0, hPhiX, hW0, hKW⟩
+
+-- A more flexible degree-`1` Weierstrass / implicit-function factorization: if `∂K/∂Y (0,0) ≠ 0`,
+-- then `K(X,Y) = (Y - Φ(X)) * W(X,Y)` with `W(0,0) = ∂K/∂Y (0,0)`.
+theorem exists_implicitFunction_weierstrass_degreeOne_of_coeff_y_ne_zero
+    {K : MvPowerSeries (Fin 2) k}
+    (hK0 : MvPowerSeries.constantCoeff K = 0)
+    (hKy : MvPowerSeries.coeff (Finsupp.single 1 1) K ≠ 0) :
+    ∃ (Phi W : MvPowerSeries (Fin 2) k),
+      IsXOnly (k := k) Phi ∧
+        MvPowerSeries.constantCoeff Phi = 0 ∧
+          MvPowerSeries.constantCoeff W = MvPowerSeries.coeff (Finsupp.single 1 1) K ∧
+            K = (MvPowerSeries.X 1 - Phi) * W := by
+  classical
+  let b : k := MvPowerSeries.coeff (Finsupp.single 1 1) K
+  have hb : b ≠ 0 := by simpa [b] using hKy
+
+  let K' : MvPowerSeries (Fin 2) k := (MvPowerSeries.C (σ := Fin 2) (R := k) b⁻¹) * K
+  have hK'0 : MvPowerSeries.constantCoeff K' = 0 := by
+    simp [K', hK0]
+  have hK'y : MvPowerSeries.coeff (Finsupp.single 1 1) K' = 1 := by
+    -- scale so that the `Y`-linear coefficient becomes `1`
+    simp [K', b, hb]
+
+  rcases exists_implicitFunction_weierstrass_degreeOne_core (k := k) (K := K') hK'0 hK'y with
+    ⟨Phi, W', hPhi_xOnly, hPhi0, hW'0, hK'⟩
+
+  let W : MvPowerSeries (Fin 2) k := (MvPowerSeries.C (σ := Fin 2) (R := k) b) * W'
+  have hW0 : MvPowerSeries.constantCoeff W = b := by
+    simp [W, b, hW'0]
+
+  have hKW : K = (MvPowerSeries.X 1 - Phi) * W := by
+    -- Multiply the factorization for `K' = C b⁻¹ * K` by `C b`.
+    have hmul :=
+      congrArg (fun F : MvPowerSeries (Fin 2) k => (MvPowerSeries.C (σ := Fin 2) (R := k) b) * F) hK'
+    have hmul' :
+        (MvPowerSeries.C (σ := Fin 2) (R := k) b) *
+              ((MvPowerSeries.C (σ := Fin 2) (R := k) b⁻¹) * K) =
+            (MvPowerSeries.C (σ := Fin 2) (R := k) b) *
+              ((MvPowerSeries.X 1 - Phi) * W') := by
+      simpa [K'] using hmul
+    have hLHS :
+        (MvPowerSeries.C (σ := Fin 2) (R := k) b) *
+              ((MvPowerSeries.C (σ := Fin 2) (R := k) b⁻¹) * K) =
+            K := by
+      -- reassociate and use `b * b⁻¹ = 1`.
+      rw [← mul_assoc]
+      have hCb :
+          (MvPowerSeries.C (σ := Fin 2) (R := k) b) *
+                (MvPowerSeries.C (σ := Fin 2) (R := k) b⁻¹) =
+              (MvPowerSeries.C (σ := Fin 2) (R := k) (b * b⁻¹)) := by
+        simpa using ((MvPowerSeries.C (σ := Fin 2) (R := k)).map_mul b b⁻¹).symm
+      rw [hCb]
+      simp [hb]
+    have hRHS :
+        (MvPowerSeries.C (σ := Fin 2) (R := k) b) *
+              ((MvPowerSeries.X 1 - Phi) * W') =
+            (MvPowerSeries.X 1 - Phi) * W := by
+      simp [W, mul_assoc, mul_left_comm, mul_comm]
+    exact (hLHS.symm.trans hmul').trans hRHS
+
+  refine ⟨Phi, W, hPhi_xOnly, hPhi0, ?_, hKW⟩
+  simpa [hW0, b]
 
 /-! #### Inverse-function-type statements -/
 

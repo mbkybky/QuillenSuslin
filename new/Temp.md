@@ -8,7 +8,7 @@ f^d(x)=P_d(x, y),\qquad f^d(y)=Q_d(x, y),
 $$
 其中 $P_d, Q_d \in \mathbf{k}\{x,y\}$ 是收敛幂级数, $\|P_1\|,\|Q_1\|<1$. 
 设 $Q_d(x, 0) = a_{d, n_d}x^{n_d} + a_{d, n_d + 1}x^{n_d + 1} + \cdots $, 其中 $a_{d, n_d} \ne 0$.
-证明存在 $M > 0$ 和 $0 < r < 1$ 使得对任意的 $d, n, k\in \mathbb{N}_+$, $r^ka_{d, n_d + k} <Ma_{d, n_d}$.
+证明存在 $M > 0$ 和 $0 < r < 1$ 使得对任意的 $d, n, k\in \mathbb{N}_+$, $r^k|a_{d, n_d + k}| <M|a_{d, n_d}|$.
 
 ---
 
