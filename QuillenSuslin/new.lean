@@ -151,10 +151,280 @@ variable {A : Type*} [CommRing A] [IsDomain A] [IsNoetherianRing A] (x : A) (hx 
 theorem Ideal.isPrincipal_of_isPrincipal_map_away_of_prime (hx : Prime x) (p : Ideal A) [p.IsPrime]
     (hpx : x ∉ p) (hprincipal : (Ideal.map (algebraMap A (Localization.Away x)) p).IsPrincipal) :
     p.IsPrincipal := by
-  sorry
+  let M : Submonoid A := Submonoid.powers x
+  have hM : M ≤ nonZeroDivisors A := by
+    refine Submonoid.powers_le.2 ?_
+    rw [mem_nonZeroDivisors_iff]
+    constructor <;> intro a ha
+    · exact mul_eq_zero.mp ha |>.resolve_left hx.ne_zero
+    · exact mul_eq_zero.mp ha |>.resolve_right hx.ne_zero
+  haveI : IsDomain (Localization.Away x) := by
+    simpa [M] using (IsLocalization.isDomain_of_le_nonZeroDivisors (S := Localization.Away x) hM)
+  by_cases hpbot : p = ⊥
+  · simpa [hpbot] using (inferInstance : (⊥ : Ideal A).IsPrincipal)
+  let S : Set (Ideal A) := {I | I ≤ p ∧ I.IsPrincipal ∧
+    Ideal.map (algebraMap A (Localization.Away x)) I =
+      Ideal.map (algebraMap A (Localization.Away x)) p}
+  have hSnonempty : S.Nonempty := by
+    have hex :
+        ∃ y : A, y ∈ p ∧
+          Ideal.map (algebraMap A (Localization.Away x)) p =
+            Ideal.span ({algebraMap A (Localization.Away x) y} : Set (Localization.Away x)) := by
+      let J : Ideal (Localization.Away x) := Ideal.map (algebraMap A (Localization.Away x)) p
+      let g : Localization.Away x := Submodule.IsPrincipal.generator J
+      have hgJ : g ∈ J := Submodule.IsPrincipal.generator_mem J
+      obtain ⟨a, s, hgs⟩ := IsLocalization.exists_mk'_eq M g
+      rw [← hgs] at hgJ
+      rw [IsLocalization.mk'_mem_map_algebraMap_iff M] at hgJ
+      rcases hgJ with ⟨t, ht, hat⟩
+      refine ⟨t * a, hat, ?_⟩
+      change J =
+        Ideal.span ({algebraMap A (Localization.Away x) (t * a)} : Set (Localization.Away x))
+      rw [← Ideal.span_singleton_generator J]
+      apply Ideal.span_singleton_eq_span_singleton.2
+      have hsunit : IsUnit (algebraMap A (Localization.Away x) s) :=
+        IsLocalization.map_units (Localization.Away x) s
+      have htunit : IsUnit (algebraMap A (Localization.Away x) t) :=
+        IsLocalization.map_units (Localization.Away x) ⟨t, ht⟩
+      have hmulunit : IsUnit
+          ((algebraMap A (Localization.Away x) t) * (algebraMap A (Localization.Away x) s)) :=
+        htunit.mul hsunit
+      have hy_eq :
+          algebraMap A (Localization.Away x) (t * a) =
+            Submodule.IsPrincipal.generator J *
+              ((algebraMap A (Localization.Away x) t) * (algebraMap A (Localization.Away x) s)) := by
+        calc
+          algebraMap A (Localization.Away x) (t * a) =
+              (algebraMap A (Localization.Away x) t) * (algebraMap A (Localization.Away x) a) := by
+                rw [map_mul]
+          _ = (algebraMap A (Localization.Away x) t) *
+              (g * (algebraMap A (Localization.Away x) s)) := by
+                rw [← hgs, IsLocalization.mk'_spec]
+          _ = Submodule.IsPrincipal.generator J *
+              ((algebraMap A (Localization.Away x) t) * (algebraMap A (Localization.Away x) s)) := by
+                dsimp [g]
+                ring
+      apply associated_of_dvd_dvd
+      · exact ⟨(algebraMap A (Localization.Away x) t) * (algebraMap A (Localization.Away x) s), hy_eq⟩
+      · rcases hmulunit with ⟨u, hu⟩
+        refine ⟨↑u⁻¹, ?_⟩
+        have htmp :
+            algebraMap A (Localization.Away x) (t * a) * ↑u⁻¹ =
+              Submodule.IsPrincipal.generator J := by
+          calc
+            algebraMap A (Localization.Away x) (t * a) * ↑u⁻¹ =
+                (Submodule.IsPrincipal.generator J *
+                  ((algebraMap A (Localization.Away x) t) * (algebraMap A (Localization.Away x) s))) *
+                    ↑u⁻¹ := by rw [hy_eq]
+            _ = Submodule.IsPrincipal.generator J * (↑u * ↑u⁻¹) := by
+                  simp [hu, mul_assoc]
+            _ = Submodule.IsPrincipal.generator J := by simp
+        exact htmp.symm
+    rcases hex with ⟨y, hyp, hy⟩
+    refine ⟨Ideal.span ({y} : Set A), ?_⟩
+    refine ⟨(Ideal.span_singleton_le_iff_mem p).2 hyp, inferInstance, ?_⟩
+    calc
+      Ideal.map (algebraMap A (Localization.Away x)) (Ideal.span ({y} : Set A)) =
+          Ideal.span ({algebraMap A (Localization.Away x) y} : Set (Localization.Away x)) := by
+            rw [Ideal.map_span, Set.image_singleton]
+      _ = Ideal.map (algebraMap A (Localization.Away x)) p := hy.symm
+  obtain ⟨I, hIS, hImax⟩ : ∃ I ∈ S, ∀ J ∈ S, ¬ I < J :=
+    (inferInstance : WellFoundedGT (Ideal A)).wf.has_min S hSnonempty
+  have hIp : I ≤ p := hIS.1
+  have hIprincipal : I.IsPrincipal := hIS.2.1
+  letI : I.IsPrincipal := hIprincipal
+  have hImap :
+      Ideal.map (algebraMap A (Localization.Away x)) I =
+        Ideal.map (algebraMap A (Localization.Away x)) p := hIS.2.2
+  let y : A := Submodule.IsPrincipal.generator I
+  have hy_mem_I : y ∈ I := Submodule.IsPrincipal.generator_mem I
+  have hy_mem_p : y ∈ p := hIp hy_mem_I
+  have hIspan : Ideal.span ({y} : Set A) = I := Ideal.span_singleton_generator I
+  have hd : Disjoint (M : Set A) (p : Set A) := by
+    rw [Set.disjoint_left]
+    intro s hs hs'
+    rcases (Submonoid.mem_powers_iff s x).1 hs with ⟨n, rfl⟩
+    exact hpx (Ideal.IsPrime.mem_of_pow_mem (I := p) inferInstance n hs')
+  have hcomap :
+      Ideal.comap (algebraMap A (Localization.Away x))
+        (Ideal.map (algebraMap A (Localization.Away x)) p) = p :=
+    IsLocalization.comap_map_of_isPrime_disjoint M (Localization.Away x) inferInstance hd
+  have hJ_ne_bot : Ideal.map (algebraMap A (Localization.Away x)) p ≠ ⊥ := by
+    intro hbot
+    have hcbot : Ideal.comap (algebraMap A (Localization.Away x))
+        (⊥ : Ideal (Localization.Away x)) = ⊥ := by
+      ext a
+      change ((algebraMap A (Localization.Away x)) a = 0) ↔ a = 0
+      constructor
+      · exact (injective_iff_map_eq_zero (algebraMap A (Localization.Away x))).1
+          (IsLocalization.injective (Localization.Away x) hM) a
+      · intro ha
+        simp [ha]
+    exact hpbot (by simpa [hbot, hcbot] using hcomap.symm)
+  have hI_ne_bot : I ≠ ⊥ := by
+    intro hbot
+    apply hJ_ne_bot
+    rw [← hImap, hbot, Ideal.map_bot]
+  have hy_ne_zero : y ≠ 0 := by
+    intro hy0
+    apply hI_ne_bot
+    exact (Submodule.IsPrincipal.eq_bot_iff_generator_eq_zero I).2 hy0
+  have hy_not_dvd : ¬ x ∣ y := by
+    intro hxy
+    rcases hxy with ⟨b, hb⟩
+    have hxb_mem_p : x * b ∈ p := by simpa [hb] using hy_mem_p
+    have hb_mem_p : b ∈ p := (Ideal.IsPrime.mem_or_mem inferInstance hxb_mem_p).resolve_left hpx
+    have hmap_b :
+        Ideal.map (algebraMap A (Localization.Away x)) (Ideal.span ({b} : Set A)) =
+          Ideal.map (algebraMap A (Localization.Away x)) p := by
+      have hxunit : IsUnit (algebraMap A (Localization.Away x) x) :=
+        IsLocalization.map_units (Localization.Away x)
+          ⟨x, by exact (Submonoid.mem_powers_iff x x).2 ⟨1, by simp⟩⟩
+      have hassoc :
+          Associated (algebraMap A (Localization.Away x) (x * b))
+            (algebraMap A (Localization.Away x) b) := by
+        apply associated_of_dvd_dvd
+        · rcases hxunit with ⟨u, hu⟩
+          refine ⟨↑u⁻¹, ?_⟩
+          have htmp :
+              algebraMap A (Localization.Away x) (x * b) * ↑u⁻¹ =
+                algebraMap A (Localization.Away x) b := by
+            calc
+              algebraMap A (Localization.Away x) (x * b) * ↑u⁻¹ =
+                  ((algebraMap A (Localization.Away x) x) * (algebraMap A (Localization.Away x) b)) *
+                    ↑u⁻¹ := by rw [map_mul]
+              _ = algebraMap A (Localization.Away x) b * (↑u * ↑u⁻¹) := by
+                    simp [hu, mul_left_comm, mul_comm]
+              _ = algebraMap A (Localization.Away x) b := by simp
+          exact htmp.symm
+        · exact ⟨algebraMap A (Localization.Away x) x, by rw [map_mul, mul_comm]⟩
+      calc
+        Ideal.map (algebraMap A (Localization.Away x)) (Ideal.span ({b} : Set A)) =
+            Ideal.span ({algebraMap A (Localization.Away x) b} : Set (Localization.Away x)) := by
+              rw [Ideal.map_span, Set.image_singleton]
+        _ = Ideal.span ({algebraMap A (Localization.Away x) (x * b)} : Set (Localization.Away x)) := by
+              exact (Ideal.span_singleton_eq_span_singleton.2 hassoc).symm
+        _ = Ideal.map (algebraMap A (Localization.Away x)) I := by
+              rw [← hIspan, hb, Ideal.map_span, Set.image_singleton]
+        _ = Ideal.map (algebraMap A (Localization.Away x)) p := hImap
+    have hspanb_mem : Ideal.span ({b} : Set A) ∈ S := by
+      refine ⟨(Ideal.span_singleton_le_iff_mem p).2 hb_mem_p, inferInstance, hmap_b⟩
+    have hI_le_spanb : I ≤ Ideal.span ({b} : Set A) := by
+      rw [← hIspan, hb]
+      exact (Ideal.span_singleton_le_span_singleton).2 ⟨x, by rw [mul_comm]⟩
+    have hb_ne_zero : b ≠ 0 := by
+      intro hb0
+      apply hy_ne_zero
+      rw [hb, hb0]
+      simp
+    have hI_ne_spanb : I ≠ Ideal.span ({b} : Set A) := by
+      intro hEq
+      have hb_mem_I : b ∈ I := by
+        rw [hEq]
+        exact Ideal.subset_span (by simp)
+      rw [← hIspan, Ideal.mem_span_singleton] at hb_mem_I
+      rcases hb_mem_I with ⟨c, hc⟩
+      have hmul : (x * c) * b = 1 * b := by
+        calc
+          (x * c) * b = x * (b * c) := by ring
+          _ = x * b * c := by ring
+          _ = y * c := by rw [hb]
+          _ = b := hc.symm
+          _ = 1 * b := by simp
+      have hx_unit : IsUnit x := by
+        exact IsUnit.of_mul_eq_one c (mul_right_cancel₀ hb_ne_zero hmul)
+      exact hx.not_unit hx_unit
+    exact hImax (Ideal.span ({b} : Set A)) hspanb_mem (lt_of_le_of_ne hI_le_spanb hI_ne_spanb)
+  refine ⟨y, ?_⟩
+  change p = Ideal.span ({y} : Set A)
+  rw [hIspan]
+  apply le_antisymm
+  · intro z hz
+    have hzmap : algebraMap A (Localization.Away x) z ∈
+        Ideal.map (algebraMap A (Localization.Away x)) I := by
+      rw [hImap]
+      exact Ideal.mem_map_of_mem _ hz
+    rw [IsLocalization.algebraMap_mem_map_algebraMap_iff M] at hzmap
+    rcases hzmap with ⟨s, hs, hsz⟩
+    rcases (Submonoid.mem_powers_iff s x).1 hs with ⟨n, rfl⟩
+    clear hs
+    induction n with
+    | zero =>
+        simpa using hsz
+    | succ n ih =>
+        have hxz_mem : x * (x ^ n * z) ∈ I := by
+          simpa [pow_succ', mul_assoc] using hsz
+        rw [← hIspan, Ideal.mem_span_singleton] at hxz_mem
+        rcases hxz_mem with ⟨a, ha⟩
+        have hxy_or : x ∣ y ∨ x ∣ a := hx.2.2 y a ⟨x ^ n * z, ha.symm⟩
+        have hxa : x ∣ a := hxy_or.resolve_left hy_not_dvd
+        rcases hxa with ⟨b, hb⟩
+        have hcancel : x * (x ^ n * z) = x * (y * b) := by
+          simpa [hb, mul_assoc, mul_left_comm, mul_comm] using ha
+        have hrest : x ^ n * z = y * b := by
+          exact mul_left_cancel₀ hx.ne_zero hcancel
+        apply ih
+        rw [← hIspan, Ideal.mem_span_singleton]
+        exact ⟨b, hrest⟩
+  · exact hIp
 
 theorem ufd_of_ufd_away_of_prime (hx : Prime x) [UniqueFactorizationMonoid (Localization.Away x)] :
     UniqueFactorizationMonoid A := by
-  sorry
+  let M : Submonoid A := Submonoid.powers x
+  have hM : M ≤ nonZeroDivisors A := by
+    refine Submonoid.powers_le.2 ?_
+    rw [mem_nonZeroDivisors_iff]
+    constructor <;> intro a ha
+    · exact mul_eq_zero.mp ha |>.resolve_left hx.ne_zero
+    · exact mul_eq_zero.mp ha |>.resolve_right hx.ne_zero
+  haveI : IsDomain (Localization.Away x) := by
+    simpa [M] using (IsLocalization.isDomain_of_le_nonZeroDivisors (S := Localization.Away x) hM)
+  rw [Ideal.ufd_iff_height_one_primes_principal]
+  intro p hp hheight
+  by_cases hxp : x ∈ p
+  · let q : Ideal A := Ideal.span ({x} : Set A)
+    have hqprime : q.IsPrime := (Ideal.span_singleton_prime hx.ne_zero).2 hx
+    letI : q.IsPrime := hqprime
+    have hqle : q ≤ p := (Ideal.span_singleton_le_iff_mem p).2 hxp
+    by_cases hqp : q = p
+    · rw [← hqp]
+      infer_instance
+    · have hq_lt : q < p := lt_of_le_of_ne hqle hqp
+      have hbot_lt_q : (⊥ : Ideal A) < q := by
+        have hq_ne_bot : q ≠ ⊥ := by
+          simpa [q, Ideal.span_singleton_eq_bot] using hx.ne_zero
+        exact bot_lt_iff_ne_bot.mpr hq_ne_bot
+      have hq_ge_one : (1 : ℕ∞) ≤ q.primeHeight := by
+        have htmp : (⊥ : Ideal A).primeHeight + 1 ≤ q.primeHeight :=
+          Ideal.primeHeight_add_one_le_of_lt hbot_lt_q
+        rw [← Ideal.height_eq_primeHeight (I := (⊥ : Ideal A)), Ideal.height_bot] at htmp
+        simpa using htmp
+      have hq_add_one : q.primeHeight + 1 ≤ p.primeHeight :=
+        Ideal.primeHeight_add_one_le_of_lt hq_lt
+      have htwo : (2 : ℕ∞) ≤ p.primeHeight := by
+        calc
+          (2 : ℕ∞) = (1 : ℕ∞) + 1 := by norm_num
+          _ ≤ q.primeHeight + 1 := by
+            simpa [add_comm] using add_le_add_right hq_ge_one 1
+          _ ≤ p.primeHeight := hq_add_one
+      rw [hheight] at htwo
+      norm_num at htwo
+  · have hd : Disjoint (M : Set A) (p : Set A) := by
+      rw [Set.disjoint_left]
+      intro s hs hs'
+      rcases (Submonoid.mem_powers_iff s x).1 hs with ⟨n, rfl⟩
+      exact hxp (Ideal.IsPrime.mem_of_pow_mem (I := p) inferInstance n hs')
+    have hmapprime : (Ideal.map (algebraMap A (Localization.Away x)) p).IsPrime :=
+      IsLocalization.isPrime_of_isPrime_disjoint M (Localization.Away x) p inferInstance hd
+    letI : (Ideal.map (algebraMap A (Localization.Away x)) p).IsPrime := hmapprime
+    have hmapheight : (Ideal.map (algebraMap A (Localization.Away x)) p).primeHeight = 1 := by
+      have htmp := IsLocalization.primeHeight_comap M (A := Localization.Away x)
+        (Ideal.map (algebraMap A (Localization.Away x)) p)
+      simpa [IsLocalization.comap_map_of_isPrime_disjoint M (Localization.Away x) inferInstance hd, hheight]
+        using htmp.symm
+    have hloc_principal : (Ideal.map (algebraMap A (Localization.Away x)) p).IsPrincipal := by
+      exact (Ideal.ufd_iff_height_one_primes_principal (R := Localization.Away x)).1 inferInstance
+        (Ideal.map (algebraMap A (Localization.Away x)) p) hmapheight
+    exact Ideal.isPrincipal_of_isPrincipal_map_away_of_prime (x := x) hx p hxp hloc_principal
 
 end
