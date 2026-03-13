@@ -143,3 +143,18 @@ theorem Ring.krullDimLE_one_of_finite_primeSpectrum [Finite (PrimeSpectrum R)] :
     exact hxnot <| Set.mem_iUnion₂.2 ⟨Q, Finset.mem_coe.2 hQmem, hqmin.1.2 hxI⟩
   have hpmin : p ∈ (Ideal.span {x}).minimalPrimes := by simpa [hqeq] using hqmin
   simpa using Ideal.height_le_one_of_isPrincipal_of_mem_minimalPrimes (Ideal.span {x}) p hpmin
+
+section
+
+variable {A : Type*} [CommRing A] [IsDomain A] [IsNoetherianRing A] (x : A) (hx : Prime x)
+
+theorem Ideal.isPrincipal_of_isPrincipal_map_away_of_prime (hx : Prime x) (p : Ideal A) [p.IsPrime]
+    (hpx : x ∉ p) (hprincipal : (Ideal.map (algebraMap A (Localization.Away x)) p).IsPrincipal) :
+    p.IsPrincipal := by
+  sorry
+
+theorem ufd_of_ufd_away_of_prime (hx : Prime x) [UniqueFactorizationMonoid (Localization.Away x)] :
+    UniqueFactorizationMonoid A := by
+  sorry
+
+end
