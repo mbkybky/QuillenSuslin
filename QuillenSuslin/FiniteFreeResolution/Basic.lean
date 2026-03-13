@@ -124,9 +124,8 @@ theorem moduleFinite_of_ringEquiv (e : A ≃+* B) (M : Type v) [AddCommGroup M] 
   have hBA : (Submodule.span B S : Set M) ⊆ (Submodule.span A S : Set M) := by
     intro y
     refine Submodule.span_induction
-      (p := fun z _ => z ∈ (Submodule.span A S : Submodule A M))
-        (fun z hz => Submodule.subset_span hz) (by simp)
-          (fun _ _ _ _ hz₁ hz₂ => by simpa using Submodule.add_mem (Submodule.span A S) hz₁ hz₂) ?_
+      (fun z hz => Submodule.subset_span hz) (by simp)
+        (fun _ _ _ _ hz₁ hz₂ => by simpa using Submodule.add_mem (Submodule.span A S) hz₁ hz₂) ?_
     intro b z _ hz
     rcases e.surjective b with ⟨a, rfl⟩
     simpa [Module.compHom] using Submodule.smul_mem (Submodule.span A S) a hz
@@ -192,7 +191,7 @@ theorem hasFiniteFreeResolution_of_ringEquiv_left (e : A ≃+* B) (P : Type v) [
   have hinst : instA₁ = instA₀ := by
     refine Module.ext' instA₁ instA₀ ?_
     intro a x
-    show (have := instA₀; (e.symm (e a)) • x) = (have := instA₀; a • x)
+    show (have := instA₀; (e.symm (e a)) • x) = _
     simp
   simpa [hinst] using hA₁
 
@@ -209,7 +208,7 @@ theorem hasFiniteFreeResolution_of_ringEquiv_right (e : A ≃+* B) (P : Type v) 
   have hinst : instB₁ = instB₀ := by
     refine Module.ext' instB₁ instB₀ ?_
     intro b x
-    show (have := instB₀; (e (e.symm b)) • x) = (have := instB₀; b • x)
+    show (have := instB₀; (e (e.symm b)) • x) = _
     simp
   simpa [hinst] using hB₁
 
@@ -247,9 +246,8 @@ theorem moduleFinite_of_ringEquiv' {A : Type u} {B : Type v} [CommRing A] [CommR
   have hBA : (Submodule.span B T : Set M) ⊆ (Submodule.span A T : Set M) := by
     intro y
     refine Submodule.span_induction
-      (p := fun z _ => z ∈ (Submodule.span A T : Submodule A M))
-        (fun z hz => Submodule.subset_span hz) (by simp)
-          (fun _ _ _ _ hz₁ hz₂ => by simpa using Submodule.add_mem (Submodule.span A T) hz₁ hz₂) ?_
+      (fun z hz => Submodule.subset_span hz) (by simp)
+        (fun _ _ _ _ hz₁ hz₂ => by simpa using Submodule.add_mem (Submodule.span A T) hz₁ hz₂) ?_
     intro b z _ hz
     rcases e.surjective b with ⟨a, rfl⟩
     simpa [Module.compHom] using Submodule.smul_mem (Submodule.span A T) a hz
@@ -266,9 +264,7 @@ theorem hasFiniteFreeResolutionLength_ulift {P : Type u} [AddCommGroup P] [Modul
       have : Module.Finite (ULift.{w} S) (ULift.{w} P) := by
         have : Module.Finite S (ULift.{w} P) :=
           Module.Finite.equiv (linearEquivULift P).symm
-        simpa using
-          (moduleFinite_of_ringEquiv' (A := ULift.{w} S) (B := S)
-            ringEquivULift (ULift.{w} P))
+        simpa using moduleFinite_of_ringEquiv' (B := S) ringEquivULift (ULift.{w} P)
       exact HasFiniteFreeResolutionLength.zero (ULift.{w} P)
   | succ P n F f hf hker ih =>
       let f' : ULift.{w} F →ₗ[ULift.{w} S] ULift.{w} P :=
@@ -292,7 +288,7 @@ theorem hasFiniteFreeResolutionLength_ulift {P : Type u} [AddCommGroup P] [Modul
       have : Module.Finite (ULift.{w} S) (ULift.{w} F) := by
         have : Module.Finite S (ULift.{w} F) :=
           Module.Finite.equiv (linearEquivULift F).symm
-        simpa using (moduleFinite_of_ringEquiv' (B := S) ringEquivULift (ULift.{w} F))
+        simpa using moduleFinite_of_ringEquiv' (B := S) ringEquivULift (ULift.{w} F)
       have hk' : HasFiniteFreeResolutionLength (ULift.{w} S) (LinearMap.ker f') n := by
         have hk0 :
             HasFiniteFreeResolutionLength (ULift.{w} S) (ULift.{w} (LinearMap.ker f)) n := by
@@ -328,7 +324,7 @@ theorem hasFiniteFreeResolution_ulift (P : Type v) [AddCommGroup P] [Module S P]
     exact ⟨ULift.up x, rfl⟩
   have hn' : HasFiniteFreeResolutionLength (ULift.{w} S) (LinearMap.ker f') n := by
     have hk0 : HasFiniteFreeResolutionLength (ULift.{w} S) (ULift.{w} (LinearMap.ker f)) n := by
-      simpa using hasFiniteFreeResolutionLength_ulift (S := S) (hn := hn)
+      simpa using hasFiniteFreeResolutionLength_ulift hn
     let eKer :
         ULift.{w} (LinearMap.ker f) ≃ₗ[ULift.{w} S] LinearMap.ker f' :=
       { toEquiv :=
@@ -778,7 +774,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_middle_of_right (P₁ P₂ P₃
   have hKd : HasFiniteFreeResolution R Kd :=
     hasFiniteFreeResolution_of_shortExact_of_left_of_right (LinearMap.ker π₃) Kd F₂ hj hpr₁
       hexact₁ hK₃ hF₂
-  obtain ⟨s, hs⟩ := Module.projective_lifting_property (f := q) (g := π₃) hq
+  obtain ⟨s, hs⟩ := Module.projective_lifting_property q π₃ hq
   -- Short exact sequence `F₃ → ker d → ker q`.
   let k : F₃ →ₗ[R] Kd := LinearMap.codRestrict Kd (LinearMap.prod s LinearMap.id) <| by
     intro y

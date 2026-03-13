@@ -72,7 +72,7 @@ theorem unimodularVectorEquiv_of_pid [IsPrincipalIdealRing R]
       -- Now unfold `eP` via `LinearEquiv.ofInjective_apply`.
       have he : ((eP (1 : R)) : s → R) = f 1 := by
         simpa [eP] using
-          (LinearEquiv.ofInjective_apply (f := (f : R →ₗ[R] s → R)) (x := (1 : R)))
+          (LinearEquiv.ofInjective_apply (f : R →ₗ[R] s → R) (1 : R))
       -- Finally, compute `f 1`.
       simp [he, f, Pi.smul_apply, smul_eq_mul]
     simp [bM, eSum, this]
