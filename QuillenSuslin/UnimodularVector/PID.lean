@@ -421,7 +421,7 @@ theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing
           exact Ideal.subset_span ⟨i, by simp [w1]⟩
       have hheight_insert : ((insert i S).card : ℕ∞) ≤ (Iof (insert i S) w1).height := by
         have : ((insert i S).card : ℕ∞) = (S.card : ℕ∞) + 1 := by
-          exact_mod_cast by simpa using (Finset.card_insert_of_notMem hi_notmem)
+          simpa using congrArg (fun n : ℕ => (n : ℕ∞)) (Finset.card_insert_of_notMem hi_notmem)
         simpa only [this, ge_iff_le] using le_trans hstep_height (Ideal.height_mono hsup)
       refine ⟨w1, unimodularVectorEquiv_equivalence.trans hvw hww1, ?_⟩
       simpa [hI_same] using hheight_insert
@@ -501,7 +501,9 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
               Fintype.sum_equiv eσ (fun i : s => c i * v i)
                 (fun j : Fin 2 => c (eσ.symm j) * v (eσ.symm j)) (fun _ => by simp)
           have : ∑ j : Fin 2, c (eσ.symm j) * v (eσ.symm j) = 1 := by
-            simpa only [Fin.sum_univ_two, Fin.isValue, hsum] using hc
+            calc
+              _ = ∑ i : s, c i * v i := by simpa using hsum.symm
+              _ = 1 := hc
           simpa only [Fin.isValue, Fin.sum_univ_two] using this
         let w : s → MvPolynomial (Fin (n + 1)) R := fun i => if i = a then 1 else 0
         let MFin : Matrix (Fin 2) (Fin 2) (MvPolynomial (Fin (n + 1)) R) :=
@@ -575,7 +577,8 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
               simpa only [add_comm] using add_le_add_right hle (1 : WithBot ℕ∞)
             simpa only [ge_iff_le, one_add_one_eq_two] using this
           have hsCard : (2 : WithBot ℕ∞) < (Fintype.card s : WithBot ℕ∞) := by
-            exact_mod_cast hsNat
+            change (((2 : ℕ∞) : WithBot ℕ∞) < ((Fintype.card s : ℕ∞) : WithBot ℕ∞))
+            exact WithBot.coe_lt_coe.mpr (ENat.coe_lt_coe.mpr hsNat)
           exact lt_of_le_of_lt hle2 hsCard
         rcases exists_equiv_exists_index_height_gt_krullDim n v hv hs with ⟨o, v', hvv', hheight⟩
         let I : Ideal (MvPolynomial (Fin (n + 1)) R) :=

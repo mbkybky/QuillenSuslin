@@ -217,7 +217,7 @@ theorem degree_lowering (a b : R[X]) (ha : a.Monic) (hb : b.natDegree < a.natDeg
       simpa [d, g] using Polynomial.natDegree_modByMonic_lt p ha ha_ne_one
     have hg_mem_I : g ∈ I := by
       have hmul : a * (p /ₘ a) ∈ I := I.mul_mem_right _ ha_mem_I
-      have hmod : p %ₘ a = p - a * (p /ₘ a) := Polynomial.modByMonic_eq_sub_mul_div p ha
+      have hmod : p %ₘ a = p - a * (p /ₘ a) := Polynomial.modByMonic_eq_sub_mul_div p a
       simpa [g, hmod] using I.sub_mem hpI hmul
     have hg_monic : g.Monic := by
       have hg_le : g.natDegree ≤ d - 1 := Nat.le_pred_of_lt (by simpa [d] using hg_deg)
@@ -260,9 +260,10 @@ theorem unimodularVectorEquiv_update_add (i j : s) (hij : i ≠ j) (c : R[X]) (v
 theorem unimodularVectorEquiv_update_modByMonic (i j : s) (hij : j ≠ i)
     (v : s → R[X]) (hi : (v i).Monic) :
     UnimodularVectorEquiv v (Function.update v j (v j %ₘ v i)) := by
+  have _ : (v i).Monic := hi
   have hmod : v j %ₘ v i = v j + (-(v j /ₘ v i)) * v i := by
     simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc]
-      using Polynomial.modByMonic_eq_sub_mul_div (v j) hi
+      using Polynomial.modByMonic_eq_sub_mul_div (v j) (v i)
   simpa [hmod] using unimodularVectorEquiv_update_add j i hij (-(v j /ₘ v i)) v
 
 /-- Swapping two coordinates is a `GL`-equivalence. -/
@@ -529,7 +530,14 @@ theorem exists_unit_coeff_of_isUnimodular [IsLocalRing R] (o : s) (v : s → R[X
       have hcoeff : (F (v o)).coeff (v o).natDegree = 1 := by
         simp [F, Polynomial.coeff_map, ho.coeff_natDegree]
       have hne : (F (v o)).coeff (v o).natDegree ≠ 0 := by
-        simp [hcoeff]
+        have h10 : (1 : k) ≠ 0 := by
+          intro h10
+          have hm_ne_top : m ≠ ⊤ := by
+            simpa [m] using (IsLocalRing.maximalIdeal.isMaximal R).ne_top
+          have h1m : (1 : R) ∈ m := by
+            simpa [f] using (Ideal.Quotient.eq_zero_iff_mem (I := m) (a := (1 : R))).1 h10
+          exact hm_ne_top ((Ideal.eq_top_iff_one _).2 h1m)
+        simpa [hcoeff] using h10
       have hle : (v o).natDegree ≤ (F (v o)).natDegree := le_natDegree_of_ne_zero hne
       exact lt_of_lt_of_le hd hle
     exact (Polynomial.not_isUnit_of_natDegree_pos (F (v o)) hdeg') hunit

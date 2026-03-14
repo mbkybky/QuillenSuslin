@@ -154,9 +154,13 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal A[X]) [P.IsPrime] :
     simpa [Ideal.under_def] using Ideal.height_eq_height_add_of_liesOver_of_hasGoingDown p P
   by_cases hPeq : P = Ideal.map C p
   · have hQ : Ideal.map (Ideal.Quotient.mk (Ideal.map (algebraMap A A[X]) p)) P = ⊥ := by
-      simp [hPeq]
+      simpa [hPeq] using Ideal.map_quotient_self (Ideal.map (algebraMap A A[X]) p)
+    have hI0_ne_top : Ideal.map (algebraMap A A[X]) p ≠ (⊤ : Ideal A[X]) := by
+      simpa [hPeq] using Ideal.IsPrime.ne_top (I := P) inferInstance
+    letI : Nontrivial (A[X] ⧸ Ideal.map (algebraMap A A[X]) p) :=
+      (Ideal.Quotient.nontrivial_iff).2 hI0_ne_top
     have hp' : P.height = p.height := by
-      rw [hheight, hQ]
+      rw [hheight, hQ, Ideal.height_bot]
       simp
     simpa [hp'] using Ideal.height_mono hp_le
   · let I0 : Ideal A[X] := Ideal.map C p
@@ -198,7 +202,8 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal A[X]) [P.IsPrime] :
             _ ↔ C a0 ∈ P := hmem
             _ ↔ a0 ∈ p := hp0
             _ ↔ (Ideal.Quotient.mk p a0 = (0 : A ⧸ p)) := hq0.symm
-        simp only [RingEquiv.toRingHom_eq_coe, mem_comap, RingHom.coe_coe, hEq, Submodule.mem_bot]
+        simpa only [RingEquiv.toRingHom_eq_coe, mem_comap, RingHom.coe_coe, Submodule.mem_bot]
+          using hEq
       have hcomap_height : (Ideal.comap e.toRingHom Q).height = Q.height :=
         e.height_comap Q
       calc _ = (Ideal.comap e.toRingHom Q).height := by simpa using hcomap_height.symm
@@ -565,7 +570,7 @@ theorem suslin_monic_polynomial_theorem {R : Type*} [CommRing R] [IsDomain R] [I
     have hp_lc : p.leadingCoeff = eX (eB g) := by
       have h₁ : eLast (eExt f0) = Polynomial.map eB (eLast f0) := by
         have hf : eExt f0 = eLast.symm (Polynomial.map eB (eLast f0)) := by
-          simpa [eExt, Polynomial.mapAlgEquiv, Polynomial.mapAlgHom] using by rfl
+          rfl
         simp [hf]
       have hLC_q1 : (eLast (eExt f0)).leadingCoeff = eB g := by
         have hLC_mapB :

@@ -513,7 +513,10 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
           have hAlgebraMap : (algebraMap A B) = π := rfl
           have hsmul : (C r : A) • (y : B) = (π (C r) : B) * (y : B) := by
             simpa [hAlgebraMap] using (Algebra.smul_def (C r : A) (y : B))
-          simp [hsmul, hπCr]
+          calc
+            (C r : A) • (y : B) = (π (C r) : B) * (y : B) := hsmul
+            _ = 0 * (y : B) := by simp [hπCr]
+            _ = 0 := by exact zero_mul _
         have hyF : (C r : A) • (y : B) ∈ Fsub := by simp [hy0]
         have hyK : (C r : A) • y ∈ K := by simpa [K] using hyF
         have h0 : Submodule.Quotient.mk (p := K) ((C r : A) • y) = (0 : N) :=
@@ -547,11 +550,15 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
             rwa [← h1]
           have hCd_mem : (C d : A) ∈ p'.1 := by
             have hmk : (Ideal.Quotient.mk p'.1 (C d : A) : A ⧸ p'.1) = 0 := by
-              have h := hCd0_M
-              rw [Algebra.smul_def] at h
-              rw [mul_one] at h
               have hAlgebraMap : (algebraMap A (A ⧸ p'.1)) = Ideal.Quotient.mk p'.1 := rfl
-              simpa using by rwa [hAlgebraMap] at h
+              have hmul : (Ideal.Quotient.mk p'.1 (C d : A) : A ⧸ p'.1) * 1 = 0 := by
+                simpa [Algebra.smul_def, hAlgebraMap] using hCd0_M
+              calc
+                (Ideal.Quotient.mk p'.1 (C d : A) : A ⧸ p'.1)
+                    = (Ideal.Quotient.mk p'.1 (C d : A) : A ⧸ p'.1) * 1 := by
+                      symm
+                      exact mul_one _
+                _ = 0 := hmul
             exact (Ideal.Quotient.eq_zero_iff_mem).1 hmk
           have hI_le_contr : I ≤ Ideal.comap (C : R →+* A) p'.1 := by
             intro r hrI
@@ -571,11 +578,15 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
               rwa [← h1]
             have hCr_mem : (C r : A) ∈ p'.1 := by
               have hmk : (Ideal.Quotient.mk p'.1 (C r : A) : A ⧸ p'.1) = 0 := by
-                have h := hCr0_M
-                rw [Algebra.smul_def] at h
-                rw [mul_one] at h
                 have hAlgebraMap : (algebraMap A (A ⧸ p'.1)) = Ideal.Quotient.mk p'.1 := rfl
-                simpa using by rwa [hAlgebraMap] at h
+                have hmul : (Ideal.Quotient.mk p'.1 (C r : A) : A ⧸ p'.1) * 1 = 0 := by
+                  simpa [Algebra.smul_def, hAlgebraMap] using hCr0_M
+                calc
+                  (Ideal.Quotient.mk p'.1 (C r : A) : A ⧸ p'.1)
+                      = (Ideal.Quotient.mk p'.1 (C r : A) : A ⧸ p'.1) * 1 := by
+                        symm
+                        exact mul_one _
+                  _ = 0 := hmul
               exact (Ideal.Quotient.eq_zero_iff_mem).1 hmk
             simpa [Ideal.mem_comap] using hCr_mem
           have hlt : Ideal.comap (C : R →+* A) p'.1 > I := by
@@ -772,7 +783,7 @@ theorem mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing [IsNoetherianRi
   have hinst : instUB₀ = instUB₁ := by
     refine Module.ext' instUB₀ instUB₁ ?_
     intro b x
-    simp [instUB₀, instUB₁, eU, Module.compHom]
+    rfl
   have hUB₁ : @HasFiniteFreeResolution UB P _ _ instUB₁ := by
     simpa [hinst] using (show @HasFiniteFreeResolution UB P _ _ instUB₀ from hUB₀)
   have hU' : (let : Module UB P := instUB₁; HasFiniteFreeResolution UB P) := by simpa using hUB₁

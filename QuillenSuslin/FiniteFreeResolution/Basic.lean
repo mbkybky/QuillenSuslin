@@ -141,13 +141,13 @@ theorem hasFiniteFreeResolutionLength_of_ringEquiv (e : A ≃+* B) (P : Type u) 
   | zero P =>
       have : Module.Finite A P := moduleFinite_of_ringEquiv e P
       have : Module.Free A P :=
-        (Module.Free.iff_of_ringEquiv e (semilinearEquiv_compHom e P)).2 inferInstance
+        (Module.Free.iff_of_equiv (semilinearEquiv_compHom e P)).2 inferInstance
       exact HasFiniteFreeResolutionLength.zero P
   | succ P n F f hf hker ih =>
       let : Module A F := Module.compHom F e.toRingHom
       have : Module.Finite A F := moduleFinite_of_ringEquiv e F
       have : Module.Free A F :=
-        (Module.Free.iff_of_ringEquiv e (semilinearEquiv_compHom e F)).2 inferInstance
+        (Module.Free.iff_of_equiv (semilinearEquiv_compHom e F)).2 inferInstance
       let fA : F →ₗ[A] P :=
         { toFun := f
           map_add' := fun _ _ => by simp
@@ -167,7 +167,7 @@ theorem hasFiniteFreeResolution_of_ringEquiv (e : A ≃+* B) (P : Type v) [AddCo
   let : Module A F := Module.compHom F e.toRingHom
   have : Module.Finite A F := moduleFinite_of_ringEquiv e F
   have : Module.Free A F :=
-    (Module.Free.iff_of_ringEquiv e (semilinearEquiv_compHom e F)).2 inferInstance
+    (Module.Free.iff_of_equiv (semilinearEquiv_compHom e F)).2 inferInstance
   let fA : F →ₗ[A] P :=
     { toFun := f
       map_add' := fun _ _ => by simp
@@ -194,7 +194,7 @@ theorem hasFiniteFreeResolution_of_ringEquiv_left (e : A ≃+* B) (P : Type v) [
     intro a x
     show (have := instA₀; (e.symm (e a)) • x) = (have := instA₀; a • x)
     simp
-  simpa [hinst] using hA₁
+  exact cast (by rw [hinst]) hA₁
 
 theorem hasFiniteFreeResolution_of_ringEquiv_right (e : A ≃+* B) (P : Type v) [AddCommGroup P]
     [Module B P]
@@ -211,7 +211,7 @@ theorem hasFiniteFreeResolution_of_ringEquiv_right (e : A ≃+* B) (P : Type v) 
     intro b x
     show (have := instB₀; (e (e.symm b)) • x) = (have := instB₀; b • x)
     simp
-  simpa [hinst] using hB₁
+  exact cast (by rw [hinst]) hB₁
 
 variable {S : Type u} [CommRing S]
 
@@ -261,8 +261,7 @@ theorem hasFiniteFreeResolutionLength_ulift {P : Type u} [AddCommGroup P] [Modul
   induction hn with
   | zero P =>
       have : Module.Free (ULift.{w} S) (ULift.{w} P) :=
-        (Module.Free.iff_of_ringEquiv ringEquivULift
-          (semilinearEquivULift P)).2 inferInstance
+        (Module.Free.iff_of_equiv (semilinearEquivULift P)).2 inferInstance
       have : Module.Finite (ULift.{w} S) (ULift.{w} P) := by
         have : Module.Finite S (ULift.{w} P) :=
           Module.Finite.equiv (linearEquivULift P).symm
@@ -288,7 +287,7 @@ theorem hasFiniteFreeResolutionLength_ulift {P : Type u} [AddCommGroup P] [Modul
         ext
         simp [f', hx]
       have : Module.Free (ULift.{w} S) (ULift.{w} F) :=
-        (Module.Free.iff_of_ringEquiv ringEquivULift (semilinearEquivULift F)).2 inferInstance
+        (Module.Free.iff_of_equiv (semilinearEquivULift F)).2 inferInstance
       have : Module.Finite (ULift.{w} S) (ULift.{w} F) := by
         have : Module.Finite S (ULift.{w} F) :=
           Module.Finite.equiv (linearEquivULift F).symm
@@ -344,7 +343,7 @@ theorem hasFiniteFreeResolution_ulift (P : Type v) [AddCommGroup P] [Module S P]
         map_smul' := fun _ _ => by congr }
     exact hasFiniteFreeResolutionLength_of_linearEquiv eKer hk0
   have : Module.Free (ULift.{w} S) (ULift.{w} F) :=
-    (Module.Free.iff_of_ringEquiv ringEquivULift (semilinearEquivULift F)).2 inferInstance
+    (Module.Free.iff_of_equiv (semilinearEquivULift F)).2 inferInstance
   have : Module.Finite (ULift.{w} S) (ULift.{w} F) := by
     have : Module.Finite S (ULift.{w} F) := Module.Finite.equiv (linearEquivULift F).symm
     simpa using moduleFinite_of_ringEquiv' (B := S) ringEquivULift (ULift.{w} F)
