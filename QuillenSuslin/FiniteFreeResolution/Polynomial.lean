@@ -172,7 +172,7 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
     ext f
     constructor
     · rintro ⟨p, rfl⟩
-      refine (Ideal.mem_map_C_iff (I := I)).2 fun n => ?_
+      refine Ideal.mem_map_C_iff.2 fun n => ?_
       have : (φ0 p).coeff n = (inclX p) n := by
         simp [φ0, PolynomialModule.equivPolynomialSelf, toFinsuppIso,
           coeff_ofFinsupp]
@@ -180,7 +180,7 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
       rw [this, hp]
       exact (p n).2
     · intro hf
-      have hf' : ∀ n, f.coeff n ∈ I := (Ideal.mem_map_C_iff (I := I)).1 hf
+      have hf' : ∀ n, f.coeff n ∈ I := Ideal.mem_map_C_iff.1 hf
       let p : PolynomialModule R I := Finsupp.onFinset f.support (fun n => ⟨f.coeff n, hf' n⟩) <| by
           intro n hn
           have : f.coeff n ≠ 0 := by
@@ -261,7 +261,7 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] [IsNoetherianRing R
     exact (Polynomial.map_injective i hi) (by simpa [fK] using h0)
   have hfK_natDegree_ne_zero : fK.natDegree ≠ 0 := by
     have hfKdeg : fK.natDegree = f.natDegree := by
-      simpa [fK] using (natDegree_map_eq_of_injective (f := i) hi f)
+      simpa [fK] using natDegree_map_eq_of_injective hi f
     simpa only [hfKdeg, ne_eq] using hf_natDegree_ne_zero
   let : Algebra R[X] K[X] := (mapRingHom (algebraMap R K)).toAlgebra
   have : IsLocalization ((nonZeroDivisors R).map (C : R →+* R[X])) K[X] := by
@@ -334,7 +334,7 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] [IsNoetherianRing R
     have hdegK' : (rR.map i).natDegree < fK.natDegree := by
       have hrR' : rR.map i = C (i d) * r g := by
         simpa [Algebra.smul_def, hbEq, map_mul] using hrR
-      simpa [hrR', natDegree_C_mul (p := r g) hid0] using hdegK
+      simpa [hrR', natDegree_C_mul hid0] using hdegK
     have hrdeg : rR.natDegree < f.natDegree := by
       have hrRdeg : (rR.map i).natDegree = rR.natDegree := by
         simpa only [natDegree_map_eq_iff, ne_eq] using (natDegree_map_eq_of_injective hi rR)
@@ -463,7 +463,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
         hmul₀ g₀ hg₀
       have hCd : e (C (Ideal.Quotient.mk I d) : A₀) = (Ideal.Quotient.mk IA) (C d) := by
         simpa [IA, Polynomial.map_C] using
-          (Ideal.polynomialQuotientEquivQuotientPolynomial_map_mk (I := I) (f := (C d : A)))
+          (Ideal.polynomialQuotientEquivQuotientPolynomial_map_mk I (C d : A))
       have hmem : e ((C (Ideal.Quotient.mk I d) : A₀) * g₀) ∈
           Ideal.map e.toRingHom (Ideal.span ({f₀} : Set A₀)) :=
         Ideal.mem_map_of_mem e.toRingHom h0
@@ -519,11 +519,11 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
             _ = 0 := by exact zero_mul _
         have hyF : (C r : A) • (y : B) ∈ Fsub := by simp [hy0]
         have hyK : (C r : A) • y ∈ K := by simpa [K] using hyF
-        have h0 : Submodule.Quotient.mk (p := K) ((C r : A) • y) = (0 : N) :=
+        have h0 : Submodule.Quotient.mk ((C r : A) • y) = (0 : N) :=
           (Submodule.Quotient.mk_eq_zero K).2 hyK
-        have hmksmul : Submodule.Quotient.mk (p := K) ((C r : A) • y) =
-            (C r : A) • Submodule.Quotient.mk (p := K) y :=
-          Submodule.Quotient.mk_smul K (r := (C r : A)) (x := y)
+        have hmksmul : Submodule.Quotient.mk ((C r : A) • y) =
+            (C r : A) • Submodule.Quotient.mk y :=
+          Submodule.Quotient.mk_smul K (C r : A) y
         exact hmksmul.symm.trans h0
       let motive : ∀ (M : Type u), [AddCommGroup M] → [Module A M] → [Module.Finite A M] → Prop :=
         fun M _ _ _ => (∀ x : M, (C d : A) • x = 0) →
@@ -626,7 +626,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     have hI_res : HasFiniteFreeResolution R I := hR I inferInstance
     have hIA_res : HasFiniteFreeResolution A IA :=
       hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution I hI_res
-    have hA : HasFiniteFreeResolution A A := hasFiniteFreeResolution_of_finite_of_free (R := A) A
+    have hA : HasFiniteFreeResolution A A := hasFiniteFreeResolution_of_finite_of_free A
     have hB : HasFiniteFreeResolution A B :=
       hasFiniteFreeResolution_of_shortExact_of_left_of_middle IA A (A ⧸ IA)
         (f := IA.subtype) (g := IA.mkQ) Subtype.coe_injective (Submodule.mkQ_surjective IA)

@@ -45,7 +45,9 @@ theorem Ideal.ufd_iff_height_one_primes_principal [IsDomain R]:
       use l
       simp [l, l1]
     rw [h1] at h2
-    simp at h2
+    exfalso
+    have h2' : (2 : WithTop ℕ) ≤ 1 := h2
+    norm_num at h2'
   · intro hPrincipal
     refine UniqueFactorizationMonoid.mk ?_
     intro q
@@ -79,7 +81,8 @@ theorem Ideal.ufd_iff_height_one_primes_principal [IsDomain R]:
         have hp_top : p.primeHeight ≠ ⊤ := Ideal.primeHeight_ne_top p
         rcases ENat.ne_top_iff_exists.mp hp_top with ⟨n, hn⟩
         rw [← hn] at hp_height_le_one hp_height_ne_zero ⊢
-        have hn_le : n ≤ 1 := by simpa using hp_height_le_one
+        have hn_le : n ≤ 1 := by
+          simpa using (show (n : WithTop ℕ) ≤ 1 from hp_height_le_one)
         interval_cases n <;> simp at *
       have hp_principal : p.IsPrincipal := hPrincipal p hp_height_eq_one
       let g : R := Submodule.IsPrincipal.generator p
@@ -392,7 +395,9 @@ theorem ufd_of_ufd_away_of_prime
           _ ≤ q.primeHeight + 1 := by simpa [add_comm] using add_le_add_right hq_ge_one 1
           _ ≤ p.primeHeight := hq_add_one
       rw [hheight] at htwo
-      norm_num at htwo
+      exfalso
+      have htwo' : (2 : WithTop ℕ) ≤ 1 := htwo
+      norm_num at htwo'
   · have hd : Disjoint (M : Set A) (p : Set A) := by
       rw [Set.disjoint_left]
       intro s hs hs'

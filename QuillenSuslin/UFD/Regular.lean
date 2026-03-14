@@ -1,1 +1,5 @@
+import Mathlib.RingTheory.RegularLocalRing.Localization
+import QuillenSuslin.FiniteFreeResolution.StablyFree
 import QuillenSuslin.UFD.Lemmas
+
+#check isRegularLocalRing_localization

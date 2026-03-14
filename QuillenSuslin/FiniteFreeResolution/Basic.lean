@@ -265,9 +265,7 @@ theorem hasFiniteFreeResolutionLength_ulift {P : Type u} [AddCommGroup P] [Modul
       have : Module.Finite (ULift.{w} S) (ULift.{w} P) := by
         have : Module.Finite S (ULift.{w} P) :=
           Module.Finite.equiv (linearEquivULift P).symm
-        simpa using
-          (moduleFinite_of_ringEquiv' (A := ULift.{w} S) (B := S)
-            ringEquivULift (ULift.{w} P))
+        simpa using moduleFinite_of_ringEquiv' (B := S) ringEquivULift (ULift.{w} P)
       exact HasFiniteFreeResolutionLength.zero (ULift.{w} P)
   | succ P n F f hf hker ih =>
       let f' : ULift.{w} F →ₗ[ULift.{w} S] ULift.{w} P :=
@@ -327,7 +325,7 @@ theorem hasFiniteFreeResolution_ulift (P : Type v) [AddCommGroup P] [Module S P]
     exact ⟨ULift.up x, rfl⟩
   have hn' : HasFiniteFreeResolutionLength (ULift.{w} S) (LinearMap.ker f') n := by
     have hk0 : HasFiniteFreeResolutionLength (ULift.{w} S) (ULift.{w} (LinearMap.ker f)) n := by
-      simpa using hasFiniteFreeResolutionLength_ulift (S := S) (hn := hn)
+      simpa using hasFiniteFreeResolutionLength_ulift hn
     let eKer :
         ULift.{w} (LinearMap.ker f) ≃ₗ[ULift.{w} S] LinearMap.ker f' :=
       { toEquiv :=
@@ -777,7 +775,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_middle_of_right (P₁ P₂ P₃
   have hKd : HasFiniteFreeResolution R Kd :=
     hasFiniteFreeResolution_of_shortExact_of_left_of_right (LinearMap.ker π₃) Kd F₂ hj hpr₁
       hexact₁ hK₃ hF₂
-  obtain ⟨s, hs⟩ := Module.projective_lifting_property (f := q) (g := π₃) hq
+  obtain ⟨s, hs⟩ := Module.projective_lifting_property q π₃ hq
   -- Short exact sequence `F₃ → ker d → ker q`.
   let k : F₃ →ₗ[R] Kd := LinearMap.codRestrict Kd (LinearMap.prod s LinearMap.id) <| by
     intro y
