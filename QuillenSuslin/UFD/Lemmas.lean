@@ -1,4 +1,6 @@
-import Mathlib
+import Mathlib.CategoryTheory.Category.Preorder
+import Mathlib.CategoryTheory.FinCategory.Basic
+import Mathlib.RingTheory.Ideal.KrullsHeightTheorem
 
 variable {R : Type*} [CommRing R] [IsNoetherianRing R]
 
