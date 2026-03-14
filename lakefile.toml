@@ -12,7 +12,9 @@ maxSynthPendingDepth = 3
 
 [[require]]
 name = "mathlib"
-scope = "leanprover-community"
+git = "https://github.com/Thmoas-Guan/mathlib4_fork.git"
+rev = "Localization-of-Regular-(Local)-Ring"
+
 
 [[lean_lib]]
 name = "QuillenSuslin"
