@@ -1,8 +1,12 @@
 import QuillenSuslin.FiniteFreeResolution.Basic
+import QuillenSuslin.FiniteFreeResolution.FreeOfLocalizedEq
+import QuillenSuslin.FiniteFreeResolution.Localization
 import QuillenSuslin.FiniteFreeResolution.Polynomial
 import QuillenSuslin.FiniteFreeResolution.StablyFree
 import QuillenSuslin.MainTheorem
 import QuillenSuslin.PicardGroup
+import QuillenSuslin.UFD.Lemmas
+import QuillenSuslin.UFD.Regular
 import QuillenSuslin.UnimodularVector.Basic
 import QuillenSuslin.UnimodularVector.BivariatePolynomial
 import QuillenSuslin.UnimodularVector.PID
