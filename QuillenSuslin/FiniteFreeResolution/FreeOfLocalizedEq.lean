@@ -32,8 +32,7 @@ noncomputable def stableMap {n : ℕ}
       ext i j
       by_cases h : j = 0
       · subst h
-        simpa [stableMatrix, stableBaseMatrix] using
-          congrFun (map_add e (m₁, 0) (m₂, 0)) i
+        simpa [stableMatrix, stableBaseMatrix] using congrFun (map_add e (m₁, 0) (m₂, 0)) i
       · simp [stableMatrix, stableBaseMatrix, h]
     have hm₁ : stableMatrix e m₁ =
         (stableBaseMatrix e).updateCol 0 (e.toFun (m₁, 0)) := by
@@ -51,8 +50,7 @@ noncomputable def stableMap {n : ℕ}
       · simp [stableMatrix, stableBaseMatrix, h]
     rw [hm, Matrix.det_updateCol_add, hm₁, hm₂]
   map_smul' r m := by
-    have hm : stableMatrix e (r • m) =
-        (stableBaseMatrix e).updateCol 0 (r • e.toFun (m, 0)) := by
+    have hm : stableMatrix e (r • m) = (stableBaseMatrix e).updateCol 0 (r • e.toFun (m, 0)) := by
       ext i j
       by_cases h : j = 0
       · subst h
@@ -75,10 +73,8 @@ theorem isUnit_stableMap_of_linearEquiv {n : ℕ}
   let e' : (R × (Fin n → R)) ≃ₗ[R] (Fin (n + 1) → R) :=
     (u.symm.prodCongr (LinearEquiv.refl R (Fin n → R))) ≪≫ₗ e
   have hmatrix : stableMatrix e (u.symm 1) =
-      LinearMap.toMatrix
-        (Pi.basisFun R (Fin (n + 1)))
-        (Pi.basisFun R (Fin (n + 1)))
-        (((Fin.consLinearEquiv R (fun _ : Fin (n + 1) => R)).symm ≪≫ₗ e').toLinearMap) := by
+      LinearMap.toMatrix (Pi.basisFun R (Fin (n + 1))) (Pi.basisFun R (Fin (n + 1)))
+        ((Fin.consLinearEquiv R (fun _ : Fin (n + 1) => R)).symm ≪≫ₗ e').toLinearMap := by
       ext i j
       rw [LinearMap.toMatrix_apply]
       by_cases h : j = 0
@@ -101,8 +97,7 @@ theorem isUnit_stableMap_of_linearEquiv {n : ℕ}
           · have hne : k.succ ≠ j := by
               intro hEq
               apply hk
-              exact Fin.succ_injective _ <| by
-                simpa [Fin.succ_pred j (by simpa using h)] using hEq
+              exact Fin.succ_injective _ <| by simpa [Fin.succ_pred j (by simpa using h)] using hEq
             simp [Pi.single, hne, hk]
         simp [htail]
   simpa [stableMap, hmatrix] using

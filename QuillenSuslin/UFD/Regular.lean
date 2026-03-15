@@ -197,8 +197,6 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
               Localization M ⧸ Ideal.map (algebraMap S (Localization M)) p0 :=
             (localizedQuotientEquiv M p0).symm.trans
               (Submodule.quotEquivOfEq _ _ (Ideal.localized'_eq_map (Localization M) M p0))
-          have hffr_map : _ := hasFiniteFreeResolution_of_linearEquiv eQuotMap <|
-            hasFiniteFreeResolution_localized M hffr_p0
           have hffr_q : HasFiniteFreeResolution (Localization M) q := by
             have : Module.Free (Localization M) (Localization M) := Module.Free.self _
             exact hasFiniteFreeResolution_of_shortExact_of_middle_of_right q (Localization M)
