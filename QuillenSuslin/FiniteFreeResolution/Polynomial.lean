@@ -140,8 +140,7 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
   have inclX_apply (p : PolynomialModule R I) (n : ℕ) : (inclX p) n = (p n : R) := by
     simp [inclX, polyMap, PolynomialModule.map]
     show (fun q => q n) ((Finsupp.mapRange.linearMap incl) p) = p n
-    have h := congrArg (fun q => q n) (Finsupp.mapRange.linearMap_apply incl p)
-    have h := congrArg (fun q => q n) (Finsupp.mapRange.linearMap_apply incl p)
+    have h := congrArg (fun q => q n) (Finsupp.mapRange.linearMap_apply (f := incl) p)
     rw [h]
     simp [Finsupp.mapRange_apply, incl]
   let φ0 : PolynomialModule R I →ₗ[R[X]] R[X] :=

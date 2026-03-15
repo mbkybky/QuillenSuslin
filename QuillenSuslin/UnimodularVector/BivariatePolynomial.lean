@@ -110,7 +110,8 @@ lemma N_entry_decomp (M : GL s (Localization S)[X]) (i j : s) :
     (N S M).1 i j = X * (W S M i j) + C (if i = j then 1 else 0) := by
   let ev0 : (Localization S)[X][Y] →+* (Localization S)[X] := eval₂RingHom (RingHom.id _) 0
   let map0 : GL s (Localization S)[X][Y] →* GL s (Localization S)[X] :=
-    Matrix.GeneralLinearGroup.map ev0
+    Matrix.GeneralLinearGroup.map (n := s) (R := (Localization S)[X][Y])
+      (S := (Localization S)[X]) ev0
   have hMx0 : map0 (Mx S M) = M := by
     ext i j
     simp [map0, Mx, ev0, CAY]
