@@ -350,8 +350,7 @@ lemma finSuccEquiv_map_finSuccEquivLast_apply {R : Type*} [CommRing R] (n : ℕ)
     | last =>
       have hlast : MvPolynomial.finSuccEquiv R (n + 1) (MvPolynomial.X (Fin.last (n + 1))) =
           C (MvPolynomial.X (Fin.last n)) := by
-        simpa [Fin.succ_last] using
-          (MvPolynomial.finSuccEquiv_X_succ (n := n + 1) (j := Fin.last n))
+        simpa [Fin.succ_last] using MvPolynomial.finSuccEquiv_X_succ (j := Fin.last n)
       have hF : F (MvPolynomial.X (Fin.last (n + 1))) = C X := by
         simp [F, hlast, MvPolynomial.finSuccEquivLast_X_last R n]
       have hG' : G (MvPolynomial.X (Fin.last (n + 1))) = swapR Y := by simp [G]

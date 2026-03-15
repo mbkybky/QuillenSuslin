@@ -141,6 +141,7 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
     simp [inclX, polyMap, PolynomialModule.map]
     show (fun q => q n) ((Finsupp.mapRange.linearMap incl) p) = p n
     have h := congrArg (fun q => q n) (Finsupp.mapRange.linearMap_apply incl p)
+    have h := congrArg (fun q => q n) (Finsupp.mapRange.linearMap_apply incl p)
     rw [h]
     simp [Finsupp.mapRange_apply, incl]
   let φ0 : PolynomialModule R I →ₗ[R[X]] R[X] :=
@@ -370,8 +371,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
   -- Noetherian induction on the contraction `p.1 ∩ R`.
   let A : Type u := R[X]
   let contr : PrimeSpectrum A → Ideal R := fun q => Ideal.comap (C : R →+* A) q.1
-  refine IsNoetherian.induction (P := fun I : Ideal R =>
-    ∀ q : PrimeSpectrum A, contr q = I → HasFiniteFreeResolution A (A ⧸ q.1)) ?_
+  refine IsNoetherian.induction ?_
   intro I ih q hqI
   let P : Ideal A := q.1
   have : P.IsPrime := q.2
