@@ -143,3 +143,21 @@ theorem regularLocalRing_isUFD : UniqueFactorizationMonoid R := by
   sorry
 
 instance : UniqueFactorizationMonoid R := regularLocalRing_isUFD R
+
+/-!
+Proof notes from Serre duality.pdf, §8, pages 46-47.
+
+- 8.12: a projective module with a finite free resolution is stably free.
+- 8.13: a stably free module of rank one is free.
+- 8.14 (Nagata): if `x` is prime and `A_x` is UFD, then `A` is UFD.
+- 8.15: for a regular local ring `(A,m)`, choose `x ∈ m \ m^2`.
+  Then `A/(x)` is regular and `x` is prime, so by 8.14 it suffices to prove `A_x` is UFD.
+  For a height-one prime `q` of `A_x`, each maximal localization `(A_x)_P` is a regular local ring
+  of strictly smaller dimension, hence is UFD by induction, so `q_P` is principal for every maximal `P`.
+  Thus `q` is a rank-one locally free module. One shows `A_x / q` has finite free resolution by
+  localizing a finite free resolution of `A / p`, where `p = comap q`, then the short exact sequence
+  `0 → q → A_x → A_x / q → 0` gives a finite free resolution of `q`. Since `q` is also projective,
+  8.12 makes it stably free, and 8.13 upgrades rank-one stably free to free, so `q` is principal.
+  Therefore every height-one prime of `A_x` is principal, hence `A_x` is UFD, and then 8.14 gives
+  that `A` is UFD.
+-/
