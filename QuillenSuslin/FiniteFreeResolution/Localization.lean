@@ -42,7 +42,7 @@ theorem hasFiniteFreeResolution_of_hasProjectiveDimensionLE
 variable {R M}
 
 theorem hasFiniteFreeResolutionLength_localized
-    [Nontrivial R] (S : Submonoid R) {n : ℕ} (h : HasFiniteFreeResolutionLength R M n) :
+    (S : Submonoid R) {n : ℕ} (h : HasFiniteFreeResolutionLength R M n) :
     HasFiniteFreeResolutionLength (Localization S) (LocalizedModule S M) n := by
   induction h with
   | zero P =>
@@ -75,7 +75,7 @@ theorem hasFiniteFreeResolutionLength_localized
         (LocalizedModule.map_surjective S f hf) hker'
 
 theorem hasFiniteFreeResolution_localized
-    [Nontrivial R] (S : Submonoid R) (h : HasFiniteFreeResolution R M) :
+    (S : Submonoid R) (h : HasFiniteFreeResolution R M) :
     HasFiniteFreeResolution (Localization S) (LocalizedModule S M) := by
   rcases h with ⟨F, _, _, _, _, f, hf, n, hn⟩
   let b := Module.Free.chooseBasis R F

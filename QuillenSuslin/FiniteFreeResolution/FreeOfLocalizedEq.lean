@@ -592,4 +592,4 @@ theorem free_of_isStablyFree_of_localized_eq_ring [IsDomain R] [Module.Finite R 
       simpa [F, eRawLoc, eLoc] using localized_stableMap_eq_restrict (R := R) (M := M) P e
     simpa [F, hcompat] using stableMap_bijective_of_linearEquiv eLoc uP
   let eF : M ≃ₗ[R] R := LinearEquiv.ofBijective F hbij
-  exact Module.Free.of_equiv eF.symm
+  exact Module.Free.of_equiv (LinearEquiv.ofBijective F hbij).symm
