@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2026 Yongle Hu. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Yongle Hu
+-/
 import Mathlib.Algebra.Category.ModuleCat.Projective
 import Mathlib.Algebra.Homology.ShortComplex.ModuleCat
 import Mathlib.CategoryTheory.Abelian.Projective.Dimension
