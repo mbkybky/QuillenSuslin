@@ -48,16 +48,16 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
               (CategoryTheory.projectiveDimension_ne_top_iff
                 (ModuleCat.of S (Shrink.{u, u} ↥(IsLocalRing.maximalIdeal S)))).1 hpd_ne_top
             obtain ⟨x, hxmem, hxnmem, hxreg⟩ :=
-              exist_isSMulRegular_of_exist_hasProjectiveDimensionLE (R := S) hmax_ne_bot ⟨m, hm⟩
+              exist_isSMulRegular_of_exist_hasProjectiveDimensionLE hmax_ne_bot ⟨m, hm⟩
             have hx_ne_zero : x ≠ 0 := by
               intro hx0
               have : (1 : S) = 0 := by
                 apply hxreg.right_eq_zero_of_smul
                 simp [hx0]
               exact one_ne_zero this
-            obtain ⟨hquot_reg, hquot_dim⟩ := quotient_span_singleton (R := S) hxmem hxnmem
+            obtain ⟨hquot_reg, hquot_dim⟩ := @quotient_span_singleton S _ _ x hxmem hxnmem
             have hquot_dom : IsDomain (S ⧸ Ideal.span {x}) :=
-              isDomain_of_isRegularLocalRing (R := S ⧸ Ideal.span {x})
+              isDomain_of_isRegularLocalRing (S ⧸ Ideal.span {x})
             have hxprime_ideal : (Ideal.span ({x} : Set S)).IsPrime :=
               (Ideal.Quotient.isDomain_iff_prime _).1 hquot_dom
             have hxprime : Prime x := (Ideal.span_singleton_prime hx_ne_zero).1 hxprime_ideal
@@ -71,7 +71,7 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
             have hA_dom : IsDomain (Localization M) :=
               IsLocalization.isDomain_of_le_nonZeroDivisors (Localization M) hM
             have hA_ufd : UniqueFactorizationMonoid (Localization M) := by
-              apply (Ideal.ufd_iff_height_one_primes_principal (R := Localization M)).2
+              apply (Ideal.ufd_iff_height_one_primes_principal).2
               intro q hq hqheight
               have hq_ne_bot : q ≠ ⊥ := by
                 intro hqbot
@@ -177,8 +177,9 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
                   exact ⟨eIdeal.trans (Ideal.isoBaseOfIsPrincipal hmap_ne_bot).symm⟩
                 · have hmap_top :
                     Ideal.map (algebraMap (Localization M) (Localization.AtPrime P)) q = ⊤ :=
-                      IsLocalization.AtPrime.map_eq_top_of_not_le (S := Localization.AtPrime P)
-                        (I := q) (p := P) hqP
+                      @IsLocalization.AtPrime.map_eq_top_of_not_le
+                        (Localization M) _ (Localization.AtPrime P) _ _ q P inferInstance
+                        inferInstance hqP
                   exact ⟨eIdeal.trans (LinearEquiv.ofTop _ hmap_top)⟩
               have hq_projective : Module.Projective (Localization M) q := by
                 have : Module.FinitePresentation (Localization M) q :=
@@ -215,14 +216,14 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
                 (CategoryTheory.projectiveDimension_ne_top_iff (ModuleCat.of S (S ⧸ p0))).1
                   hquot_pd_ne_top
               have hffr_p0 : HasFiniteFreeResolution S (S ⧸ p0) :=
-                hasFiniteFreeResolution_of_hasProjectiveDimensionLE (R := S) (M := S ⧸ p0) m0
+                hasFiniteFreeResolution_of_hasProjectiveDimensionLE S (S ⧸ p0) m0
               have hffr_loc :
                   HasFiniteFreeResolution (Localization M) (LocalizedModule M (S ⧸ p0)) :=
-                hasFiniteFreeResolution_localized (R := S) (M := S ⧸ p0) M hffr_p0
+                hasFiniteFreeResolution_localized M hffr_p0
               let eQuotMap :
                   LocalizedModule M (S ⧸ p0) ≃ₗ[Localization M]
                     Localization M ⧸ Ideal.map (algebraMap S (Localization M)) p0 :=
-                (localizedQuotientEquiv (p := M) (M' := p0)).symm.trans
+                (localizedQuotientEquiv M p0).symm.trans
                   (Submodule.quotEquivOfEq _ _
                     (Ideal.localized'_eq_map (Localization M) M p0))
               have hffr_map :
@@ -243,7 +244,7 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
                     intro a b hab
                     exact Subtype.ext hab)
                   Ideal.Quotient.mk_surjective (LinearMap.exact_subtype_mkQ q)
-                  (hasFiniteFreeResolution_of_finite_of_free (R := Localization M) (Localization M))
+                  (hasFiniteFreeResolution_of_finite_of_free (Localization M))
                   hffr_quot
               have hstable : IsStablyFree (Localization M) q :=
                 (stably_free_iff (Localization M) q).2 hffr_q
@@ -252,7 +253,7 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
               have hfree : Module.Free (Localization M) q :=
                 free_of_isStablyFree_of_localized_eq_ring
                   hstable P0 (Classical.choice (hloc P0)) hloc
-              exact Ideal.isPrincipal_of_free (R := Localization M) (I := q)
+              exact Ideal.isPrincipal_of_free (Localization M)
             exact ufd_of_ufd_away_of_prime x hxprime
   obtain ⟨n, hn⟩ := exist_nat_eq R
   exact hmain n hn

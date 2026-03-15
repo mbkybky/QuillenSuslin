@@ -535,7 +535,7 @@ theorem exists_unit_coeff_of_isUnimodular [IsLocalRing R] (o : s) (v : s → R[X
           have hm_ne_top : m ≠ ⊤ := by
             simpa [m] using (IsLocalRing.maximalIdeal.isMaximal R).ne_top
           have h1m : (1 : R) ∈ m := by
-            simpa [f] using (Ideal.Quotient.eq_zero_iff_mem (I := m) (a := (1 : R))).1 h10
+            simpa [f] using (Ideal.Quotient.eq_zero_iff_mem (a := (1 : R))).1 h10
           exact hm_ne_top ((Ideal.eq_top_iff_one _).2 h1m)
         simpa [hcoeff] using h10
       have hle : (v o).natDegree ≤ (F (v o)).natDegree := le_natDegree_of_ne_zero hne
@@ -551,7 +551,7 @@ theorem exists_unit_coeff_of_isUnimodular [IsLocalRing R] (o : s) (v : s → R[X
     apply hi
     intro _hio
     exact h0
-  rcases exists_coeff_ne_zero_of_ne_zero (S := k) (p := F (v i)) hne with ⟨n, hn⟩
+  rcases exists_coeff_ne_zero_of_ne_zero hne with ⟨n, hn⟩
   have hn' : (v i).coeff n ∉ m := by
     intro hmem
     have : f ((v i).coeff n) = 0 := by
@@ -834,7 +834,7 @@ theorem cor9 [IsLocalRing R] (v : s → R[X]) (hv : IsUnimodular v)
     exact Submodule.mem_top
   rcases (Ideal.mem_span_range_iff_exists_fun).1 h1 with ⟨c, hc⟩
   -- Evaluate at `0` to get a relation in `R`.
-  let ev0 : R[X] →+* R := Polynomial.evalRingHom (R := R) 0
+  let ev0 : R[X] →+* R := Polynomial.evalRingHom 0
   have hc0 : (∑ i : s, ev0 (c i) * ev0 (v i)) = 1 := by
     simpa [map_sum, map_mul] using congrArg ev0 hc
   -- Over a local ring, not all `v i` can evaluate into the maximal ideal.

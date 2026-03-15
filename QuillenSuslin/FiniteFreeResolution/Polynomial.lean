@@ -140,7 +140,7 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
   have inclX_apply (p : PolynomialModule R I) (n : ℕ) : (inclX p) n = (p n : R) := by
     simp [inclX, polyMap, PolynomialModule.map]
     show (fun q => q n) ((Finsupp.mapRange.linearMap incl) p) = p n
-    have h := congrArg (fun q => q n) (Finsupp.mapRange.linearMap_apply (f := incl) p)
+    have h := congrArg (fun q => q n) (Finsupp.mapRange.linearMap_apply incl p)
     rw [h]
     simp [Finsupp.mapRange_apply, incl]
   let φ0 : PolynomialModule R I →ₗ[R[X]] R[X] :=
@@ -386,7 +386,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     have hA : HasFiniteFreeResolution A A := hasFiniteFreeResolution_of_finite_of_free A
     have hquot : HasFiniteFreeResolution A (A ⧸ IA) :=
       hasFiniteFreeResolution_of_shortExact_of_left_of_middle IA A (A ⧸ IA)
-        (f := IA.subtype) (g := IA.mkQ) Subtype.coe_injective (Submodule.mkQ_surjective IA)
+        (f := IA.subtype) Subtype.coe_injective (Submodule.mkQ_surjective IA)
           (by simpa using LinearMap.exact_subtype_mkQ IA) hIA_res hA
     have hquotP : HasFiniteFreeResolution A (A ⧸ P) :=
       hasFiniteFreeResolution_of_linearEquiv (Submodule.quotEquivOfEq IA P hPIA.symm) hquot
@@ -435,7 +435,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
       exact (Ideal.Quotient.eq_zero_iff_mem).2 hrI
     obtain ⟨d₀, hd₀, f₀, hf₀P₀, hf₀ne, hmul₀⟩ :=
       exists_nonzero_C_mul_mem_span_singleton hP₀_contr hP₀_ne
-    rcases Ideal.Quotient.mk_surjective (I := I) d₀ with ⟨d, rfl⟩
+    rcases Ideal.Quotient.mk_surjective d₀ with ⟨d, rfl⟩
     have hd_not_mem : d ∉ I := by
       intro hdI
       apply hd₀
@@ -492,8 +492,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
           simpa [Fsub, π] using this
         have hsmul : ((C d : A) • (y : B)) = (π (C d) : B) * (y : B) := by
           have hAlgebraMap : (algebraMap A B) = π := rfl
-          simpa [hAlgebraMap] using
-            (Algebra.smul_def (R := A) (A := B) (r := (C d : A)) (x := (y : B)))
+          simpa [hAlgebraMap] using (Algebra.smul_def (C d : A) (y : B))
         simpa [hsmul] using hyFmul
       have hyK : (C d : A) • y ∈ K := by
         simpa [K] using hyF
@@ -599,7 +598,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
             exact hd_not_mem this
           have hquot : HasFiniteFreeResolution A (A ⧸ p'.1) :=
             ih (Ideal.comap (C : R →+* A) p'.1) hlt p' rfl
-          exact hasFiniteFreeResolution_of_linearEquiv (R := A) eM.symm hquot
+          exact hasFiniteFreeResolution_of_linearEquiv eM.symm hquot
         · intro M₁ _ _ _ M₂ _ _ _ M₃ _ _ _ f g hf hg hfg h₁ h₃ hAnn_d2 hAnn_I2
           have hAnn_d1 : ∀ x : M₁, (C d : A) • x = 0 := by
             intro x
@@ -629,9 +628,9 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     have hA : HasFiniteFreeResolution A A := hasFiniteFreeResolution_of_finite_of_free A
     have hB : HasFiniteFreeResolution A B :=
       hasFiniteFreeResolution_of_shortExact_of_left_of_middle IA A (A ⧸ IA)
-        (f := IA.subtype) (g := IA.mkQ) Subtype.coe_injective (Submodule.mkQ_surjective IA)
+        (f := IA.subtype) Subtype.coe_injective (Submodule.mkQ_surjective IA)
           (by simpa using (LinearMap.exact_subtype_mkQ IA)) hIA_res hA
-    have : IsDomain B := MulEquiv.isDomain (A := B) (B := A₀) e.symm.toMulEquiv
+    have : IsDomain B := MulEquiv.isDomain A₀ e.symm.toMulEquiv
     have hFbar : HasFiniteFreeResolution A Fbar :=
       hasFiniteFreeResolution_of_linearEquiv
         ((linearEquiv_mul_spanSingleton hfbar_ne).restrictScalars A) hB
@@ -641,9 +640,8 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     have hPbar : HasFiniteFreeResolution A Psub := by
       -- Short exact sequence `0 → K → Psub → N → 0`.
       refine hasFiniteFreeResolution_of_shortExact_of_left_of_right K Psub N
-        (f := (K.subtype).restrictScalars A) (g := (K.mkQ).restrictScalars A)
-        (hf := Subtype.coe_injective) (hg := Submodule.mkQ_surjective K)
-        (h := by simpa using LinearMap.exact_subtype_mkQ K) hK hN
+        (f := (K.subtype).restrictScalars A) Subtype.coe_injective (Submodule.mkQ_surjective K)
+          (by simpa using LinearMap.exact_subtype_mkQ K) hK hN
     let fIP : IA →ₗ[A] P := Submodule.inclusion hIA_le_P
     let gPP : P →ₗ[A] Pbar :=
       { toFun := fun x => ⟨π x.1, Ideal.mem_map_of_mem π x.2⟩
@@ -664,7 +662,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
       simpa [fIP] using congrArg (fun z : P => (z : A)) hxy
     have hgPP : Function.Surjective gPP := by
       intro y
-      rcases (Ideal.mem_map_iff_of_surjective π (Ideal.Quotient.mk_surjective (I := IA))).1 y.2 with
+      rcases (Ideal.mem_map_iff_of_surjective π Ideal.Quotient.mk_surjective).1 y.2 with
         ⟨a, haP, haEq⟩
       refine ⟨⟨a, haP⟩, ?_⟩
       apply Subtype.ext
@@ -686,7 +684,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     -- Finally, `0 → P → A → A ⧸ P → 0`.
     have hquot : HasFiniteFreeResolution A (A ⧸ P) :=
       hasFiniteFreeResolution_of_shortExact_of_left_of_middle P A (A ⧸ P)
-        (f := P.subtype) (g := P.mkQ) Subtype.coe_injective (Submodule.mkQ_surjective P)
+        (f := P.subtype) Subtype.coe_injective (Submodule.mkQ_surjective P)
           (by simpa only [Submodule.coe_subtype] using (LinearMap.exact_subtype_mkQ P)) hP hA
     exact hquot
 
@@ -732,7 +730,7 @@ theorem mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing_aux [IsNoetheri
       let e : MvPolynomial α R ≃+* MvPolynomial β R := (MvPolynomial.renameEquiv R a).toRingEquiv
       let : Module (MvPolynomial α R) M := Module.compHom M e.toRingHom
       have hA : HasFiniteFreeResolution (MvPolynomial α R) M := by
-        have : Module.Finite (MvPolynomial α R) M := moduleFinite_of_ringEquiv (e := e) M
+        have : Module.Finite (MvPolynomial α R) M := moduleFinite_of_ringEquiv e M
         simpa using hα M
       simpa using hasFiniteFreeResolution_of_ringEquiv_right e M hA
     · intro M _ _ _

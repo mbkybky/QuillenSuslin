@@ -22,7 +22,7 @@ theorem hasFiniteFreeResolution_of_hasProjectiveDimensionLE
   | zero =>
       have hproj : Projective (ModuleCat.of R M) :=
         (projective_iff_hasProjectiveDimensionLT_one _).2 inferInstance
-      have hmodproj : Module.Projective R M := (IsProjective.iff_projective (R := R) M).2 hproj
+      have hmodproj : Module.Projective R M := (IsProjective.iff_projective M).2 hproj
       let : Module.Free R M := Module.free_of_flat_of_isLocalRing
       exact hasFiniteFreeResolution_of_finite_of_free M
   | succ n ih =>
@@ -39,10 +39,9 @@ theorem hasFiniteFreeResolution_of_hasProjectiveDimensionLE
         Module.Finite.of_injective (LinearMap.ker f).subtype (LinearMap.ker f).injective_subtype
       have hfreeP : HasFiniteFreeResolution R P := hasFiniteFreeResolution_of_finite_of_free P
       have hker' : HasFiniteFreeResolution R (LinearMap.ker f) := ih _
-      exact hasFiniteFreeResolution_of_shortExact_of_left_of_middle
-        (P₁ := LinearMap.ker f) (P₂ := P) (P₃ := M)
-          (f := (LinearMap.ker f).subtype) (g := f)
-            (LinearMap.ker f).injective_subtype hf (LinearMap.exact_subtype_ker_map f) hker' hfreeP
+      exact @hasFiniteFreeResolution_of_shortExact_of_left_of_middle
+        R _ (LinearMap.ker f) P M _ _ _ _ _ _ (LinearMap.ker f).subtype f
+        (LinearMap.ker f).injective_subtype hf (LinearMap.exact_subtype_ker_map f) hker' hfreeP
 
 variable {R M}
 
@@ -69,7 +68,7 @@ theorem hasFiniteFreeResolutionLength_localized
         let eKer :
             LocalizedModule S (LinearMap.ker f) ≃ₗ[Localization S]
               LinearMap.ker (LocalizedModule.map S f) :=
-          (Submodule.localizedEquiv (p := S) (M' := LinearMap.ker f)).symm ≪≫ₗ
+          (Submodule.localizedEquiv S (LinearMap.ker f)).symm ≪≫ₗ
             LinearEquiv.ofEq _ _
               (LinearMap.localized'_ker_eq_ker_localizedMap
                 (Localization S) S (LocalizedModule.mkLinearMap S F)
@@ -77,7 +76,7 @@ theorem hasFiniteFreeResolutionLength_localized
         exact hasFiniteFreeResolutionLength_of_linearEquiv eKer ih
       exact HasFiniteFreeResolutionLength.succ (LocalizedModule S P) n
         (LocalizedModule S F) (LocalizedModule.map S f)
-        (LocalizedModule.map_surjective S f hf) hker'
+          (LocalizedModule.map_surjective S f hf) hker'
 
 theorem hasFiniteFreeResolution_localized
     (S : Submonoid R) (h : HasFiniteFreeResolution R M) :
@@ -94,7 +93,7 @@ theorem hasFiniteFreeResolution_localized
   let eKer :
       LocalizedModule S (LinearMap.ker f) ≃ₗ[Localization S]
         LinearMap.ker (LocalizedModule.map S f) :=
-    (Submodule.localizedEquiv (p := S) (M' := LinearMap.ker f)).symm ≪≫ₗ
+    (Submodule.localizedEquiv S (LinearMap.ker f)).symm ≪≫ₗ
       LinearEquiv.ofEq _ _
         (LinearMap.localized'_ker_eq_ker_localizedMap
           (Localization S) S (LocalizedModule.mkLinearMap S F)

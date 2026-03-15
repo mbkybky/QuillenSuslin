@@ -115,10 +115,8 @@ theorem isUnit_stableMap_of_linearEquiv {n : ℕ}
   show IsUnit ((stableMatrix e (u.symm 1)).det)
   rw [hmatrix]
   exact LinearEquiv.isUnit_det
-    (((Fin.consLinearEquiv R (fun _ : Fin (n + 1) => R)).symm ≪≫ₗ e')
-      : (Fin (n + 1) → R) ≃ₗ[R] (Fin (n + 1) → R))
-    (Pi.basisFun R (Fin (n + 1)))
-    (Pi.basisFun R (Fin (n + 1)))
+    ((Fin.consLinearEquiv R (fun _ : Fin (n + 1) => R)).symm ≪≫ₗ e')
+      (Pi.basisFun R (Fin (n + 1))) (Pi.basisFun R (Fin (n + 1)))
 
 theorem stableMap_bijective_of_linearEquiv {n : ℕ}
     (e : (M × (Fin n → R)) ≃ₗ[R] (Fin (n + 1) → R)) (u : M ≃ₗ[R] R) :
@@ -145,8 +143,7 @@ theorem stableMap_bijective_of_linearEquiv {n : ℕ}
   · intro b
     rcases ha with ⟨a', ha'⟩
     refine ⟨(b * ↑a'⁻¹) • u.symm 1, ?_⟩
-    rw [hm]
-    rw [← ha']
+    rw [hm, ← ha']
     simp [mul_assoc]
 
 @[simp] lemma IsLocalizedModule.linearEquiv_apply_mk'
@@ -154,11 +151,10 @@ theorem stableMap_bijective_of_linearEquiv {n : ℕ}
     {B : Type u} [AddCommGroup B] [Module R B]
     {C : Type u} [AddCommGroup C] [Module R C]
     (S : Submonoid R) (f : A →ₗ[R] B) [IsLocalizedModule S f]
-    (g : A →ₗ[R] C) [IsLocalizedModule S g]
-    (x : A) (s : S) :
+    (g : A →ₗ[R] C) [IsLocalizedModule S g] (x : A) (s : S) :
     (IsLocalizedModule.linearEquiv S f g) (IsLocalizedModule.mk' f x s) =
       IsLocalizedModule.mk' g x s := by
-  apply (IsLocalizedModule.smul_inj (f := g) s _ _).1
+  apply (IsLocalizedModule.smul_inj g s _ _).1
   show ((s : R) • (IsLocalizedModule.linearEquiv S f g (IsLocalizedModule.mk' f x s))) =
     ((s : R) • IsLocalizedModule.mk' g x s)
   calc
@@ -166,11 +162,11 @@ theorem stableMap_bijective_of_linearEquiv {n : ℕ}
         = IsLocalizedModule.linearEquiv S f g ((s : R) • IsLocalizedModule.mk' f x s) := by simp
     _ = IsLocalizedModule.linearEquiv S f g (f x) := by
           exact congrArg (IsLocalizedModule.linearEquiv S f g)
-            (IsLocalizedModule.mk'_cancel' (f := f) x s)
+            (IsLocalizedModule.mk'_cancel' f x s)
     _ = g x := IsLocalizedModule.linearEquiv_apply S f g x
     _ = (s : R) • IsLocalizedModule.mk' g x s := by
           symm
-          exact IsLocalizedModule.mk'_cancel' (f := g) x s
+          exact IsLocalizedModule.mk'_cancel' g x s
 
 @[simp] lemma IsLocalizedModule.linearEquiv_symm_apply_mk'
     {A : Type u} [AddCommGroup A] [Module R A]
@@ -215,8 +211,8 @@ instance localizedProdMap_isLocalizedModule (S : Submonoid R) (M N : Type u)
       · simpa [f, localizedProdMap] using hx
       · simpa [f, localizedProdMap] using hz
   · intro y
-    rcases IsLocalizedModule.surj (S := S) (LocalizedModule.mkLinearMap S M) y.1 with ⟨x, hx⟩
-    rcases IsLocalizedModule.surj (S := S) (LocalizedModule.mkLinearMap S N) y.2 with ⟨z, hz⟩
+    rcases IsLocalizedModule.surj S (LocalizedModule.mkLinearMap S M) y.1 with ⟨x, hx⟩
+    rcases IsLocalizedModule.surj S (LocalizedModule.mkLinearMap S N) y.2 with ⟨z, hz⟩
     refine ⟨((z.2 • x.1, x.2 • z.1), x.2 * z.2), ?_⟩
     apply Prod.ext
     · have hx' := congrArg (fun t => z.2 • t) hx
@@ -232,10 +228,10 @@ instance localizedProdMap_isLocalizedModule (S : Submonoid R) (M N : Type u)
         (LocalizedModule.mkLinearMap S N) x₁.2 =
           (LocalizedModule.mkLinearMap S N) x₂.2 := by
       exact congrArg Prod.snd h
-    rcases IsLocalizedModule.exists_of_eq (S := S) (f := LocalizedModule.mkLinearMap S M) h₁
-      with ⟨c₁, hc₁⟩
-    rcases IsLocalizedModule.exists_of_eq (S := S) (f := LocalizedModule.mkLinearMap S N) h₂
-      with ⟨c₂, hc₂⟩
+    rcases @IsLocalizedModule.exists_of_eq R _ M (LocalizedModule S M) _ _ _ _
+      S (LocalizedModule.mkLinearMap S M) inferInstance x₁.1 x₂.1 h₁ with ⟨c₁, hc₁⟩
+    rcases @IsLocalizedModule.exists_of_eq R _ N (LocalizedModule S N) _ _ _ _
+      S (LocalizedModule.mkLinearMap S N) inferInstance x₁.2 x₂.2 h₂ with ⟨c₂, hc₂⟩
     refine ⟨c₁ * c₂, ?_⟩
     apply Prod.ext
     · have hc₁' := congrArg (fun t => c₂ • t) hc₁
@@ -257,30 +253,30 @@ noncomputable def localizedProdEquiv (S : Submonoid R) (M N : Type u)
       (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S M) x.1 s,
         IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S N) x.2 s) := by
   apply Prod.ext
-  · apply (IsLocalizedModule.smul_inj (f := LocalizedModule.mkLinearMap S M) s _ _).1
+  · apply (IsLocalizedModule.smul_inj (LocalizedModule.mkLinearMap S M) s _ _).1
     show ((s : R) • (IsLocalizedModule.mk' (localizedProdMap S M N) x s).1) =
       ((s : R) • IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S M) x.1 s)
     calc
       ((s : R) • (IsLocalizedModule.mk' (localizedProdMap S M N) x s).1)
           = ((localizedProdMap S M N) x).1 := by
               exact congrArg Prod.fst
-                (IsLocalizedModule.mk'_cancel' (f := localizedProdMap S M N) x s)
+                (IsLocalizedModule.mk'_cancel' (localizedProdMap S M N) x s)
       _ = (LocalizedModule.mkLinearMap S M) x.1 := rfl
       _ = ((s : R) • IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S M) x.1 s) := by
             symm
-            exact IsLocalizedModule.mk'_cancel' (f := LocalizedModule.mkLinearMap S M) x.1 s
-  · apply (IsLocalizedModule.smul_inj (f := LocalizedModule.mkLinearMap S N) s _ _).1
+            exact IsLocalizedModule.mk'_cancel' (LocalizedModule.mkLinearMap S M) x.1 s
+  · apply (IsLocalizedModule.smul_inj (LocalizedModule.mkLinearMap S N) s _ _).1
     show ((s : R) • (IsLocalizedModule.mk' (localizedProdMap S M N) x s).2) =
       ((s : R) • IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S N) x.2 s)
     calc
       ((s : R) • (IsLocalizedModule.mk' (localizedProdMap S M N) x s).2)
           = ((localizedProdMap S M N) x).2 := by
               exact congrArg Prod.snd
-                (IsLocalizedModule.mk'_cancel' (f := localizedProdMap S M N) x s)
+                (IsLocalizedModule.mk'_cancel' (localizedProdMap S M N) x s)
       _ = (LocalizedModule.mkLinearMap S N) x.2 := rfl
       _ = ((s : R) • IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S N) x.2 s) := by
             symm
-            exact IsLocalizedModule.mk'_cancel' (f := LocalizedModule.mkLinearMap S N) x.2 s
+            exact IsLocalizedModule.mk'_cancel' (LocalizedModule.mkLinearMap S N) x.2 s
 
 @[simp] lemma localizedProdEquiv_apply_mk' (S : Submonoid R) (M N : Type u)
     [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N]
@@ -296,7 +292,7 @@ noncomputable def localizedProdEquiv (S : Submonoid R) (M N : Type u)
     (x : M × N) :
     localizedProdEquiv S M N (LocalizedModule.mk x 1) =
       (LocalizedModule.mk x.1 1, LocalizedModule.mk x.2 1) := by
-  simpa using localizedProdEquiv_apply_mk' (R := R) S M N x (1 : S)
+  simpa using localizedProdEquiv_apply_mk' S M N x (1 : S)
 
 @[simp] lemma localizedProdEquiv_symm_apply_mk' (S : Submonoid R) (M N : Type u)
     [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N]
@@ -314,7 +310,7 @@ noncomputable def localizedProdEquiv (S : Submonoid R) (M N : Type u)
     (localizedProdEquiv S M N).symm
       (LocalizedModule.mk x.1 1, LocalizedModule.mk x.2 1) =
         LocalizedModule.mk x 1 := by
-  simpa using localizedProdEquiv_symm_apply_mk' (R := R) S M N x (1 : S)
+  simpa using localizedProdEquiv_symm_apply_mk' S M N x (1 : S)
 
 @[simp] lemma localizedProdEquiv_symm_apply_mk'_zero_right (S : Submonoid R) (M N : Type u)
     [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N]
@@ -322,7 +318,7 @@ noncomputable def localizedProdEquiv (S : Submonoid R) (M N : Type u)
     (localizedProdEquiv S M N).symm
       (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S M) x s, 0) =
         IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S (M × N)) (x, 0) s := by
-  simpa using localizedProdEquiv_symm_apply_mk' (R := R) S M N (x, 0) s
+  simpa using localizedProdEquiv_symm_apply_mk' S M N (x, 0) s
 
 @[simp] lemma localizedProdEquiv_symm_apply_zero_mk (S : Submonoid R) (M N : Type u)
     [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N]
@@ -330,7 +326,7 @@ noncomputable def localizedProdEquiv (S : Submonoid R) (M N : Type u)
     (localizedProdEquiv S M N).symm
       (0, LocalizedModule.mk y 1) =
         LocalizedModule.mk (0, y) 1 := by
-  simpa using localizedProdEquiv_symm_apply_mk (R := R) S M N (0, y)
+  simpa using localizedProdEquiv_symm_apply_mk S M N (0, y)
 
 noncomputable def localizedRingEquiv (S : Submonoid R) :
     LocalizedModule S R ≃ₗ[Localization S] Localization S :=
@@ -354,7 +350,7 @@ noncomputable def localizedPiEquiv (S : Submonoid R) (n : ℕ) :
   let bS := b.ofIsLocalizedModule (Localization S) S
     (LocalizedModule.mkLinearMap S (Fin n → R))
   show (bS.repr (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S (Fin n → R)) v s)) i = _
-  apply (IsLocalizedModule.smul_inj (f := Algebra.linearMap R (Localization S)) s _ _).1
+  apply (IsLocalizedModule.smul_inj (Algebra.linearMap R (Localization S)) s _ _).1
   show ((s : R) • (bS.repr
       (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S (Fin n → R)) v s)) i) =
     ((s : R) • IsLocalization.mk' (Localization S) (v i) s)
@@ -368,13 +364,13 @@ noncomputable def localizedPiEquiv (S : Submonoid R) (n : ℕ) :
                 (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S (Fin n → R)) v s)).symm
     _ = (bS.repr ((LocalizedModule.mkLinearMap S (Fin n → R)) v)) i := by
           exact congrArg (fun w => (bS.repr w) i)
-            (IsLocalizedModule.mk'_cancel' (f := LocalizedModule.mkLinearMap S (Fin n → R)) v s)
+            (IsLocalizedModule.mk'_cancel' (LocalizedModule.mkLinearMap S (Fin n → R)) v s)
     _ = algebraMap R (Localization S) (v i) := by
           rw [Module.Basis.ofIsLocalizedModule_repr_apply]
           simp [b, Pi.basisFun_repr]
     _ = (s : R) • IsLocalization.mk' (Localization S) (v i) s := by
           symm
-          exact IsLocalization.smul_mk'_self (S := Localization S) (m := s) (r := v i)
+          exact @IsLocalization.smul_mk'_self R _ S (Localization S) _ _ _ s (v i)
 
 @[simp] lemma localizedPiEquiv_apply_mk (S : Submonoid R) (n : ℕ) (v : Fin n → R) :
     localizedPiEquiv S n (LocalizedModule.mk v 1) =
@@ -427,11 +423,11 @@ lemma localizedPiEquiv_apply_map_mk
       LocalizedModule.mk x 1 := by simp
   rw [← hmk]
   ext i
-  have hi := congrFun (localizedPiEquiv_apply_map_mk' (R := R) S h x (1 : S)) i
+  have hi := congrFun (localizedPiEquiv_apply_map_mk' S h x (1 : S)) i
   rw [show IsLocalization.mk' (Localization S) (h x i) (1 : S) =
       algebraMap R (Localization S) (h x i) by
         simpa using
-          (IsLocalization.smul_mk'_self (S := Localization S) (m := (1 : S)) (r := h x i))] at hi
+          (@IsLocalization.smul_mk'_self R _ S (Localization S) _ _ _ (1 : S) (h x i))] at hi
   exact hi
 
 theorem exists_fin_linearEquiv_of_isStablyFree_of_localized_eq_ring [IsDomain R]
@@ -443,9 +439,9 @@ theorem exists_fin_linearEquiv_of_isStablyFree_of_localized_eq_ring [IsDomain R]
   let n := Module.finrank R N
   let m := Module.finrank R (M × N)
   let eN : N ≃ₗ[R] (Fin n → R) :=
-    LinearEquiv.ofFinrankEq (R := R) (M := N) (M' := Fin n → R) (by simp [n])
+    LinearEquiv.ofFinrankEq N (Fin n → R) (by simp [n])
   let eMN : (M × N) ≃ₗ[R] (Fin m → R) :=
-    LinearEquiv.ofFinrankEq (R := R) (M := M × N) (M' := Fin m → R) (by simp [m])
+    LinearEquiv.ofFinrankEq (M × N) (Fin m → R) (by simp [m])
   let e : (M × (Fin n → R)) ≃ₗ[R] (Fin m → R) :=
     ((LinearEquiv.refl R M).prodCongr eN.symm) ≪≫ₗ eMN
   let Rp := Localization.AtPrime P
@@ -491,7 +487,7 @@ theorem exists_fin_linearEquiv_of_isStablyFree_of_localized_eq_ring [IsDomain R]
       _ = n + 1 := by omega
   refine ⟨n, ?_⟩
   refine ⟨e ≪≫ₗ ?_⟩
-  exact LinearEquiv.ofFinrankEq (R := R) (M := Fin m → R) (M' := Fin (n + 1) → R) (by simp [hm])
+  exact LinearEquiv.ofFinrankEq (Fin m → R) (Fin (n + 1) → R) (by simp [hm])
 
 theorem localized_stableMap_eq_restrict (P : Ideal R) [P.IsPrime] {n : ℕ}
     (e : (M × (Fin n → R)) ≃ₗ[R] (Fin (n + 1) → R)) :
@@ -512,9 +508,9 @@ theorem localized_stableMap_eq_restrict (P : Ideal R) [P.IsPrime] {n : ℕ}
       (Algebra.linearMap R (Localization.AtPrime P)) (stableMap e) =
       (stableMap eLoc).restrictScalars R := by
   ext x
-  obtain ⟨⟨m, s⟩, rfl⟩ := IsLocalizedModule.mk'_surjective (S := P.primeCompl)
+  obtain ⟨⟨m, s⟩, rfl⟩ := IsLocalizedModule.mk'_surjective P.primeCompl
     (LocalizedModule.mkLinearMap P.primeCompl M) x
-  apply (IsLocalizedModule.smul_inj (f := Algebra.linearMap R (Localization.AtPrime P)) s _ _).1
+  apply (IsLocalizedModule.smul_inj (Algebra.linearMap R (Localization.AtPrime P)) s _ _).1
   simp [stableMap, stableMatrix, localizedPiEquiv_apply_map_mk]
   let Rp := Localization.AtPrime P
   let A : Matrix (Fin (n + 1)) (Fin (n + 1)) Rp := Matrix.of fun i j =>
@@ -557,7 +553,7 @@ theorem localized_stableMap_eq_restrict (P : Ideal R) [P.IsPrime] {n : ℕ}
               rw [Matrix.det_updateCol_smul]
       _ = (algebraMap R Rp (s : R)) * A.det := by rw [hA]
   calc _ = (algebraMap R Rp (s : R)) * A.det := by simpa [A, Rp, stableMatrix] using hdet
-    _ = s • A.det := by simpa using (Algebra.smul_def (R := R) (A := Rp) (s : R) A.det).symm
+    _ = s • A.det := by simpa using (Algebra.smul_def (s : R) A.det).symm
 
 theorem free_of_isStablyFree_of_localized_eq_ring [IsDomain R] [Module.Finite R M]
     (hstable : IsStablyFree R M) (P0 : Ideal R) [P0.IsMaximal]
@@ -566,8 +562,7 @@ theorem free_of_isStablyFree_of_localized_eq_ring [IsDomain R] [Module.Finite R 
       Nonempty (LocalizedModule P.primeCompl M ≃ₗ[Localization.AtPrime P] Localization.AtPrime P)) :
     Module.Free R M := by
   have hprime0 : P0.IsPrime := Ideal.IsMaximal.isPrime inferInstance
-  obtain ⟨n, ⟨e⟩⟩ := exists_fin_linearEquiv_of_isStablyFree_of_localized_eq_ring
-    (R := R) (M := M) hstable P0 u0
+  obtain ⟨n, ⟨e⟩⟩ := exists_fin_linearEquiv_of_isStablyFree_of_localized_eq_ring hstable P0 u0
   let F : M →ₗ[R] R := stableMap e
   have hbij : Function.Bijective F := by
     refine bijective_of_isLocalized_maximal
@@ -594,7 +589,7 @@ theorem free_of_isStablyFree_of_localized_eq_ring [IsDomain R] [Module.Finite R 
         IsLocalizedModule.map P.primeCompl (LocalizedModule.mkLinearMap P.primeCompl M)
           (Algebra.linearMap R (Localization.AtPrime P)) F =
             (stableMap eLoc).restrictScalars R := by
-      simpa [F, eRawLoc, eLoc] using localized_stableMap_eq_restrict (R := R) (M := M) P e
+      simpa [F, eRawLoc, eLoc] using localized_stableMap_eq_restrict P e
     simpa [F, hcompat] using stableMap_bijective_of_linearEquiv eLoc uP
   let eF : M ≃ₗ[R] R := LinearEquiv.ofBijective F hbij
   exact Module.Free.of_equiv (LinearEquiv.ofBijective F hbij).symm

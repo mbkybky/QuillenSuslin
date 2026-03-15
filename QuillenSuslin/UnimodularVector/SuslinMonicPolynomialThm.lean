@@ -156,7 +156,7 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal A[X]) [P.IsPrime] :
   · have hQ : Ideal.map (Ideal.Quotient.mk (Ideal.map (algebraMap A A[X]) p)) P = ⊥ := by
       simpa [hPeq] using Ideal.map_quotient_self (Ideal.map (algebraMap A A[X]) p)
     have hI0_ne_top : Ideal.map (algebraMap A A[X]) p ≠ (⊤ : Ideal A[X]) := by
-      simpa [hPeq] using Ideal.IsPrime.ne_top (I := P) inferInstance
+      simpa [hPeq] using Ideal.IsPrime.ne_top inferInstance
     letI : Nontrivial (A[X] ⧸ Ideal.map (algebraMap A A[X]) p) :=
       (Ideal.Quotient.nontrivial_iff).2 hI0_ne_top
     have hp' : P.height = p.height := by

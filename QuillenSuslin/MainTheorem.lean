@@ -77,7 +77,7 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
     let eI : (t ⊕ I₂) ≃ I := Equiv.sumCompl fun i : I => i ∈ t
     let eF' : F ≃ₗ[R] (t ⊕ I₂) →₀ R := b.repr.trans (Finsupp.domLCongr eI).symm
     let eF'' : F ≃ₗ[R] (t →₀ R) × (I₂ →₀ R) :=
-      eF'.trans (Finsupp.sumFinsuppLEquivProdFinsupp (M := R) R : (_ →₀ R) ≃ₗ[R] _)
+      eF'.trans (Finsupp.sumFinsuppLEquivProdFinsupp R : (_ →₀ R) ≃ₗ[R] _)
     let eF''' : F ≃ₗ[R] (Fin n →₀ R) × (I₂ →₀ R) :=
       eF''.trans <| LinearEquiv.prodCongr (Finsupp.domLCongr e) (LinearEquiv.refl R _)
     let eF : F ≃ₗ[R] (Fin n → R) × (I₂ →₀ R) := eF'''.trans <|

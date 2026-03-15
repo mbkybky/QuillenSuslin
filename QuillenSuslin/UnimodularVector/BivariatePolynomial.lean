@@ -110,8 +110,7 @@ lemma N_entry_decomp (M : GL s (Localization S)[X]) (i j : s) :
     (N S M).1 i j = X * (W S M i j) + C (if i = j then 1 else 0) := by
   let ev0 : (Localization S)[X][Y] →+* (Localization S)[X] := eval₂RingHom (RingHom.id _) 0
   let map0 : GL s (Localization S)[X][Y] →* GL s (Localization S)[X] :=
-    Matrix.GeneralLinearGroup.map (n := s) (R := (Localization S)[X][Y])
-      (S := (Localization S)[X]) ev0
+    Matrix.GeneralLinearGroup.map ev0
   have hMx0 : map0 (Mx S M) = M := by
     ext i j
     simp [map0, Mx, ev0, CAY]
@@ -144,7 +143,7 @@ lemma ncy_isInteger_eq (i j : s) (w : R[X][Y]) (hw : (algebraMap R[X][Y] (Locali
   let ι : R →+* Localization S := algebraMap R (Localization S)
   have hCι : mapRingHom ι (C (c : R)) = C (ι (c : R)) := by
     rw [← RingHom.comp_apply]
-    exact congrArg (fun g : R →+* (Localization S)[X] => g (c : R)) (mapRingHom_comp_C (f := ι))
+    exact congrArg (fun g : R →+* (Localization S)[X] => g (c : R)) (mapRingHom_comp_C ι)
   have hbMap : algebraMap R[X][Y] (Localization S)[X][Y] b = (C (C (ι (c : R)))) := by
     simp [b, ι, map_C, hCι]
   have hσA_X : σA c Y = algebraMap R[X][Y] (Localization S)[X][Y] b * X := by
@@ -201,7 +200,7 @@ lemma det_N_eq_one (M : GL s (Localization S)[X]) : Matrix.det ((N S M).1) = 1 :
   let p : (Localization S)[X][Y] := Matrix.det ((N S M).1)
   have hp_isUnit : IsUnit p := by simp [p]
   have hp0_unit : IsUnit (p.coeff 0) ∧ ∀ n : ℕ, n ≠ 0 → IsNilpotent (p.coeff n) :=
-    (isUnit_iff_coeff_isUnit_isNilpotent (P := p)).1 hp_isUnit
+    isUnit_iff_coeff_isUnit_isNilpotent.1 hp_isUnit
   have hp_coeff : ∀ n : ℕ, n ≠ 0 → p.coeff n = 0 := by
     intro n hn
     exact (hp0_unit.2 n hn).eq_zero
@@ -230,7 +229,7 @@ lemma σA_map_det (c : S) (A : Matrix s s (Localization S)[X][Y]) :
     simp
   have hInt (n : ℤ) : σA c (n : (Localization S)[X][Y]) = (n : (Localization S)[X][Y]) := by
     calc _ = σA c (C (n : (Localization S)[X])) := by simp
-      _ = C (n : (Localization S)[X]) := hC (p := (n : (Localization S)[X]))
+      _ = C (n : (Localization S)[X]) := hC n
       _ = (n : (Localization S)[X][Y]) := by simp
   simp only [Matrix.det_apply', map_sum, map_mul, hInt, map_prod, RingHom.mapMatrix_apply,
     Matrix.map_apply]
