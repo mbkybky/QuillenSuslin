@@ -214,6 +214,6 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
           have hfree : Module.Free (Localization M) q :=
             free_of_isStablyFree_of_localized_eq_ring hstable P0 (Classical.choice (hloc P0)) hloc
           exact Ideal.isPrincipal_of_free (Localization M)
-        exact ufd_of_ufd_away_of_prime x hxprime
+        exact ufd_of_ufd_localization_away_of_prime hxprime
   obtain ⟨n, hn⟩ := exist_nat_eq R
   exact hmain n hn
