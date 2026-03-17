@@ -13,8 +13,7 @@ universe u
 variable (R : Type u) [CommRing R]
 
 theorem Ideal.isPrincipal_of_free [IsDomain R] {I : Ideal R} [Module.Free R I] : I.IsPrincipal :=
-  (Submodule.rank_le_one_iff_isPrincipal I).1 <| Submodule.rank_le I |>.trans_eq <|
-    Module.rank_self R
+  (Submodule.rank_le_one_iff_isPrincipal I).1 ((Submodule.rank_le I).trans_eq (Module.rank_self R))
 
 theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMonoid R := by
   have hmain (n : ℕ) : ∀ {S : Type u} [CommRing S] [IsRegularLocalRing S],

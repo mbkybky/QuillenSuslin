@@ -72,8 +72,7 @@ theorem hasFiniteFreeResolutionLength_localized
         (LocalizedModule S F) (LocalizedModule.map S f)
           (LocalizedModule.map_surjective S f hf) hker'
 
-theorem hasFiniteFreeResolution_localized
-    (S : Submonoid R) (h : HasFiniteFreeResolution R M) :
+theorem hasFiniteFreeResolution_localized (S : Submonoid R) (h : HasFiniteFreeResolution R M) :
     HasFiniteFreeResolution (Localization S) (LocalizedModule S M) := by
   rcases h with ⟨F, _, _, _, _, f, hf, n, hn⟩
   let b := Module.Free.chooseBasis R F

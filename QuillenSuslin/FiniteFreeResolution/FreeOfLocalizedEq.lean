@@ -492,7 +492,6 @@ theorem free_of_isStablyFree_of_localized_eq_ring [IsDomain R] [Module.Finite R 
     (hloc : ∀ (P : Ideal R) [P.IsMaximal],
       Nonempty (LocalizedModule P.primeCompl M ≃ₗ[Localization.AtPrime P] Localization.AtPrime P)) :
     Module.Free R M := by
-  have hprime0 : P0.IsPrime := Ideal.IsMaximal.isPrime inferInstance
   obtain ⟨n, ⟨e⟩⟩ := exists_fin_linearEquiv_of_isStablyFree_of_localized_eq_ring hstable P0 u0
   let F : M →ₗ[R] R := stableMap e
   have hbij : Function.Bijective F := by
