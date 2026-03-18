@@ -4,516 +4,255 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
 import Mathlib.LinearAlgebra.Determinant
+import Mathlib.LinearAlgebra.ExteriorPower.Basic
+import Mathlib.RingTheory.Spectrum.Prime.FreeLocus
 import QuillenSuslin.FiniteFreeResolution.StablyFree
 
-universe u
+variable {R : Type*} [CommRing R] {M : Type*} [AddCommGroup M] [Module R M]
 
-variable {R : Type u} [CommRing R] {M : Type u} [AddCommGroup M] [Module R M]
+/-- The multilinear map that takes the left component of the first input and multiplies it
+by the determinant of the right components of the remaining inputs. -/
+private noncomputable def term0ML {R : Type*} [CommRing R] {M N : Type*}
+    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] {n : ℕ}
+    (bN : Module.Basis (Fin n) R N) :
+    MultilinearMap R (fun _ : Fin (n + 1) => M × N) M := by
+  let tailDet : MultilinearMap R (fun _ : Fin n => M × N) R :=
+    (bN.det.compLinearMap (LinearMap.snd R M N) : (M × N) [⋀^Fin n]→ₗ[R] R)
+  let g : M × N →ₗ[R] MultilinearMap R (fun _ : Fin n => M × N) M :=
+    { toFun := fun x => tailDet.smulRight x.1
+      map_add' := by
+        intro x y
+        ext v
+        simp [tailDet]
+      map_smul' := by
+        intro c x
+        ext v
+        simp [tailDet, smul_smul, mul_comm] }
+  exact LinearMap.uncurryLeft g
 
-noncomputable def stableMatrix {n : ℕ}
-    (e : (M × (Fin n → R)) ≃ₗ[R] (Fin (n + 1) → R)) (m : M) :
-    Matrix (Fin (n + 1)) (Fin (n + 1)) R :=
-  Matrix.of fun i j =>
-    if h : j = 0 then e.toFun (m, 0) i
-    else e.toFun (0, Pi.basisFun R (Fin n) (Fin.pred j (by simpa using h))) i
+/-- The `i`-th signed term in the Laplace expansion along the `M`-summand of `M × N`. -/
+private noncomputable def laplaceTerm {R : Type*} [CommRing R] {M N : Type*}
+    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] {n : ℕ}
+    (bN : Module.Basis (Fin n) R N) (i : Fin (n + 1)) :
+    MultilinearMap R (fun _ : Fin (n + 1) => M × N) M :=
+  (Equiv.Perm.sign i.cycleRange : R) • (term0ML bN).domDomCongr i.cycleRange.symm
 
-noncomputable def stableBaseMatrix {n : ℕ}
-    (e : (M × (Fin n → R)) ≃ₗ[R] (Fin (n + 1) → R)) :
-    Matrix (Fin (n + 1)) (Fin (n + 1)) R :=
-  stableMatrix e 0
+private lemma laplaceTerm_apply {R : Type*} [CommRing R] {M N : Type*}
+    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] {n : ℕ}
+    (bN : Module.Basis (Fin n) R N) (i : Fin (n + 1)) (v : Fin (n + 1) → M × N) :
+    laplaceTerm bN i v = (Equiv.Perm.sign i.cycleRange : R) •
+      ((bN.det fun k => (v (i.succAbove k)).2) • (v i).1) := by
+  simp [laplaceTerm, term0ML, Fin.tail, Fin.cycleRange_symm_zero, Fin.cycleRange_symm_succ]
 
-noncomputable def stableMap {n : ℕ}
-    (e : (M × (Fin n → R)) ≃ₗ[R] (Fin (n + 1) → R)) : M →ₗ[R] R where
-  toFun m := (stableMatrix e m).det
-  map_add' m₁ m₂ := by
-    have hm : stableMatrix e (m₁ + m₂) =
-        (stableBaseMatrix e).updateCol 0
-          (e.toFun (m₁, 0) + e.toFun (m₂, 0)) := by
-      ext i j
-      by_cases h : j = 0
-      · subst h
-        simpa [stableMatrix, stableBaseMatrix] using congrFun (map_add e (m₁, 0) (m₂, 0)) i
-      · simp [stableMatrix, stableBaseMatrix, h]
-    have hm₁ : stableMatrix e m₁ =
-        (stableBaseMatrix e).updateCol 0 (e.toFun (m₁, 0)) := by
-      ext i j
-      by_cases h : j = 0
-      · subst h
-        simp [stableMatrix, stableBaseMatrix]
-      · simp [stableMatrix, stableBaseMatrix, h]
-    have hm₂ : stableMatrix e m₂ =
-        (stableBaseMatrix e).updateCol 0 (e.toFun (m₂, 0)) := by
-      ext i j
-      by_cases h : j = 0
-      · subst h
-        simp [stableMatrix, stableBaseMatrix]
-      · simp [stableMatrix, stableBaseMatrix, h]
-    rw [hm, Matrix.det_updateCol_add, hm₁, hm₂]
-  map_smul' r m := by
-    have hm : stableMatrix e (r • m) = (stableBaseMatrix e).updateCol 0 (r • e.toFun (m, 0)) := by
-      ext i j
-      by_cases h : j = 0
-      · subst h
-        simpa [stableMatrix, stableBaseMatrix, smul_eq_mul] using
-          congrFun (map_smulₛₗ e r (m, 0)) i
-      · simp [stableMatrix, stableBaseMatrix, h]
-    have hm' : stableMatrix e m =
-        (stableBaseMatrix e).updateCol 0 (e.toFun (m, 0)) := by
-      ext i j
-      by_cases h : j = 0
-      · subst h
-        simp [stableMatrix, stableBaseMatrix]
-      · simp [stableMatrix, stableBaseMatrix, h]
-    rw [hm, Matrix.det_updateCol_smul, hm']
-    simp
+/-- The multilinear Laplace expansion along the `M`-summand of `M × N`. -/
+private noncomputable def laplaceML {R : Type*} [CommRing R] {M N : Type*}
+    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] {n : ℕ}
+    (bN : Module.Basis (Fin n) R N) : MultilinearMap R (fun _ : Fin (n + 1) => M × N) M :=
+  ∑ i : Fin (n + 1), laplaceTerm bN i
 
-theorem isUnit_stableMap_of_linearEquiv {n : ℕ}
-    (e : (M × (Fin n → R)) ≃ₗ[R] (Fin (n + 1) → R)) (u : M ≃ₗ[R] R) :
-    IsUnit (stableMap e (u.symm 1)) := by
-  let e' : (R × (Fin n → R)) ≃ₗ[R] (Fin (n + 1) → R) :=
-    (u.symm.prodCongr (LinearEquiv.refl R (Fin n → R))) ≪≫ₗ e
-  have hmatrix : stableMatrix e (u.symm 1) =
-      LinearMap.toMatrix (Pi.basisFun R (Fin (n + 1))) (Pi.basisFun R (Fin (n + 1)))
-        ((Fin.consLinearEquiv R (fun _ : Fin (n + 1) => R)).symm ≪≫ₗ e').toLinearMap := by
-      ext i j
-      rw [LinearMap.toMatrix_apply]
-      by_cases h : j = 0
-      · subst h
-        have htail : Fin.tail
-            (show Fin (n + 1) → R from Pi.single (0 : Fin (n + 1)) (1 : R)) = 0 := by
-          funext k
-          simp [Fin.tail_def]
-        simp [stableMatrix, e', htail]
-      · simp [stableMatrix, e', h]
-        have htail : Fin.tail (show Fin (n + 1) → R from Pi.single j (1 : R)) =
-            Pi.basisFun R (Fin n) (j.pred (by simpa using h)) := by
-          funext k
-          rw [Fin.tail_def, Pi.basisFun_apply]
-          show (show Fin (n + 1) → R from Pi.single j (1 : R)) k.succ =
-            (show Fin n → R from Pi.single (j.pred (by simpa using h)) (1 : R)) k
-          by_cases hk : k = j.pred (by simpa using h)
-          · subst hk
-            simp [Pi.single, Fin.succ_pred j (by simpa using h)]
-          · have hne : k.succ ≠ j := by
-              intro hEq
-              apply hk
-              exact Fin.succ_injective _ <| by simpa [Fin.succ_pred j (by simpa using h)] using hEq
-            simp [Pi.single, hne, hk]
-        simp [htail]
-  simpa [stableMap, hmatrix] using
-    LinearEquiv.isUnit_det ((Fin.consLinearEquiv R (fun _ : Fin (n + 1) => R)).symm ≪≫ₗ e')
-      (Pi.basisFun R (Fin (n + 1))) (Pi.basisFun R (Fin (n + 1)))
+private lemma laplaceML_apply {R : Type*} [CommRing R] {M N : Type*}
+    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] {n : ℕ}
+    (bN : Module.Basis (Fin n) R N) (v : Fin (n + 1) → M × N) :
+    laplaceML bN v = ∑ i : Fin (n + 1), laplaceTerm bN i v := by
+  simp [laplaceML]
 
-theorem stableMap_bijective_of_linearEquiv {n : ℕ}
-    (e : (M × (Fin n → R)) ≃ₗ[R] (Fin (n + 1) → R)) (u : M ≃ₗ[R] R) :
-    Function.Bijective (stableMap e) := by
-  let a : R := stableMap e (u.symm 1)
-  have ha : IsUnit a := by
-    simpa [a] using isUnit_stableMap_of_linearEquiv e u
-  have hrepr : ∀ m, m = (u m) • u.symm 1 := by
-    intro m
-    apply u.injective
-    simp
-  have hm : ∀ m, stableMap e m = u m * a := by
-    intro m
-    rw [hrepr m, LinearMap.map_smul]
-    simp [a, smul_eq_mul, mul_comm]
-  constructor
-  · intro m₁ m₂ h
-    apply u.injective
-    rcases ha with ⟨a', ha'⟩
-    have h' : u m₁ * ↑a' = u m₂ * ↑a' := by
-      simpa [hm m₁, hm m₂, ha'] using h
-    have h'' := congrArg (fun x : R => x * ↑a'⁻¹) h'
-    simpa [mul_assoc] using h''
-  · intro b
-    rcases ha with ⟨a', ha'⟩
-    refine ⟨(b * ↑a'⁻¹) • u.symm 1, ?_⟩
-    rw [hm, ← ha']
-    simp [mul_assoc]
+private lemma laplaceTerm_eq_zero_of_eq {R : Type*} [CommRing R] {M N : Type*}
+    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] {n : ℕ}
+    (bN : Module.Basis (Fin n) R N) (v : Fin (n + 1) → M × N) {i j p : Fin (n + 1)}
+    (hij : i ≠ j) (hp_i : p ≠ i) (hp_j : p ≠ j) (hv : v i = v j) :
+    laplaceTerm bN p v = 0 := by
+  rw [laplaceTerm_apply]
+  rcases (Fin.eq_self_or_eq_succAbove p i).resolve_left hp_i.symm with ⟨ai, hai⟩
+  rcases (Fin.eq_self_or_eq_succAbove p j).resolve_left hp_j.symm with ⟨bi, hbi⟩
+  have hdet : (bN.det fun k => (v (p.succAbove k)).2) = 0 :=
+    bN.det.map_eq_zero_of_eq _ (by simpa [hai, hbi] using congrArg Prod.snd hv)
+      (fun h => hij (by simp [hai, hbi, h]))
+  simp [hdet]
 
-@[simp]
-lemma IsLocalizedModule.linearEquiv_apply_mk'
-    {A : Type*} [AddCommGroup A] [Module R A]
-    {B : Type*} [AddCommGroup B] [Module R B]
-    {C : Type*} [AddCommGroup C] [Module R C]
-    (S : Submonoid R) (f : A →ₗ[R] B) [IsLocalizedModule S f]
-    (g : A →ₗ[R] C) [IsLocalizedModule S g] (x : A) (s : S) :
-    (IsLocalizedModule.linearEquiv S f g) (IsLocalizedModule.mk' f x s) =
-      IsLocalizedModule.mk' g x s := by
-  apply (IsLocalizedModule.smul_inj g s _ _).1
-  calc
-    (s : R) • (IsLocalizedModule.linearEquiv S f g (IsLocalizedModule.mk' f x s))
-        = IsLocalizedModule.linearEquiv S f g ((s : R) • IsLocalizedModule.mk' f x s) := by simp
-    _ = IsLocalizedModule.linearEquiv S f g (f x) :=
-      congrArg (IsLocalizedModule.linearEquiv S f g) (IsLocalizedModule.mk'_cancel' f x s)
-    _ = g x := IsLocalizedModule.linearEquiv_apply S f g x
-    _ = (s : R) • IsLocalizedModule.mk' g x s := (IsLocalizedModule.mk'_cancel' g x s).symm
-
-@[simp]
-lemma IsLocalizedModule.linearEquiv_symm_apply_mk'
-    {A : Type*} [AddCommGroup A] [Module R A]
-    {B : Type*} [AddCommGroup B] [Module R B]
-    {C : Type*} [AddCommGroup C] [Module R C]
-    (S : Submonoid R) (f : A →ₗ[R] B) [IsLocalizedModule S f]
-    (g : A →ₗ[R] C) [IsLocalizedModule S g]
-    (x : A) (s : S) :
-    (IsLocalizedModule.linearEquiv S f g).symm (IsLocalizedModule.mk' g x s) =
-      IsLocalizedModule.mk' f x s := by
-  apply (IsLocalizedModule.linearEquiv S f g).injective
+private lemma laplaceTerm_add_eq_zero_of_lt {R : Type*} [CommRing R] {M N : Type*}
+    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] {n : ℕ}
+    (bN : Module.Basis (Fin n) R N) (v : Fin (n + 1) → M × N) {i j : Fin (n + 1)}
+    (h : i < j) (hv : v i = v j) : laplaceTerm bN i v + laplaceTerm bN j v = 0 := by
+  have hj0 : j ≠ 0 := ((Fin.zero_le i).trans_lt h).ne'
+  have hiLast : i ≠ Fin.last n := Fin.ne_of_lt (h.trans_le j.le_last)
+  let ai : Fin n := i.castPred hiLast
+  let bi : Fin n := j.pred hj0
+  have h_ai_le_bi : ai ≤ bi := Nat.le_sub_one_of_lt h
+  have : NeZero n := NeZero.of_pos (Fin.pos ai)
+  have htail : (fun k : Fin n => v (i.succAbove k)) =
+      (fun k : Fin n => v (j.succAbove k)) ∘ Fin.cycleIcc ai bi := by
+    funext k
+    have hj : bi.succ = j := by simp [bi]
+    have hi : ai.castSucc = i := by simp [ai]
+    rcases lt_or_ge k ai with hk | hk
+    · rw [Function.comp_apply, Fin.cycleIcc_of_lt hk]
+      have hk_i : k.castSucc < i := by simpa [hi] using hk
+      rw [Fin.succAbove_of_castSucc_lt _ _ hk_i, Fin.succAbove_of_castSucc_lt _ _ (hk_i.trans h)]
+    rcases lt_or_ge bi k with hk' | hk'
+    · rw [Function.comp_apply, Fin.cycleIcc_of_gt hk']
+      have hj_k : j ≤ k.castSucc := by simpa [hj] using show bi.succ ≤ k.castSucc from hk'
+      rw [Fin.succAbove_of_le_castSucc _ _ (h.le.trans hj_k), Fin.succAbove_of_le_castSucc _ _ hj_k]
+    rcases Fin.lt_or_eq_of_le hk' with hk' | rfl
+    · rw [Function.comp_apply, Fin.cycleIcc_of_ge_of_lt hk hk']
+      have hj_k1' : ((k + 1 : Fin n)).castSucc < bi.succ := by
+        apply Fin.lt_def.mpr
+        have hval : (((k + 1 : Fin n) : ℕ)) = (k : ℕ) + 1 := Fin.val_add_one_of_lt' (by omega)
+        simpa [hval] using hk'
+      have hj_k1 : ((k + 1 : Fin n)).castSucc < j := by simpa [hj] using hj_k1'
+      have hi_k : i ≤ k.castSucc := by simpa [hi] using hk
+      rw [Fin.succAbove_of_le_castSucc _ _ hi_k, Fin.succAbove_of_castSucc_lt _ _ hj_k1]
+      have hidx : k.succ = (k + 1 : Fin n).castSucc := by
+        apply Fin.ext
+        have hval : (((k + 1 : Fin n) : ℕ)) = (k : ℕ) + 1 := Fin.val_add_one_of_lt' (by omega)
+        simp [hval]
+      simp [hidx]
+    · rw [Function.comp_apply, Fin.cycleIcc_of_last h_ai_le_bi]
+      have hj : bi.succ = j := by simp [bi]
+      have h' : i < bi.succ := by simpa [hj] using h
+      have hbi : i.succAbove bi = j := by simpa [hj] using (Fin.succAbove_of_lt_succ i bi h')
+      have hai_idx : bi.predAbove i = ai := by simpa [ai] using (Fin.predAbove_of_lt_succ bi i h')
+      have hai : j.succAbove ai = i := by
+        have hne : i ≠ bi.succ := by simpa [hj] using h.ne
+        rw [← hj, ← hai_idx]
+        simpa using Fin.succ_succAbove_predAbove hne
+      rw [hbi, hai, hv]
+  have htail₂ : (fun k : Fin n => (v (i.succAbove k)).2) =
+      (fun k : Fin n => (v (j.succAbove k)).2) ∘ Fin.cycleIcc ai bi := by
+    ext k
+    exact congrArg Prod.snd (congrArg (fun f : Fin n → M × N => f k) htail)
+  have hdet : (bN.det fun k => (v (i.succAbove k)).2) =
+      (Equiv.Perm.sign (Fin.cycleIcc ai bi) : R) * (bN.det fun k => (v (j.succAbove k)).2) := by
+    simpa [Units.smul_def, htail₂] using
+      AlternatingMap.map_perm bN.det (fun k : Fin n => (v (j.succAbove k)).2) (Fin.cycleIcc ai bi)
+  have hsign : (Equiv.Perm.sign i.cycleRange : R) * Equiv.Perm.sign (Fin.cycleIcc ai bi) =
+      - (Equiv.Perm.sign j.cycleRange : R) := by
+    rw [Fin.sign_cycleRange, Fin.sign_cycleIcc_of_le h_ai_le_bi, Fin.sign_cycleRange]
+    norm_num
+    change (-1 : R) ^ (i : ℕ) * (-1 : R) ^ ((j : ℕ) - 1 - i) = -((-1 : R) ^ (j : ℕ))
+    have hexp : (i : ℕ) + ((j : ℕ) - 1 - i) = (j : ℕ) - 1 := Nat.add_sub_of_le h_ai_le_bi
+    rw [← pow_add, hexp]
+    nth_rw 2 [← Nat.sub_add_cancel (Nat.succ_le_of_lt (Nat.zero_lt_of_lt h))]
+    simp [pow_add, pow_one]
+  simp only [laplaceTerm_apply, laplaceTerm_apply, hdet, smul_smul]
+  rw [← mul_assoc, hsign, congrArg Prod.fst hv]
   simp
 
-noncomputable def localizedProdMap (S : Submonoid R) (M N : Type*)
-    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] :
-    (M × N) →ₗ[R] (LocalizedModule S M × LocalizedModule S N) :=
-  LinearMap.prod (LocalizedModule.mkLinearMap S M ∘ₗ LinearMap.fst R M N)
-    (LocalizedModule.mkLinearMap S N ∘ₗ LinearMap.snd R M N)
+/-- The alternating map on `M × N` obtained from the Laplace expansion along the `M`-summand. -/
+private noncomputable def laplaceAlternating {R : Type*} [CommRing R] {M N : Type*}
+    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] {n : ℕ}
+    (bN : Module.Basis (Fin n) R N) : (M × N) [⋀^Fin (n + 1)]→ₗ[R] M where
+  __ := laplaceML bN
+  map_eq_zero_of_eq' := by
+    intro v i j hv hij
+    change laplaceML bN v = 0
+    rw [laplaceML_apply, ← Finset.add_sum_erase Finset.univ _ (by simp),
+      ← Finset.add_sum_erase _ _ (by simpa using hij.symm)]
+    have hrest : Finset.sum ((Finset.univ.erase i).erase j) (fun p => laplaceTerm bN p v) = 0 :=
+      Finset.sum_eq_zero <| fun p hp => laplaceTerm_eq_zero_of_eq bN v hij
+        (Finset.mem_erase.mp (Finset.mem_of_mem_erase hp)).1 (Finset.mem_erase.mp hp).1 hv
+    by_cases hlt : i < j
+    · simpa [hrest, add_assoc] using laplaceTerm_add_eq_zero_of_lt bN v hlt hv
+    · have hgt : j < i := lt_of_le_of_ne (le_of_not_gt hlt) hij.symm
+      simpa [hrest, add_assoc, add_left_comm, add_comm] using
+        laplaceTerm_add_eq_zero_of_lt bN v (lt_of_le_of_ne (le_of_not_gt hlt) hij.symm) hv.symm
 
-instance localizedProdMap_isLocalizedModule (S : Submonoid R) (M N : Type*)
-    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] :
-    IsLocalizedModule S (localizedProdMap S M N) := by
-  let f := localizedProdMap S M N
-  refine IsLocalizedModule.mk ?_ ?_ ?_
-  · intro s
-    refine (Module.End.isUnit_iff _).2 ?_
-    have hM := (Module.End.isUnit_iff _).1
-      (IsLocalizedModule.map_units (LocalizedModule.mkLinearMap S M) s)
-    have hN := (Module.End.isUnit_iff _).1
-      (IsLocalizedModule.map_units (LocalizedModule.mkLinearMap S N) s)
-    constructor
-    · intro x y hxy
-      apply Prod.ext
-      · exact hM.1 <| congrArg Prod.fst hxy
-      · exact hN.1 <| congrArg Prod.snd hxy
-    · intro y
-      rcases hM.2 y.1 with ⟨x, hx⟩
-      rcases hN.2 y.2 with ⟨z, hz⟩
-      refine ⟨(x, z), ?_⟩
-      apply Prod.ext
-      · simpa [f, localizedProdMap] using hx
-      · simpa [f, localizedProdMap] using hz
-  · intro y
-    rcases IsLocalizedModule.surj S (LocalizedModule.mkLinearMap S M) y.1 with ⟨x, hx⟩
-    rcases IsLocalizedModule.surj S (LocalizedModule.mkLinearMap S N) y.2 with ⟨z, hz⟩
-    refine ⟨((z.2 • x.1, x.2 • z.1), x.2 * z.2), ?_⟩
-    apply Prod.ext
-    · have hx' := congrArg (fun t => z.2 • t) hx
-      simpa [f, localizedProdMap, smul_smul, mul_comm, mul_left_comm, mul_assoc] using hx'
-    · have hz' := congrArg (fun t => x.2 • t) hz
-      simpa [f, localizedProdMap, smul_smul, mul_comm, mul_left_comm, mul_assoc] using hz'
-  · intro x₁ x₂ h
-    have h₁ : (LocalizedModule.mkLinearMap S M) x₁.1 = (LocalizedModule.mkLinearMap S M) x₂.1 :=
-      congrArg Prod.fst h
-    have h₂ : (LocalizedModule.mkLinearMap S N) x₁.2 = (LocalizedModule.mkLinearMap S N) x₂.2 :=
-      congrArg Prod.snd h
-    rcases @IsLocalizedModule.exists_of_eq R _ M (LocalizedModule S M) _ _ _ _
-        S (LocalizedModule.mkLinearMap S M) inferInstance x₁.1 x₂.1 h₁ with ⟨c₁, hc₁⟩
-    rcases @IsLocalizedModule.exists_of_eq R _ N (LocalizedModule S N) _ _ _ _
-        S (LocalizedModule.mkLinearMap S N) inferInstance x₁.2 x₂.2 h₂ with ⟨c₂, hc₂⟩
-    refine ⟨c₁ * c₂, ?_⟩
-    apply Prod.ext
-    · have hc₁' := congrArg (fun t => c₂ • t) hc₁
-      simpa [f, localizedProdMap, smul_smul, mul_comm, mul_left_comm, mul_assoc] using hc₁'
-    · have hc₂' := congrArg (fun t => c₁ • t) hc₂
-      simpa [f, localizedProdMap, smul_smul, mul_comm, mul_left_comm, mul_assoc] using hc₂'
+/-- The linear map from the top exterior power of `M × N` to `M` induced by the Laplace
+expansion along the `M`-summand. -/
+private noncomputable def laplaceToLeft {R : Type*} [CommRing R] {M N : Type*}
+    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] {n : ℕ}
+    (bN : Module.Basis (Fin n) R N) : ⋀[R]^(n + 1) (M × N) →ₗ[R] M :=
+  exteriorPower.alternatingMapLinearEquiv (laplaceAlternating bN)
 
-noncomputable def localizedProdEquiv (S : Submonoid R) (M N : Type*)
-    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] :
-    LocalizedModule S (M × N) ≃ₗ[Localization S]
-      (LocalizedModule S M × LocalizedModule S N) :=
-  (IsLocalizedModule.linearEquiv S (LocalizedModule.mkLinearMap S (M × N))
-    (localizedProdMap S M N)).extendScalarsOfIsLocalization S _
+private lemma laplaceML_cons_apply {R : Type*} [CommRing R] {M N : Type*}
+    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] {n : ℕ}
+    (bN : Module.Basis (Fin n) R N) (m : M) :
+    laplaceML bN (Fin.cons (m, 0) fun i => (0, bN i)) = m := by
+  simp [laplaceML_apply, Fin.sum_univ_succ, laplaceTerm_apply, Module.Basis.det_self]
 
-lemma localizedProdMap_mk' (S : Submonoid R) (M N : Type*)
-    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N]
-    (x : M × N) (s : S) :
-    IsLocalizedModule.mk' (localizedProdMap S M N) x s =
-      (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S M) x.1 s,
-        IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S N) x.2 s) := by
-  apply Prod.ext
-  · apply (IsLocalizedModule.smul_inj (LocalizedModule.mkLinearMap S M) s _ _).1
-    calc
-      ((s : R) • (IsLocalizedModule.mk' (localizedProdMap S M N) x s).1)
-          = ((localizedProdMap S M N) x).1 :=
-        congrArg Prod.fst (IsLocalizedModule.mk'_cancel' (localizedProdMap S M N) x s)
-      _ = (LocalizedModule.mkLinearMap S M) x.1 := rfl
-      _ = ((s : R) • IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S M) x.1 s) := by
-            symm
-            exact IsLocalizedModule.mk'_cancel' (LocalizedModule.mkLinearMap S M) x.1 s
-  · apply (IsLocalizedModule.smul_inj (LocalizedModule.mkLinearMap S N) s _ _).1
-    calc
-      ((s : R) • (IsLocalizedModule.mk' (localizedProdMap S M N) x s).2)
-          = ((localizedProdMap S M N) x).2 :=
-        congrArg Prod.snd (IsLocalizedModule.mk'_cancel' (localizedProdMap S M N) x s)
-      _ = (LocalizedModule.mkLinearMap S N) x.2 := rfl
-      _ = ((s : R) • IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S N) x.2 s) :=
-        (IsLocalizedModule.mk'_cancel' (LocalizedModule.mkLinearMap S N) x.2 s).symm
+private lemma laplaceToLeft_ιMulti_cons {R : Type*} [CommRing R] {M N : Type*}
+    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] {n : ℕ}
+    (bN : Module.Basis (Fin n) R N) (m : M) :
+    laplaceToLeft bN (exteriorPower.ιMulti R (n + 1) (Fin.cons (m, 0) fun i => (0, bN i))) = m := by
+  rw [laplaceToLeft, exteriorPower.alternatingMapLinearEquiv_apply_ιMulti]
+  simpa [laplaceAlternating] using laplaceML_cons_apply bN m
 
-lemma localizedProdEquiv_apply_mk' (S : Submonoid R) (M N : Type*)
-    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] (x : M × N) (s : S) :
-    localizedProdEquiv S M N
-      (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S (M × N)) x s) =
-        (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S M) x.1 s,
-          IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S N) x.2 s) := by
-  simp [localizedProdEquiv, LinearEquiv.extendScalarsOfIsLocalization_apply, localizedProdMap_mk']
+/-- The linear equivalence from the top exterior power of a finite free module to the base ring
+associated to a chosen basis. -/
+noncomputable def topExteriorEquiv {R : Type*} [CommRing R] {n : ℕ} {F : Type*}
+    [AddCommGroup F] [Module R F] (b : Module.Basis (Fin n) R F) :
+    ⋀[R]^n F ≃ₗ[R] R := by
+  refine LinearEquiv.ofLinear (exteriorPower.alternatingMapLinearEquiv b.det)
+    (LinearMap.id.smulRight (exteriorPower.ιMulti R n b)) ?_ ?_
+  · ext
+    simp [Module.Basis.det_self]
+  · refine exteriorPower.linearMap_ext <| Module.Basis.ext_alternating b (fun v hv => ?_)
+    let e : Equiv.Perm (Fin n) := Equiv.ofBijective v ⟨hv, Finite.injective_iff_surjective.mp hv⟩
+    have hdet : b.det (b ∘ e) = (Equiv.Perm.sign e : R) :=
+      (AlternatingMap.map_perm b.det b e).trans <| by simp [Units.smul_def, Module.Basis.det_self]
+    have hω : _ = (Equiv.Perm.sign e : R) • (exteriorPower.ιMulti R n b) :=
+      AlternatingMap.map_perm (exteriorPower.ιMulti R n) b e
+    have hv_eq : (fun i => b (v i)) = (b ∘ e) := by
+      ext i
+      simp [e]
+    simp [hv_eq]
+    simp [hdet, hω]
 
-@[simp]
-lemma localizedProdEquiv_apply_mk (S : Submonoid R) (M N : Type*)
-    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] (x : M × N) :
-    localizedProdEquiv S M N (LocalizedModule.mk x 1) =
-      (LocalizedModule.mk x.1 1, LocalizedModule.mk x.2 1) := by
-  simpa using localizedProdEquiv_apply_mk' S M N x (1 : S)
-
-@[simp]
-lemma localizedProdEquiv_symm_apply_mk' (S : Submonoid R) (M N : Type*)
-    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] (x : M × N) (s : S) :
-    (localizedProdEquiv S M N).symm
-      (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S M) x.1 s,
-        IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S N) x.2 s) =
-          IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S (M × N)) x s := by
-  apply (localizedProdEquiv S M N).injective
-  simp [localizedProdEquiv_apply_mk']
-
-@[simp]
-lemma localizedProdEquiv_symm_apply_mk (S : Submonoid R) (M N : Type*)
-    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] (x : M × N) :
-    (localizedProdEquiv S M N).symm (LocalizedModule.mk x.1 1, LocalizedModule.mk x.2 1) =
-      LocalizedModule.mk x 1 := by
-  simpa using localizedProdEquiv_symm_apply_mk' S M N x (1 : S)
-
-@[simp]
-lemma localizedProdEquiv_symm_apply_mk'_zero_right (S : Submonoid R) (M N : Type*)
-    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] (x : M) (s : S) :
-    (localizedProdEquiv S M N).symm
-      (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S M) x s, 0) =
-        IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S (M × N)) (x, 0) s := by
-  simpa using localizedProdEquiv_symm_apply_mk' S M N (x, 0) s
-
-@[simp]
-lemma localizedProdEquiv_symm_apply_zero_mk (S : Submonoid R) (M N : Type*)
-    [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N] (y : N) :
-    (localizedProdEquiv S M N).symm (0, LocalizedModule.mk y 1) = LocalizedModule.mk (0, y) 1 := by
-  simpa using localizedProdEquiv_symm_apply_mk S M N (0, y)
-
-noncomputable def localizedRingEquiv (S : Submonoid R) :
-    LocalizedModule S R ≃ₗ[Localization S] Localization S :=
-  IsLocalizedModule.mapEquiv S (LocalizedModule.mkLinearMap S R)
-    (Algebra.linearMap R (Localization S)) (Localization S) (LinearEquiv.refl R R)
-
-noncomputable def localizedPiEquiv (S : Submonoid R) (n : ℕ) :
-    LocalizedModule S (Fin n → R) ≃ₗ[Localization S] (Fin n → Localization S) := by
-  let b : Module.Basis (Fin n) R (Fin n → R) := Pi.basisFun R (Fin n)
-  let bS := b.ofIsLocalizedModule (Localization S) S (LocalizedModule.mkLinearMap S (Fin n → R))
-  exact bS.repr ≪≫ₗ Finsupp.linearEquivFunOnFinite (Localization S) (Localization S) (Fin n)
-
-@[simp]
-lemma localizedPiEquiv_apply_mk' (S : Submonoid R) (n : ℕ)  (v : Fin n → R) (s : S) :
-    localizedPiEquiv S n (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S (Fin n → R)) v s) =
-      fun i => IsLocalization.mk' (Localization S) (v i) s := by
-  ext i
-  let b : Module.Basis (Fin n) R (Fin n → R) := Pi.basisFun R (Fin n)
-  let bS := b.ofIsLocalizedModule (Localization S) S (LocalizedModule.mkLinearMap S (Fin n → R))
-  apply (IsLocalizedModule.smul_inj (Algebra.linearMap R (Localization S)) s _ _).1
-  calc
-    _ = (bS.repr ((s : R) • IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S (Fin n → R)) v s))
-        i := by
-      simpa using congrArg (fun f => f i)
-        (LinearEquiv.map_smul bS.repr ((algebraMap R (Localization S)) s)
-          (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S (Fin n → R)) v s)).symm
-    _ = (bS.repr ((LocalizedModule.mkLinearMap S (Fin n → R)) v)) i :=
-      congrArg (fun w => (bS.repr w) i)
-        (IsLocalizedModule.mk'_cancel' (LocalizedModule.mkLinearMap S (Fin n → R)) v s)
-    _ = algebraMap R (Localization S) (v i) := by
-      rw [Module.Basis.ofIsLocalizedModule_repr_apply]
-      simp [b, Pi.basisFun_repr]
-    _ = (s : R) • IsLocalization.mk' (Localization S) (v i) s :=
-      (@IsLocalization.smul_mk'_self R _ S (Localization S) _ _ _ s (v i)).symm
-
-@[simp]
-lemma localizedPiEquiv_apply_mk (S : Submonoid R) (n : ℕ) (v : Fin n → R) :
-    localizedPiEquiv S n (LocalizedModule.mk v 1) =
-      fun i => algebraMap R (Localization S) (v i) := by
-  ext i
-  let b : Module.Basis (Fin n) R (Fin n → R) := Pi.basisFun R (Fin n)
-  let bS := b.ofIsLocalizedModule (Localization S) S (LocalizedModule.mkLinearMap S (Fin n → R))
-  show (bS.repr ((LocalizedModule.mkLinearMap S (Fin n → R)) v)) i = _
-  rw [Module.Basis.ofIsLocalizedModule_repr_apply]
-  simp [b, Pi.basisFun_repr]
-
-@[simp]
-lemma localizedPiEquiv_symm_apply_algebraMap (S : Submonoid R) (n : ℕ) (v : Fin n → R) :
-    (localizedPiEquiv S n).symm (fun i => algebraMap R (Localization S) (v i)) =
-      LocalizedModule.mk v 1 := by
-  apply (localizedPiEquiv S n).injective
-  simp
-
-@[simp]
-lemma localizedPiEquiv_symm_apply_basis (S : Submonoid R) (n : ℕ) (j : Fin n) :
-    (localizedPiEquiv S n).symm (Pi.single j 1) =
-      LocalizedModule.mk (Pi.single j 1) 1 := by
-  apply (localizedPiEquiv S n).injective
-  ext i
-  by_cases h : i = j
-  · subst h
-    simp
-  · simp [Pi.single, h]
-
-lemma localizedPiEquiv_apply_map_mk' (S : Submonoid R) {A : Type u} [AddCommGroup A] [Module R A]
-    {n : ℕ} (h : A →ₗ[R] (Fin n → R)) (x : A) (s : S) :
-    localizedPiEquiv S n (((IsLocalizedModule.map S (LocalizedModule.mkLinearMap S A)
-      (LocalizedModule.mkLinearMap S (Fin n → R))) h)
-        (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S A) x s)) =
-          fun i => IsLocalization.mk' (Localization S) (h x i) s := by
-  rw [IsLocalizedModule.map_mk']
-  simp
-
-lemma localizedPiEquiv_apply_map_mk (S : Submonoid R) {A : Type u} [AddCommGroup A] [Module R A]
-    {n : ℕ} (h : A →ₗ[R] (Fin n → R)) (x : A) :
-    localizedPiEquiv S n (((IsLocalizedModule.map S (LocalizedModule.mkLinearMap S A)
-      (LocalizedModule.mkLinearMap S (Fin n → R))) h) (LocalizedModule.mk x 1)) =
-        fun i => algebraMap R (Localization S) (h x i) := by
-  have hmk : IsLocalizedModule.mk' (LocalizedModule.mkLinearMap S A) x (1 : S) =
-      LocalizedModule.mk x 1 := by simp
-  rw [← hmk]
-  ext i
-  have hi := congrFun (localizedPiEquiv_apply_map_mk' S h x (1 : S)) i
-  have hi' : IsLocalization.mk' (Localization S) (h x i) (1 : S) =
-      algebraMap R (Localization S) (h x i) := by
-    simpa using @IsLocalization.smul_mk'_self R _ S (Localization S) _ _ _ (1 : S) (h x i)
-  rw [hi'] at hi
-  exact hi
-
-theorem exists_fin_linearEquiv_of_isStablyFree_of_localized_eq_ring [IsDomain R]
-    [Module.Finite R M] (hstable : IsStablyFree R M)
-    (P : Ideal R) [P.IsPrime]
-    (u : LocalizedModule P.primeCompl M ≃ₗ[Localization.AtPrime P] Localization.AtPrime P) :
-    ∃ n, Nonempty ((M × (Fin n → R)) ≃ₗ[R] (Fin (n + 1) → R)) := by
-  rcases hstable with ⟨N, _instNAdd, _instNMod, hNfinite, hNfree, hMNfree⟩
-  let n := Module.finrank R N
-  let m := Module.finrank R (M × N)
-  let eN : N ≃ₗ[R] (Fin n → R) := LinearEquiv.ofFinrankEq N (Fin n → R) (by simp [n])
-  let eMN : (M × N) ≃ₗ[R] (Fin m → R) := LinearEquiv.ofFinrankEq (M × N) (Fin m → R) (by simp [m])
-  let e : (M × (Fin n → R)) ≃ₗ[R] (Fin m → R) := ((LinearEquiv.refl R M).prodCongr eN.symm) ≪≫ₗ eMN
-  let Rp := Localization.AtPrime P
-  have hfinN : Module.finrank Rp (LocalizedModule P.primeCompl N) = n := by
-    let eNLoc := IsLocalizedModule.mapEquiv P.primeCompl
-      (LocalizedModule.mkLinearMap P.primeCompl N)
-        (LocalizedModule.mkLinearMap P.primeCompl (Fin n → R)) Rp eN
-    calc _ = Module.finrank Rp (LocalizedModule P.primeCompl (Fin n → R)) := eNLoc.finrank_eq
-      _ = Module.finrank Rp (Fin n → Rp) := (localizedPiEquiv P.primeCompl n).finrank_eq
-      _ = n := by simp [Rp]
-  have hfinMN : Module.finrank Rp
-      (LocalizedModule P.primeCompl (M × (Fin n → R))) = m := by
-    let eLoc :=
-      IsLocalizedModule.mapEquiv P.primeCompl
-        (LocalizedModule.mkLinearMap P.primeCompl (M × (Fin n → R)))
-          (LocalizedModule.mkLinearMap P.primeCompl (Fin m → R)) Rp e
-    calc _ = Module.finrank Rp (LocalizedModule P.primeCompl (Fin m → R)) := eLoc.finrank_eq
-      _ = Module.finrank Rp (Fin m → Rp) := (localizedPiEquiv P.primeCompl m).finrank_eq
-      _ = m := by simp [Rp]
-  have hm : m = n + 1 := by
-    have : Module.Free Rp (LocalizedModule P.primeCompl M) := Module.Free.of_equiv u.symm
-    have : Module.Free Rp (LocalizedModule P.primeCompl (Fin n → R)) :=
-      Module.Free.of_equiv (localizedPiEquiv P.primeCompl n).symm
-    have hself : Module.finrank Rp Rp = 1 := by simp
-    have hpi : Module.finrank Rp (Fin n → Rp) = n := by simp
-    calc
-      m = Module.finrank Rp (LocalizedModule P.primeCompl (M × (Fin n → R))) := hfinMN.symm
-      _ = Module.finrank Rp
-          (LocalizedModule P.primeCompl M × LocalizedModule P.primeCompl (Fin n → R)) :=
-        (localizedProdEquiv P.primeCompl M (Fin n → R)).finrank_eq
-      _ = Module.finrank Rp (LocalizedModule P.primeCompl M) +
-          Module.finrank Rp (LocalizedModule P.primeCompl (Fin n → R)) := by
-        rw [Module.finrank_prod]
-      _ = Module.finrank Rp Rp + Module.finrank Rp (Fin n → Rp) := by
-        rw [u.finrank_eq, (localizedPiEquiv P.primeCompl n).finrank_eq]
-      _ = 1 + n := by rw [hself, hpi]
-      _ = n + 1 := by omega
-  exact ⟨n, ⟨e ≪≫ₗ LinearEquiv.ofFinrankEq (Fin m → R) (Fin (n + 1) → R) (by simp [hm])⟩⟩
-
-theorem localized_stableMap_eq_restrict (P : Ideal R) [P.IsPrime] {n : ℕ}
-    (e : (M × (Fin n → R)) ≃ₗ[R] (Fin (n + 1) → R)) :
-    let eRawLoc : LocalizedModule P.primeCompl (M × (Fin n → R)) ≃ₗ[Localization.AtPrime P]
-        LocalizedModule P.primeCompl (Fin (n + 1) → R) :=
-      IsLocalizedModule.mapEquiv P.primeCompl
-        (LocalizedModule.mkLinearMap P.primeCompl (M × (Fin n → R)))
-          (LocalizedModule.mkLinearMap P.primeCompl (Fin (n + 1) → R)) (Localization.AtPrime P) e
-    let eLoc : (LocalizedModule P.primeCompl M × (Fin n → Localization.AtPrime P))
-        ≃ₗ[Localization.AtPrime P] (Fin (n + 1) → Localization.AtPrime P) :=
-      ((LinearEquiv.refl _ _).prodCongr (localizedPiEquiv P.primeCompl n).symm) ≪≫ₗ
-        (localizedProdEquiv P.primeCompl M (Fin n → R)).symm ≪≫ₗ eRawLoc ≪≫ₗ
-          localizedPiEquiv P.primeCompl (n + 1)
-    IsLocalizedModule.map P.primeCompl (LocalizedModule.mkLinearMap P.primeCompl M)
-      (Algebra.linearMap R (Localization.AtPrime P)) (stableMap e) =
-        (stableMap eLoc).restrictScalars R := by
-  ext x
-  obtain ⟨⟨m, s⟩, rfl⟩ := IsLocalizedModule.mk'_surjective P.primeCompl
-    (LocalizedModule.mkLinearMap P.primeCompl M) x
-  apply (IsLocalizedModule.smul_inj (Algebra.linearMap R (Localization.AtPrime P)) s _ _).1
-  simp [stableMap, stableMatrix, localizedPiEquiv_apply_map_mk]
-  let Rp := Localization.AtPrime P
-  let A : Matrix (Fin (n + 1)) (Fin (n + 1)) Rp := Matrix.of fun i j =>
-    if h : j = 0 then IsLocalization.mk' Rp (e (m, 0) i) s
-    else algebraMap R Rp (e (0, Pi.single (j.pred (by simpa using h)) 1) i)
-  let c : Fin (n + 1) → Rp := fun i => IsLocalization.mk' Rp (e (m, 0) i) s
-  have hA : A = ((RingHom.mapMatrix (algebraMap R Rp)) (stableBaseMatrix e)).updateCol 0 c := by
-    ext i j
-    by_cases h : j = 0
-    · subst h
-      simp [A, c, stableBaseMatrix, stableMatrix]
-    · simp [A, c, stableBaseMatrix, stableMatrix, h]
-  have hsc : (algebraMap R Rp (s : R)) • c = fun i => algebraMap R Rp (e (m, 0) i) := by
-    ext i
-    simp [c, smul_eq_mul]
-  have hmap : (RingHom.mapMatrix (algebraMap R Rp)) (stableMatrix e m) =
-      ((RingHom.mapMatrix (algebraMap R Rp)) (stableBaseMatrix e)).updateCol 0
-        ((algebraMap R Rp (s : R)) • c) := by
-    ext i j
-    by_cases h : j = 0
-    · subst h
-      simp [stableBaseMatrix, stableMatrix, hsc]
-    · simp [stableBaseMatrix, stableMatrix, h]
-  have hdet : (algebraMap R Rp) (stableMatrix e m).det = (algebraMap R Rp (s : R)) * A.det := by
-    calc
-      _ = ((RingHom.mapMatrix (algebraMap R Rp)) (stableMatrix e m)).det := by rw [RingHom.map_det]
-      _ = (((RingHom.mapMatrix (algebraMap R Rp)) (stableBaseMatrix e)).updateCol 0
-          ((algebraMap R Rp (s : R)) • c)).det := by rw [hmap]
-      _ = (algebraMap R Rp (s : R)) *
-          (((RingHom.mapMatrix (algebraMap R Rp)) (stableBaseMatrix e)).updateCol 0 c).det := by
-        rw [Matrix.det_updateCol_smul]
-      _ = (algebraMap R Rp (s : R)) * A.det := by rw [hA]
-  calc
-    _ = (algebraMap R Rp (s : R)) * A.det := by simpa [A, Rp, stableMatrix] using hdet
-    _ = s • A.det := by simpa using (Algebra.smul_def (s : R) A.det).symm
-
-theorem free_of_isStablyFree_of_localized_eq_ring [IsDomain R] [Module.Finite R M]
-    (hstable : IsStablyFree R M) (P0 : Ideal R) [P0.IsMaximal]
-    (u0 : LocalizedModule P0.primeCompl M ≃ₗ[Localization.AtPrime P0] Localization.AtPrime P0)
-    (hloc : ∀ (P : Ideal R) [P.IsMaximal],
-      Nonempty (LocalizedModule P.primeCompl M ≃ₗ[Localization.AtPrime P] Localization.AtPrime P)) :
+/-- Let `R` be a commutative ring such that `Spec R` is irreducible, `M` be a finite stably free
+  `R`-module. If `Mₘ ≃ Rₘ` for any maximal ideal `m` of `R`, then `M` is free. -/
+theorem Module.free_of_isStablyFree_of_localized_eq_ring
+    [Nontrivial R] [PreconnectedSpace (PrimeSpectrum R)] [Module.Finite R M]
+    (hstable : IsStablyFree R M) (hloc : ∀ (m : Ideal R) [m.IsMaximal],
+      LocalizedModule m.primeCompl M ≃ₗ[Localization.AtPrime m] Localization.AtPrime m) :
     Module.Free R M := by
-  obtain ⟨n, ⟨e⟩⟩ := exists_fin_linearEquiv_of_isStablyFree_of_localized_eq_ring hstable P0 u0
-  let F : M →ₗ[R] R := stableMap e
-  have hbij : Function.Bijective F := by
-    refine bijective_of_isLocalized_maximal
-      (fun P _ => LocalizedModule P.primeCompl M)
-      (fun P _ => LocalizedModule.mkLinearMap P.primeCompl M)
-      (fun P _ => Localization.AtPrime P)
-      (fun P _ => Algebra.linearMap R (Localization.AtPrime P)) F ?_
-    intro P _
-    obtain ⟨uP⟩ := hloc P
-    let eRawLoc : LocalizedModule P.primeCompl (M × (Fin n → R)) ≃ₗ[Localization.AtPrime P]
-        LocalizedModule P.primeCompl (Fin (n + 1) → R) :=
-      IsLocalizedModule.mapEquiv P.primeCompl
-        (LocalizedModule.mkLinearMap P.primeCompl (M × (Fin n → R)))
-          (LocalizedModule.mkLinearMap P.primeCompl (Fin (n + 1) → R)) (Localization.AtPrime P) e
-    let eLoc : (LocalizedModule P.primeCompl M × (Fin n → Localization.AtPrime P))
-        ≃ₗ[Localization.AtPrime P] (Fin (n + 1) → Localization.AtPrime P) :=
-      ((LinearEquiv.refl _ _).prodCongr (localizedPiEquiv P.primeCompl n).symm) ≪≫ₗ
-        (localizedProdEquiv P.primeCompl M (Fin n → R)).symm ≪≫ₗ eRawLoc ≪≫ₗ
-          localizedPiEquiv P.primeCompl (n + 1)
-    have hcompat : IsLocalizedModule.map P.primeCompl (LocalizedModule.mkLinearMap P.primeCompl M)
-        (Algebra.linearMap R (Localization.AtPrime P)) F = (stableMap eLoc).restrictScalars R := by
-      simpa [F, eRawLoc, eLoc] using localized_stableMap_eq_restrict P e
-    simpa [F, hcompat] using stableMap_bijective_of_linearEquiv eLoc uP
-  exact Module.Free.of_equiv (LinearEquiv.ofBijective F hbij).symm
+  -- Choose a finite free complement `N` such that `M ⊕ N` is free.
+  obtain ⟨N, _, _, _, _, _⟩ := hstable
+  let i : M →ₗ[R] M × N := LinearMap.inl R M N
+  let s : M × N →ₗ[R] M := LinearMap.fst R M N
+  have hs : s ∘ₗ i = LinearMap.id := by
+    ext x
+    rfl
+  -- Since `M` is a direct summand of a free module, it is projective, hence flat and
+  -- finitely presented. Therefore its stalk rank is locally constant on `PrimeSpectrum R`.
+  have : Module.Projective R M := Module.Projective.of_split i s hs
+  have : Module.FinitePresentation R M := Module.finitePresentation_of_projective R M
+  obtain ⟨m0, hm0max, _⟩ := Ideal.exists_le_maximal (⊥ : Ideal R) (by simp)
+  let p0 : PrimeSpectrum R := PrimeSpectrum.mk m0 hm0max.isPrime
+  have hlocconst : IsLocallyConstant (Module.rankAtStalk (R := R) M) :=
+    Module.isLocallyConstant_rankAtStalk
+  -- At every maximal ideal, the localization of `M` is isomorphic to the localized ring,
+  -- so the stalk rank is `1`; preconnectedness forces this rank to be `1` everywhere.
+  have hp0 : Module.rankAtStalk M p0 = 1 :=
+    Module.finrank_eq_card_basis ((Module.Basis.singleton (Fin 1) (Localization.AtPrime m0)).map
+      (hloc m0).symm) |>.trans (by simp)
+  have hrank1 (p : PrimeSpectrum R) : Module.rankAtStalk M p = 1 :=
+    Eq.trans (by simpa using (hlocconst.apply_eq_of_preconnectedSpace p p0)) hp0
+  let n := Module.finrank R N
+  -- Comparing stalk ranks at one maximal point gives `rank (M ⊕ N) = rank N + 1`.
+  have hfinrank_prod : Module.finrank R (M × N) = n + 1 :=
+    (congrArg (fun f => f p0) Module.rankAtStalk_eq_finrank_of_free).symm.trans <|
+      (congrArg (fun f => f p0) (Module.rankAtStalk_prod M N)).trans <| by
+        simp [← hp0, n, Nat.add_comm]
+  let bN : Module.Basis (Fin n) R N := Module.finBasisOfFinrankEq R N rfl
+  let bF : Module.Basis (Fin (n + 1)) R (M × N) :=
+    Module.finBasisOfFinrankEq R (M × N) hfinrank_prod
+  -- Laplace expansion along the `M`-summand gives a surjective map
+  -- `Λ^(n + 1) (M ⊕ N) → M`, and after identifying the top exterior power of the free
+  -- module `M ⊕ N` with `R`, this becomes a surjective linear map `f : R → M`.
+  let f : R →ₗ[R] M := laplaceToLeft bN ∘ₗ (topExteriorEquiv bF).symm.toLinearMap
+  have hf_surj : Function.Surjective f := by
+    intro x
+    refine ⟨topExteriorEquiv bF
+      (exteriorPower.ιMulti R (n + 1) (Fin.cons (x, 0) fun i => (0, bN i))), ?_⟩
+    change laplaceToLeft bN ((topExteriorEquiv bF).symm _) = x
+    simpa [LinearEquiv.symm_apply_apply] using laplaceToLeft_ιMulti_cons bN x
+  -- After localizing at a maximal ideal `m`, the map `f_m` is still surjective.
+  -- Since `Mₘ ≃ Rₘ`, it is a surjective endomorphism of a free rank-one module, hence bijective.
+  -- By the local criterion for bijectivity, `f` is bijective over `R`, so `M ≃ R`.
+  have hbij : Function.Bijective f := bijective_of_localized_maximal f <| by
+    intro m _
+    have : Module.Invertible (Localization.AtPrime m) (LocalizedModule m.primeCompl M) :=
+      Module.Invertible.congr (hloc m).symm
+    exact Module.Invertible.bijective_of_surjective
+      (LocalizedModule.map_surjective m.primeCompl f hf_surj)
+  let e : R ≃ₗ[R] M := LinearEquiv.ofBijective f hbij
+  exact Module.Free.of_equiv' inferInstance e
