@@ -132,11 +132,9 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
                   WithBot.coe_le_coe.mp (by simpa [hdim] using hdim_loc_succ')
                 have : k + 1 ≤ n + 1 := ENat.coe_le_coe.mp hdim_loc_succ''
                 exact Nat.lt_succ_of_le (Nat.succ_le_succ_iff.mp this)
-              have hufd : UniqueFactorizationMonoid (Localization.AtPrime p) := ih k hk_lt hk
-              let : UniqueFactorizationMonoid (Localization.AtPrime P) :=
-                  MulEquiv.uniqueFactorizationMonoid
-                    (IsLocalization.localizationLocalizationAtPrimeIsoLocalization M P
-                      |>.toMulEquiv) hufd
+              have : UniqueFactorizationMonoid (Localization.AtPrime P) :=
+                IsLocalization.localizationLocalizationAtPrimeIsoLocalization M P
+                  |>.toMulEquiv.uniqueFactorizationMonoid (ih k hk_lt hk)
               have hmap_prime : (Ideal.map
                   (algebraMap (Localization M) (Localization.AtPrime P)) q).IsPrime :=
                 Ideal.isPrime_map_of_isLocalizationAtPrime P hqP
@@ -154,9 +152,6 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
                 (Ideal.ufd_iff_height_one_primes_principal).1 inferInstance
                   (Ideal.map (algebraMap (Localization M) (Localization.AtPrime P)) q)
                   hmap_height
-              let _ :
-                  (Ideal.map (algebraMap (Localization M) (Localization.AtPrime P)) q).IsPrincipal :=
-                hmap_principal
               have hmap_ne_bot : Ideal.map
                   (algebraMap (Localization M) (Localization.AtPrime P)) q ≠ ⊥ := by
                 intro hbot
