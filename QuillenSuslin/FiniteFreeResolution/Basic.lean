@@ -72,6 +72,11 @@ theorem hasFiniteFreeResolution_of_linearEquiv {P : Type α} {Q : Type β}
 
 section exact_seq
 
+variable {P₁ : Type α} {P₂ : Type β} {P₃ : Type γ} [AddCommGroup P₁] [Module R P₁]
+  [AddCommGroup P₂] [Module R P₂] [AddCommGroup P₃] [Module R P₃]
+  {F : Type γ} [AddCommGroup F] [Module R F] {K : Type γ} [AddCommGroup K] [Module R K]
+  (f : P₁ →ₗ[R] P₂) (g : P₂ →ₗ[R] P₃) (f₃ : K →ₗ[R] F) (g₃ : F →ₗ[R] P₃)
+
 omit [Small.{α} R] [Small.{γ} R] in
 private theorem hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution
     {P : Type β} {F : Type*} {K : Type*}
@@ -100,11 +105,21 @@ private theorem hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution
     · rintro ⟨x, rfl⟩
       simpa [i', s', LinearMap.comp_apply] using (he (i (eK.symm x))).2 ⟨eK.symm x, rfl⟩
 
+private noncomputable def leftLiftOfRightLift (hf : Function.Injective f) (h : Function.Exact f g)
+    (he₃ : Function.Exact f₃ g₃) (l : F →ₗ[R] P₂) (hl : g.comp l = g₃) : K →ₗ[R] P₁ :=
+  (LinearEquiv.ofInjective f hf).symm ∘ₗ (LinearMap.codRestrict f.range (l.comp f₃) <|
+    fun k => (h (l (f₃ k))).1 <| by simpa [← hl] using Function.Exact.apply_apply_eq_zero he₃ k)
+
+omit [Small.{α} R] [Small.{β} R] [Small.{γ} R] in
+private theorem leftLiftOfRightLift_apply (hf : Function.Injective f) (h : Function.Exact f g)
+    (he₃ : Function.Exact f₃ g₃) (l : F →ₗ[R] P₂) (hl : g.comp l = g₃) (k : K) :
+    f (leftLiftOfRightLift f g f₃ g₃ hf h he₃ l hl k) = l (f₃ k) := by
+  simp [leftLiftOfRightLift, LinearMap.comp_apply]
+
 /-- In a short exact sequence `0 → P₁ → P₂ → P₃ → 0`, if `P₁` and `P₃` have finite free
 resolutions, then so does `P₂`. -/
-theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right (P₁ : Type α) (P₂ : Type β)
-    (P₃ : Type γ) [AddCommGroup P₁] [Module R P₁] [AddCommGroup P₂] [Module R P₂] [AddCommGroup P₃]
-    [Module R P₃] {f : P₁ →ₗ[R] P₂} {g : P₂ →ₗ[R] P₃} (hf : Function.Injective f)
+theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
+    (hf : Function.Injective f)
     (hg : Function.Surjective g) (h : Function.Exact f g) (h₁ : HasFiniteFreeResolution R P₁)
     (h₃ : HasFiniteFreeResolution R P₃) : HasFiniteFreeResolution R P₂ := by
   rcases h₁ with ⟨n₁, h₁⟩
@@ -113,11 +128,8 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right (P₁ : Type α) 
   | zero P₁ =>
       cases h₃ with
       | zero P₃ =>
-          obtain ⟨s, hs⟩ := Module.projective_lifting_property g (LinearMap.id : P₃ →ₗ[R] P₃) hg
+          obtain ⟨s, hs⟩ := Module.projective_lifting_property g LinearMap.id hg
           have : Small.{β} (P₁ × P₃) := Module.Finite.small.{β} R (P₁ × P₃)
-          let eProd : (P₁ × P₃) ≃ₗ[R] Shrink.{β} (P₁ × P₃) := (Shrink.linearEquiv R (P₁ × P₃)).symm
-          have : Module.Finite R (Shrink.{β} (P₁ × P₃)) := Module.Finite.equiv eProd
-          have : Module.Free R (Shrink.{β} (P₁ × P₃)) := Module.Free.of_equiv eProd
           have hprod : HasFiniteFreeResolution R (Shrink.{β} (P₁ × P₃)) :=
             ⟨0, HasFiniteFreeResolutionOfLength.zero (Shrink.{β} (P₁ × P₃))⟩
           exact hasFiniteFreeResolution_of_linearEquiv ((Shrink.linearEquiv R (P₁ × P₃)).trans
@@ -125,20 +137,10 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right (P₁ : Type α) 
       | succ P₃ n F₃ K₃ f₃ g₃ hf₃ hg₃ he₃ hk₃ =>
           have : Small.{β} K₃ := Module.Finite.small.{β} R K₃
           have : Small.{β} (P₁ × F₃) := Module.Finite.small.{β} R (P₁ × F₃)
-          let eK : K₃ ≃ₗ[R] Shrink.{β} K₃ := (Shrink.linearEquiv R K₃).symm
-          have : Module.Finite R (Shrink.{β} K₃) := Module.Finite.equiv eK
-          have : Module.Free R (Shrink.{β} K₃) := Module.Free.of_equiv eK
           have hk₃' : HasFiniteFreeResolution R (Shrink.{β} K₃) :=
             ⟨0, HasFiniteFreeResolutionOfLength.zero (Shrink.{β} K₃)⟩
           obtain ⟨l, hl⟩ := Module.projective_lifting_property g g₃ hg
-          let lf : K₃ →ₗ[R] f.range := LinearMap.codRestrict f.range (l.comp f₃) (by
-            intro k
-            rcases (h (l (f₃ k))).1 with h1
-            apply h1
-            change (g.comp l) (f₃ k) = 0
-            rw [hl]
-            exact (he₃ (f₃ k)).2 ⟨k, rfl⟩)
-          let t : K₃ →ₗ[R] P₁ := (LinearEquiv.ofInjective f hf).symm ∘ₗ lf
+          let t : K₃ →ₗ[R] P₁ := leftLiftOfRightLift f g f₃ g₃ hf h he₃ l hl
           let i : K₃ →ₗ[R] P₁ × F₃ := LinearMap.prod (- t) f₃
           let s : P₁ × F₃ →ₗ[R] P₂ := f.coprod l
           refine hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution i s ?_ ?_ ?_ hk₃'
@@ -164,22 +166,19 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right (P₁ : Type α) 
                 rw [hl] at hy0'
                 exact hy0'
               rcases (he₃ y.2).1 hy0 with ⟨k, hk⟩
-              have ht : f (t k) = l (f₃ k) := by
-                simp [t, lf, LinearMap.comp_apply]
               have hsum : f (t k + y.1) = 0 := by
-                rw [LinearMap.map_add, ht]
+                rw [LinearMap.map_add, leftLiftOfRightLift_apply]
                 simpa [hk, s, LinearMap.coprod_apply, add_comm, add_left_comm, add_assoc] using hy
               have hsum' : f (y.1 + t k) = 0 := by
                 simpa [add_comm] using hsum
               have hxy0 : y.1 + t k = 0 := hf <| by simpa using hsum'
-              have hx : y.1 = - t k := by
-                simpa using (eq_neg_iff_add_eq_zero.mpr hxy0)
+              have hx : y.1 = - t k := by simpa using (eq_neg_iff_add_eq_zero.mpr hxy0)
               refine ⟨k, ?_⟩
               apply Prod.ext
               · simp [i, LinearMap.prod_apply, hx]
               · simpa [i, LinearMap.prod_apply] using hk
             · rintro ⟨k, rfl⟩
-              have ht : f (t k) = l (f₃ k) := by simp [t, lf, LinearMap.comp_apply]
+              have ht : f (t k) = l (f₃ k) := leftLiftOfRightLift_apply f g f₃ g₃ hf h he₃ l hl k
               have : f (- t k) + l (f₃ k) = 0 := by simp [ht]
               simpa [i, s, LinearMap.prod_apply, LinearMap.coprod_apply] using this
   | succ P₁ n F₁ K₁ f₁ g₁ hf₁ hg₁ he₁ hk₁ =>
@@ -187,12 +186,9 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right (P₁ : Type α) 
       | zero P₃ =>
           have : Small.{β} K₁ := Module.Finite.small.{β} R K₁
           have : Small.{β} (F₁ × P₃) := Module.Finite.small.{β} R (F₁ × P₃)
-          let eK : K₁ ≃ₗ[R] Shrink.{β} K₁ := (Shrink.linearEquiv R K₁).symm
-          have : Module.Finite R (Shrink.{β} K₁) := Module.Finite.equiv eK
-          have : Module.Free R (Shrink.{β} K₁) := Module.Free.of_equiv eK
           have hk₁' : HasFiniteFreeResolution R (Shrink.{β} K₁) :=
             ⟨0, HasFiniteFreeResolutionOfLength.zero (Shrink.{β} K₁)⟩
-          obtain ⟨l, hl⟩ := Module.projective_lifting_property g (LinearMap.id : P₃ →ₗ[R] P₃) hg
+          obtain ⟨l, hl⟩ := Module.projective_lifting_property g LinearMap.id hg
           let i : K₁ →ₗ[R] F₁ × P₃ := (LinearMap.inl R F₁ P₃).comp f₁
           let s : F₁ × P₃ →ₗ[R] P₂ := (f.comp g₁).coprod l
           refine hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution i s ?_ ?_ ?_ hk₁'
@@ -231,21 +227,10 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right (P₁ : Type α) 
           have : Small.{β} K₁ := Module.Finite.small.{β} R K₁
           have : Small.{β} K₃ := Module.Finite.small.{β} R K₃
           have : Small.{β} (F₁ × F₃) := Module.Finite.small.{β} R (F₁ × F₃)
-          have : Small.{β} (K₁ × K₃) := Module.Finite.small.{β} R (K₁ × K₃)
-          let eK : (K₁ × K₃) ≃ₗ[R] Shrink.{β} (K₁ × K₃) := (Shrink.linearEquiv R (K₁ × K₃)).symm
-          have : Module.Finite R (Shrink.{β} (K₁ × K₃)) := Module.Finite.equiv eK
-          have : Module.Free R (Shrink.{β} (K₁ × K₃)) := Module.Free.of_equiv eK
           have hk' : HasFiniteFreeResolution R (Shrink.{β} (K₁ × K₃)) :=
             ⟨0, HasFiniteFreeResolutionOfLength.zero (Shrink.{β} (K₁ × K₃))⟩
           obtain ⟨l, hl⟩ := Module.projective_lifting_property g g₃ hg
-          let lf : K₃ →ₗ[R] f.range := LinearMap.codRestrict f.range (l.comp f₃) (by
-            intro k
-            rcases (h (l (f₃ k))).1 with h1
-            apply h1
-            change (g.comp l) (f₃ k) = 0
-            rw [hl]
-            exact (he₃ (f₃ k)).2 ⟨k, rfl⟩)
-          let t : K₃ →ₗ[R] P₁ := (LinearEquiv.ofInjective f hf).symm ∘ₗ lf
+          let t : K₃ →ₗ[R] P₁ := leftLiftOfRightLift f g f₃ g₃ hf h he₃ l hl
           obtain ⟨τ, hτ⟩ := Module.projective_lifting_property g₁ (- t) hg₁
           let i : K₁ × K₃ →ₗ[R] F₁ × F₃ :=
             { toFun := fun x => (f₁ x.1 + τ x.2, f₃ x.2)
@@ -258,13 +243,9 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right (P₁ : Type α) 
           let s : F₁ × F₃ →ₗ[R] P₂ := (f.comp g₁).coprod l
           refine hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution i s ?_ ?_ ?_ hk'
           · intro x y hxy
-            have h2 : f₃ x.2 = f₃ y.2 := by
-              simpa [i] using congrArg Prod.snd hxy
-            have hk : x.2 = y.2 := hf₃ h2
-            have h1 : f₁ x.1 + τ x.2 = f₁ y.1 + τ y.2 := by
-              simpa [i] using congrArg Prod.fst hxy
-            have h1' : f₁ x.1 = f₁ y.1 := by simpa [hk] using h1
-            have hx : x.1 = y.1 := hf₁ h1'
+            have hk : x.2 = y.2 := hf₃ (by simpa [i] using congrArg Prod.snd hxy)
+            have h1 : f₁ x.1 + τ x.2 = f₁ y.1 + τ y.2 := by simpa [i] using congrArg Prod.fst hxy
+            have hx : x.1 = y.1 := hf₁ (by simpa [hk] using h1)
             exact Prod.ext hx hk
           · intro z
             rcases hg₃ (g z) with ⟨y, hy⟩
@@ -287,10 +268,8 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right (P₁ : Type α) 
                 rw [hl] at hy0'
                 exact hy0'
               rcases (he₃ y.2).1 hy0 with ⟨k, hk⟩
-              have ht : f (t k) = l (f₃ k) := by
-                simp [t, lf, LinearMap.comp_apply]
               have hsum : f (g₁ y.1 + t k) = 0 := by
-                rw [LinearMap.map_add, ht]
+                rw [LinearMap.map_add, leftLiftOfRightLift_apply]
                 simpa [s, LinearMap.coprod_apply, hk] using hy
               have hx0 : g₁ y.1 = - t k := by
                 apply hf
@@ -312,10 +291,8 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right (P₁ : Type α) 
             · rintro ⟨⟨x, k⟩, rfl⟩
               have hτk : g₁ (τ k) = - t k := by
                 simpa [LinearMap.comp_apply] using congrArg (fun u => u k) hτ
-              have ht : f (t k) = l (f₃ k) := by
-                simp [t, lf, LinearMap.comp_apply]
               have hτf : f (g₁ (τ k)) + l (f₃ k) = 0 := by
-                rw [hτk, LinearMap.map_neg, ht]
+                rw [hτk, LinearMap.map_neg, leftLiftOfRightLift_apply]
                 simp
               have hf1 : f (g₁ (f₁ x)) = 0 := by
                 have : g₁ (f₁ x) = 0 := (he₁ (f₁ x)).2 ⟨x, rfl⟩
