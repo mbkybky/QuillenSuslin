@@ -18,7 +18,7 @@ inductive HasFiniteFreeResolutionOfLength (R : Type u) [CommRing R] [Small.{v} R
       HasFiniteFreeResolutionOfLength R P 0
   | succ (P : Type v) [AddCommGroup P] [Module R P] (n : ℕ)
       (F : Type v) [AddCommGroup F] [Module R F] [Module.Finite R F] [Module.Free R F]
-      (K : Type v) [AddCommGroup K] [Module R K] [Module.Finite R K] [Module.Free R K]
+      (K : Type v) [AddCommGroup K] [Module R K] [Module.Finite R K]
       (f : K →ₗ[R] F) (g : F →ₗ[R] P) (hf : Function.Injective f) (hg : Function.Surjective g)
       (he : Function.Exact f g) (hk : HasFiniteFreeResolutionOfLength R K n) :
       HasFiniteFreeResolutionOfLength R P (n + 1)
@@ -82,7 +82,7 @@ private theorem hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution
     {P : Type β} {F : Type*} {K : Type*}
     [AddCommGroup P] [Module R P] [AddCommGroup F] [Module R F] [Module.Finite R F]
     [Module.Free R F] [Small.{β} F] [AddCommGroup K] [Module R K] [Module.Finite R K]
-    [Module.Free R K] [Small.{β} K] (i : K →ₗ[R] F) (s : F →ₗ[R] P) (hi : Function.Injective i)
+    [Small.{β} K] (i : K →ₗ[R] F) (s : F →ₗ[R] P) (hi : Function.Injective i)
     (hs : Function.Surjective s) (he : Function.Exact i s)
     (hk : HasFiniteFreeResolution R (Shrink.{β} K)) : HasFiniteFreeResolution R P := by
   let eF : F ≃ₗ[R] Shrink.{β} F := (Shrink.linearEquiv R F).symm
