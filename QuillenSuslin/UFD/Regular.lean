@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
 import Mathlib.RingTheory.RegularLocalRing.Localization
-import QuillenSuslin.FiniteFreeResolution.FreeOfLocalizedEq
+import QuillenSuslin.StablyFree.FreeOfLocalizedEq
 import QuillenSuslin.FiniteFreeResolution.Localization
 import QuillenSuslin.UFD.Lemmas
 

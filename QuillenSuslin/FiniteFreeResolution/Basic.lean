@@ -28,7 +28,21 @@ def HasFiniteFreeResolution (R : Type u) [CommRing R] [Small.{v} R]
     (P : Type v) [AddCommGroup P] [Module R P] : Prop :=
   ∃ (n : ℕ),  HasFiniteFreeResolutionOfLength R P n
 
-variable {R : Type u} [CommRing R] [Small.{v} R] [Small.{w} R]
+variable {R : Type u} [CommRing R] [Small.{v} R]
+
+/-- A subsingleton finitely generated module has a finite free resolution. -/
+theorem hasFiniteFreeResolution_of_subsingleton (M : Type v)
+    [AddCommGroup M] [Module R M] [Module.Finite R M] [Subsingleton M] :
+    HasFiniteFreeResolution R M :=
+  ⟨0, HasFiniteFreeResolutionOfLength.zero M⟩
+
+/-- A finitely generated free module has a finite free resolution of length `0`. -/
+theorem hasFiniteFreeResolution_of_finite_free (M : Type v)
+    [AddCommGroup M] [Module R M] [Module.Finite R M] [Module.Free R M] :
+    HasFiniteFreeResolution R M :=
+  ⟨0, HasFiniteFreeResolutionOfLength.zero M⟩
+
+variable [Small.{w} R]
 
 theorem hasFiniteFreeResolutionOfLength_of_linearEquiv {P : Type v} {Q : Type w}
     [AddCommGroup P] [Module R P] [AddCommGroup Q] [Module R Q] (e : P ≃ₗ[R] Q) {n : ℕ}
