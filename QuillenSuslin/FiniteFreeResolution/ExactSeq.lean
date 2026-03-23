@@ -45,10 +45,14 @@ private theorem leftLiftOfRightLift_apply (hf : Function.Injective f) (h : Funct
     f (leftLiftOfRightLift f g f₃ g₃ hf h he₃ l hl k) = l (f₃ k) := by
   simp [leftLiftOfRightLift]
 
-omit [Small.{α} R] [Small.{β} R] [Small.{γ} R] in
-private theorem surjective_coprod_of_exact_of_lift
-    {A : Type*} {B : Type*} [AddCommGroup A] [Module R A] [AddCommGroup B] [Module R B]
-    (h : Function.Exact f g) (u : A →ₗ[R] P₁) (v : B →ₗ[R] P₃) (l : B →ₗ[R] P₂)
+section
+
+omit [Small.{α} R] [Small.{β} R] [Small.{γ} R]
+
+variable {A : Type*} {B : Type*} [AddCommGroup A] [Module R A] [AddCommGroup B] [Module R B]
+   (u : A →ₗ[R] P₁) (v : B →ₗ[R] P₃) (l : B →ₗ[R] P₂)
+
+private theorem surjective_coprod_of_exact_of_lift (h : Function.Exact f g)
     (hu : Function.Surjective u) (hv : Function.Surjective v) (hl : g.comp l = v) :
     Function.Surjective ((f.comp u).coprod l) := by
   intro z
@@ -62,12 +66,11 @@ private theorem surjective_coprod_of_exact_of_lift
   rcases hu x₁ with ⟨x, hx⟩
   exact ⟨(x, y), by simp [hx, hx₁]⟩
 
-omit [Small.{α} R] [Small.{β} R] [Small.{γ} R] in
-private theorem coprod_snd_eq_zero_of_eq_zero
-    {A : Type*} {B : Type*} [AddCommGroup A] [Module R A] [AddCommGroup B] [Module R B]
-    (h : Function.Exact f g) (u : A →ₗ[R] P₁) (v : B →ₗ[R] P₃) (l : B →ₗ[R] P₂)
+private theorem coprod_snd_eq_zero_of_eq_zero (h : Function.Exact f g)
     (hl : g.comp l = v) (y : A × B) (hy : ((f.comp u).coprod l) y = 0) : v y.2 = 0 := by
   simpa [← hl, Function.Exact.apply_apply_eq_zero h (u y.1)] using congrArg g hy
+
+end
 
 /-- In a short exact sequence `0 → P₁ → P₂ → P₃ → 0`, if `P₁` and `P₃` have finite free
 resolutions, then so does `P₂`. -/
@@ -98,12 +101,11 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
             ⟨n, hasFiniteFreeResolutionOfLength_of_linearEquiv (Shrink.linearEquiv R K₃).symm hk₃⟩
           · intro x y hxy
             exact hf₃ (congrArg Prod.snd hxy)
-          · exact surjective_coprod_of_exact_of_lift f g h .id g₃ l Function.surjective_id hg₃ hl
+          · exact surjective_coprod_of_exact_of_lift f g .id g₃ l h Function.surjective_id hg₃ hl
           · intro y
             constructor
             · intro hy
-              have hy0 : g₃ y.2 = 0 := coprod_snd_eq_zero_of_eq_zero
-                f g h LinearMap.id  g₃ l hl y <| by simpa [s] using hy
+              have hy0 : g₃ y.2 = 0 := coprod_snd_eq_zero_of_eq_zero f g LinearMap.id g₃ l h hl y hy
               rcases (he₃ y.2).1 hy0 with ⟨k, hk⟩
               have hsum : f (t k + y.1) = 0 := by
                 rw [LinearMap.map_add, leftLiftOfRightLift_apply]
@@ -127,12 +129,11 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
             ⟨n, hasFiniteFreeResolutionOfLength_of_linearEquiv (Shrink.linearEquiv R K₁).symm hk₁⟩
           · intro x y hxy
             exact hf₁ (congrArg Prod.fst hxy)
-          · exact surjective_coprod_of_exact_of_lift f g h g₁ .id l hg₁ Function.surjective_id hl
+          · exact surjective_coprod_of_exact_of_lift f g g₁ .id l h hg₁ Function.surjective_id hl
           · intro y
             constructor
             · intro hy
-              have hy0 : y.2 = 0 := coprod_snd_eq_zero_of_eq_zero f g h g₁ LinearMap.id l hl y <|
-                by simpa [s] using hy
+              have hy0 : y.2 = 0 := coprod_snd_eq_zero_of_eq_zero f g g₁ LinearMap.id l h hl y hy
               have hx0 : g₁ y.1 = 0 := by
                 apply hf
                 simpa [s, hy0] using hy
@@ -157,8 +158,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
           let p : F₁ × F₃ →ₗ[R] F₃ := LinearMap.snd R F₁ F₃
           have hp : ∀ x : K, p x.1 ∈ g₃.ker := by
             intro x
-            change g₃ (p x.1) = 0
-            simpa [p] using coprod_snd_eq_zero_of_eq_zero f g h g₁ g₃ l hl x.1 x.2
+            exact coprod_snd_eq_zero_of_eq_zero f g g₁ g₃ l h hl x.1 x.2
           let β : K →ₗ[R] g₃.ker := LinearMap.codRestrict g₃.ker (p.comp K.subtype) hp
           have hα : Function.Injective α := by
             intro x y hxy
@@ -207,7 +207,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
           have : Module.Finite R K := Module.Finite.of_exact hKer hβ
           exact hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution K.subtype s
             (Submodule.subtype_injective K)
-              (surjective_coprod_of_exact_of_lift f g h g₁ g₃ l hg₁ hg₃ hl)
+              (surjective_coprod_of_exact_of_lift f g g₁ g₃ l h hg₁ hg₃ hl)
                 (LinearMap.exact_subtype_ker_map s) <|
                   ih _ _ (eK.injective.comp hα) (hβ.comp eK.symm.surjective)
                     ((LinearEquiv.conj_exact_iff_exact α β eK).2 hKer) hK₃
