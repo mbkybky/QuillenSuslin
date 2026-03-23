@@ -41,15 +41,15 @@ theorem hasFiniteFreeResolutionOfLength_of_linearEquiv {P : Type v} {Q : Type w}
   | succ P n F K f g hf hg he hk ih =>
       have : Small.{w} F := Module.Finite.small R F
       have : Small.{w} K := Module.Finite.small R K
-      have eF : F ≃ₗ[R] Shrink.{w} F := (Shrink.linearEquiv R F).symm
-      have eK : K ≃ₗ[R] Shrink.{w} K := (Shrink.linearEquiv R K).symm
+      have eF : Shrink.{w} F ≃ₗ[R] F := Shrink.linearEquiv R F
+      have eK : Shrink.{w} K ≃ₗ[R] K := Shrink.linearEquiv R K
       refine HasFiniteFreeResolutionOfLength.succ Q n (Shrink.{w} F) (Shrink.{w} K)
-        (eF ∘ₗ (f.comp eK.symm.toLinearMap)) (e ∘ₗ (g.comp eF.symm.toLinearMap)) ?_ ?_ ?_ (ih eK)
-      · exact eF.injective.comp (hf.comp eK.symm.injective)
-      · exact e.surjective.comp (hg.comp eF.symm.surjective)
+        (eF.symm ∘ₗ (f.comp eK.toLinearMap)) (e ∘ₗ (g.comp eF.toLinearMap)) ?_ ?_ ?_ (ih eK.symm)
+      · exact eF.symm.injective.comp (hf.comp eK.injective)
+      · exact e.surjective.comp (hg.comp eF.surjective)
       · exact (Function.Injective.comp_exact_iff_exact e.injective).2 <|
-          (LinearEquiv.conj_exact_iff_exact (f.comp eK.symm.toLinearMap) g eF).2 <|
-            (Function.Surjective.comp_exact_iff_exact eK.symm.surjective).2 he
+          (LinearEquiv.conj_exact_iff_exact (f.comp eK.toLinearMap) g eF.symm).2 <|
+            (Function.Surjective.comp_exact_iff_exact eK.surjective).2 he
 
 theorem hasFiniteFreeResolution_of_linearEquiv {P : Type v} {Q : Type w}
     [AddCommGroup P] [Module R P] [AddCommGroup Q] [Module R Q] (e : P ≃ₗ[R] Q)
