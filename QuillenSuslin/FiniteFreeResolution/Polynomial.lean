@@ -6,12 +6,13 @@ Authors: Yongle Hu
 import Mathlib.Algebra.Polynomial.Module.TensorProduct
 import Mathlib.RingTheory.Ideal.IsPrincipal
 import Mathlib.RingTheory.Ideal.Quotient.Noetherian
+import Mathlib.RingTheory.PicardGroup
 import Mathlib.RingTheory.Polynomial.Quotient
-import QuillenSuslin.FiniteFreeResolution.Basic
+import QuillenSuslin.FiniteFreeResolution.ExactSeq
 
 universe u v w
 
-variable {R : Type u} [CommRing R]
+variable {R : Type u} [CommRing R] [Small.{v, u} R]
 
 open Polynomial Module Ideal
 
@@ -27,7 +28,7 @@ theorem hasFiniteFreeResolution_of_subsingleton (M : Type v)
 theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
     (I : Ideal R) (hI : HasFiniteFreeResolution R I) :
     HasFiniteFreeResolution R[X] (Ideal.map (C : R →+* R[X]) I) := by
-  rcases hasFiniteFreeResolutionLength_of_hasFiniteFreeResolution I hI with ⟨n, hn⟩
+  rcases hI with ⟨n, hn⟩
   let polyMap {P Q : Type u} [AddCommGroup P] [Module R P] [AddCommGroup Q] [Module R Q]
       (f : P →ₗ[R] Q) : PolynomialModule R P →ₗ[R[X]] PolynomialModule R Q :=
     { toFun := PolynomialModule.map R f
@@ -38,8 +39,8 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
         intro p q
         simp [PolynomialModule.map_smul R f p q] }
   have liftLength : ∀ {P : Type u} [AddCommGroup P] [Module R P] {n : ℕ},
-      HasFiniteFreeResolutionLength R P n →
-        HasFiniteFreeResolutionLength R[X] (PolynomialModule R P) n := by
+      HasFiniteFreeResolutionOfLength R P n →
+        HasFiniteFreeResolutionOfLength R[X] (PolynomialModule R P) n := by
     intro P _ _ n hn
     induction hn with
     | zero P =>
@@ -47,7 +48,7 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
         let : Module.Finite R[X] (PolynomialModule R P) :=
           Module.Finite.of_surjective e.toLinearMap e.surjective
         let : Module.Free R[X] (PolynomialModule R P) := Module.Free.of_equiv e
-        exact HasFiniteFreeResolutionLength.zero (PolynomialModule R P)
+        exact HasFiniteFreeResolutionOfLength.zero (PolynomialModule R P)
     | succ P n F f hf hker ih =>
         let eF := PolynomialModule.polynomialTensorProductLEquivPolynomialModule R F
         let : Module.Finite R[X] (PolynomialModule R F) :=
@@ -106,7 +107,7 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
                 f (((Finsupp.mapRange.linearMap sub) z) a) := by
               simp [Finsupp.mapRange.linearMap_apply, Finsupp.mapRange_apply]
             exact hcoeff.trans ((congrArg f hz).trans hzKer)
-        have hkerX : HasFiniteFreeResolutionLength R[X] (LinearMap.ker fX) n := by
+        have hkerX : HasFiniteFreeResolutionOfLength R[X] (LinearMap.ker fX) n := by
           have hkX' : LinearMap.range kX = LinearMap.ker fX := hkX.symm
           have hinj : Function.Injective kX := by
             intro x y hxy
@@ -130,11 +131,9 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
             exact hsub
           exact hasFiniteFreeResolutionLength_of_linearEquiv
             ((LinearEquiv.ofInjective kX hinj).trans (LinearEquiv.ofEq _ _ hkX')) ih
-        exact HasFiniteFreeResolutionLength.succ (PolynomialModule R P) n
+        exact HasFiniteFreeResolutionOfLength.succ (PolynomialModule R P) n
           (PolynomialModule R F) fX hfX hkerX
-  have hPoly : HasFiniteFreeResolution R[X] (PolynomialModule R I) :=
-    hasFiniteFreeResolution_of_hasFiniteFreeResolutionLength (PolynomialModule R I)
-      ⟨n, liftLength hn⟩
+  have hPoly : HasFiniteFreeResolution R[X] (PolynomialModule R I) := ⟨n, liftLength hn⟩
   let incl : I →ₗ[R] R := I.subtype
   let inclX : PolynomialModule R I →ₗ[R[X]] PolynomialModule R R := polyMap incl
   have inclX_apply (p : PolynomialModule R I) (n : ℕ) : (inclX p) n = (p n : R) := by
