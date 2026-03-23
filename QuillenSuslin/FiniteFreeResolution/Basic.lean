@@ -121,6 +121,13 @@ private theorem surjective_coprod_of_exact_of_lift
   rcases hu x₁ with ⟨x, hx⟩
   exact ⟨(x, y), by simp [hx, hx₁]⟩
 
+omit [Small.{α} R] [Small.{β} R] [Small.{γ} R] in
+private theorem coprod_snd_eq_zero_of_eq_zero
+    {A : Type*} {B : Type*} [AddCommGroup A] [Module R A] [AddCommGroup B] [Module R B]
+    (h : Function.Exact f g) (u : A →ₗ[R] P₁) (v : B →ₗ[R] P₃) (l : B →ₗ[R] P₂)
+    (hl : g.comp l = v) (y : A × B) (hy : ((f.comp u).coprod l) y = 0) : v y.2 = 0 := by
+  simpa [← hl, Function.Exact.apply_apply_eq_zero h (u y.1)] using congrArg g hy
+
 /-- In a short exact sequence `0 → P₁ → P₂ → P₃ → 0`, if `P₁` and `P₃` have finite free
 resolutions, then so does `P₂`. -/
 theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
@@ -154,11 +161,8 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
           · intro y
             constructor
             · intro hy
-              have hfg0 : g (f y.1) = 0 := Function.Exact.apply_apply_eq_zero h y.1
-              have hy0' : g (l y.2) = 0 := by simpa [s, hfg0] using congrArg g hy
-              have hy0 : g₃ y.2 = 0 := by
-                rw [← hl]
-                simpa [LinearMap.comp_apply] using hy0'
+              have hy0 : g₃ y.2 = 0 := coprod_snd_eq_zero_of_eq_zero
+                f g h LinearMap.id  g₃ l hl y <| by simpa [s] using hy
               rcases (he₃ y.2).1 hy0 with ⟨k, hk⟩
               have hsum : f (t k + y.1) = 0 := by
                 rw [LinearMap.map_add, leftLiftOfRightLift_apply]
@@ -186,11 +190,8 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
           · intro y
             constructor
             · intro hy
-              have hfg0 : g (f (g₁ y.1)) = 0 := Function.Exact.apply_apply_eq_zero h (g₁ y.1)
-              have hy0' : g (l y.2) = 0 := by simpa [s, hfg0] using congrArg g hy
-              have hy0 : y.2 = 0 := by
-                change (g.comp l) y.2 = 0 at hy0'
-                rwa [hl] at hy0'
+              have hy0 : y.2 = 0 := coprod_snd_eq_zero_of_eq_zero f g h g₁ LinearMap.id l hl y <|
+                by simpa [s] using hy
               have hx0 : g₁ y.1 = 0 := by
                 apply hf
                 simpa [s, hy0] using hy
@@ -216,12 +217,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
           have hp : ∀ x : K, p x.1 ∈ g₃.ker := by
             intro x
             change g₃ (p x.1) = 0
-            have hx0 : f (g₁ x.1.1) + l x.1.2 = 0 := x.2
-            have hx0'' : g (f (g₁ x.1.1) + l x.1.2) = 0 := by simpa using congrArg g hx0
-            have hfx : g (f (g₁ x.1.1)) = 0 := Function.Exact.apply_apply_eq_zero h (g₁ x.1.1)
-            have hgl : g (l x.1.2) = 0 := by simpa [LinearMap.map_add, hfx] using hx0''
-            rw [← hl]
-            simpa [LinearMap.comp_apply, p] using hgl
+            simpa [p] using coprod_snd_eq_zero_of_eq_zero f g h g₁ g₃ l hl x.1 x.2
           let β : K →ₗ[R] g₃.ker := LinearMap.codRestrict g₃.ker (p.comp K.subtype) hp
           have hα : Function.Injective α := by
             intro x y hxy
