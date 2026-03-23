@@ -8,7 +8,7 @@ import Mathlib.LinearAlgebra.Basis.Prod
 import Mathlib.RingTheory.Finiteness.Prod
 import QuillenSuslin.FiniteFreeResolution.Basic
 
-universe u α β γ
+universe u α β γ δ
 
 variable {R : Type u} [CommRing R] [Small.{α} R] [Small.{β} R] [Small.{γ} R]
   {P₁ : Type α} {P₂ : Type β} {P₃ : Type γ} [AddCommGroup P₁] [Module R P₁]
@@ -17,16 +17,18 @@ variable {R : Type u} [CommRing R] [Small.{α} R] [Small.{β} R] [Small.{γ} R]
   (f : P₁ →ₗ[R] P₂) (g : P₂ →ₗ[R] P₃) (f₃ : K →ₗ[R] F) (g₃ : F →ₗ[R] P₃)
 
 omit [Small.{α} R] [Small.{γ} R] in
-private theorem hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution
-    {P : Type β} {F : Type*} {K : Type*}
+private theorem hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution
+    {P : Type β} {F : Type*} {K : Type δ}
     [AddCommGroup P] [Module R P] [AddCommGroup F] [Module R F] [Module.Finite R F]
-    [Module.Free R F] [Small.{β} F] [AddCommGroup K] [Module R K] [Module.Finite R K]
-    [Small.{β} K] (i : K →ₗ[R] F) (s : F →ₗ[R] P) (hi : Function.Injective i)
+    [Module.Free R F] [AddCommGroup K] [Module R K] [Module.Finite R K] [Small.{δ} R]
+    (i : K →ₗ[R] F) (s : F →ₗ[R] P) (hi : Function.Injective i)
     (hs : Function.Surjective s) (he : Function.Exact i s)
-    (hk : HasFiniteFreeResolution R (Shrink.{β} K)) : HasFiniteFreeResolution R P := by
+    (hk : HasFiniteFreeResolution R K) : HasFiniteFreeResolution R P := by
+  have : Small.{β} F := Module.Finite.small.{β} R F
+  have : Small.{β} K := Module.Finite.small.{β} R K
   have eF : Shrink.{β} F ≃ₗ[R] F := Shrink.linearEquiv R F
   have eK : Shrink.{β} K ≃ₗ[R] K := Shrink.linearEquiv R K
-  rcases hk with ⟨n, hk⟩
+  rcases hasFiniteFreeResolution_of_linearEquiv (Shrink.linearEquiv R K).symm hk with ⟨n, hk⟩
   let i' : Shrink.{β} K →ₗ[R] Shrink.{β} F := eF.symm ∘ₗ (i.comp eK.toLinearMap)
   let s' : Shrink.{β} F →ₗ[R] P := s.comp eF.toLinearMap
   refine ⟨n + 1,  HasFiniteFreeResolutionOfLength.succ P n (Shrink.{β} F) (Shrink.{β} K) i' s'
@@ -91,14 +93,11 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
           exact hasFiniteFreeResolution_of_linearEquiv ((Shrink.linearEquiv R (P₁ × P₃)).trans
             ((Function.Exact.splitSurjectiveEquiv h hf) ⟨s, hs⟩).1.symm) hprod
       | succ P₃ n F₃ K₃ f₃ g₃ hf₃ hg₃ he₃ hk₃ =>
-          have : Small.{β} K₃ := Module.Finite.small.{β} R K₃
-          have : Small.{β} (P₁ × F₃) := Module.Finite.small.{β} R (P₁ × F₃)
           obtain ⟨l, hl⟩ := Module.projective_lifting_property g g₃ hg
           let t : K₃ →ₗ[R] P₁ := leftLiftOfRightLift f g f₃ g₃ hf h he₃ l hl
           let i : K₃ →ₗ[R] P₁ × F₃ := LinearMap.prod (- t) f₃
           let s : P₁ × F₃ →ₗ[R] P₂ := f.coprod l
-          refine hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution i s ?_ ?_ ?_
-            ⟨n, hasFiniteFreeResolutionOfLength_of_linearEquiv (Shrink.linearEquiv R K₃).symm hk₃⟩
+          refine hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution i s ?_ ?_ ?_ ⟨n, hk₃⟩
           · intro x y hxy
             exact hf₃ (congrArg Prod.snd hxy)
           · exact surjective_coprod_of_exact_of_lift f g .id g₃ l h Function.surjective_id hg₃ hl
@@ -120,13 +119,10 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
       rcases h₃ with ⟨n₃, h₃⟩
       cases h₃ with
       | zero P₃ =>
-          have : Small.{β} K₁ := Module.Finite.small.{β} R K₁
-          have : Small.{β} (F₁ × P₃) := Module.Finite.small.{β} R (F₁ × P₃)
           obtain ⟨l, hl⟩ := Module.projective_lifting_property g LinearMap.id hg
           let i : K₁ →ₗ[R] F₁ × P₃ := (LinearMap.inl R F₁ P₃).comp f₁
           let s : F₁ × P₃ →ₗ[R] P₂ := (f.comp g₁).coprod l
-          refine hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution i s ?_ ?_ ?_
-            ⟨n, hasFiniteFreeResolutionOfLength_of_linearEquiv (Shrink.linearEquiv R K₁).symm hk₁⟩
+          refine hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution i s ?_ ?_ ?_ ⟨n, hk₁⟩
           · intro x y hxy
             exact hf₁ (congrArg Prod.fst hxy)
           · exact surjective_coprod_of_exact_of_lift f g g₁ .id l h hg₁ Function.surjective_id hl
@@ -204,12 +200,14 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
           have : Module.Finite R g₃.ker :=
             Module.Finite.equiv (LinearEquiv.ofEq g₃.ker f₃.range he₃.linearMap_ker_eq).symm
           have : Module.Finite R K := Module.Finite.of_exact hKer hβ
-          exact hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution K.subtype s
+          have : Small.{max α γ, u} R := small_lift R
+          refine hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution K.subtype s
             (Submodule.subtype_injective K)
               (surjective_coprod_of_exact_of_lift f g g₁ g₃ l h hg₁ hg₃ hl)
                 (LinearMap.exact_subtype_ker_map s) <|
-                  ih _ _ (eK.symm.injective.comp hα) (hβ.comp eK.surjective)
-                    ((LinearEquiv.conj_exact_iff_exact α β eK.symm).2 hKer) hK₃
+                  hasFiniteFreeResolution_of_linearEquiv eK <|
+                    ih _ _ (eK.symm.injective.comp hα) (hβ.comp eK.surjective)
+                      ((LinearEquiv.conj_exact_iff_exact α β eK.symm).2 hKer) hK₃
 
 /-- In a short exact sequence `0 → P₁ → P₂ → P₃ → 0`, if `P₁` and `P₂` have finite free
 resolutions, then so does `P₃`. -/
@@ -221,12 +219,8 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_middle
   rcases h₂ with ⟨n₂, h₂⟩
   cases h₂ with
   | zero P₂ =>
-      have : Small.{γ} P₁ := Module.Finite.small.{γ} R P₁
-      have : Small.{γ} P₂ := Module.Finite.small.{γ} R P₂
-      refine hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution f g hf hg h ?_
-      exact hasFiniteFreeResolution_of_linearEquiv (Shrink.linearEquiv R P₁).symm h₁
+      exact hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution f g hf hg h h₁
   | succ P₂ n F₂ K₂ f₂ g₂ hf₂ hg₂ he₂ hk₂ =>
-      have : Small.{γ} F₂ := Module.Finite.small.{γ} R F₂
       let s : F₂ →ₗ[R] P₃ := g.comp g₂
       let L : Submodule R F₂ := s.ker
       have hLmem : ∀ x : K₂, f₂ x ∈ L := by
@@ -261,15 +255,13 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_middle
           rcases (he₂ x.1).1 hx0 with ⟨k, hk⟩
           exact ⟨k, Subtype.ext hk⟩
       have : Module.Finite R L := Module.Finite.of_exact hExact hβ
-      have : Small.{γ} L := Module.Finite.small.{γ} R L
-      refine hasFiniteFreeResolution_of_shrink_ker_hasFiniteFreeResolution
+      refine hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution
         L.subtype s (Submodule.subtype_injective _) ?_ (LinearMap.exact_subtype_ker_map s) ?_
       · intro z
         rcases hg z with ⟨y, rfl⟩
         rcases hg₂ y with ⟨x, rfl⟩
         exact ⟨x, rfl⟩
-      · exact hasFiniteFreeResolution_of_linearEquiv (Shrink.linearEquiv R L).symm <|
-          hasFiniteFreeResolution_of_shortExact_of_left_of_right α β hα hβ hExact ⟨n, hk₂⟩ h₁
+      · exact hasFiniteFreeResolution_of_shortExact_of_left_of_right α β hα hβ hExact ⟨n, hk₂⟩ h₁
 
 private theorem hasFiniteFreeResolution_of_shortExact_of_middle_of_free_right
     [Module.Finite R P₃] [Module.Free R P₃]
