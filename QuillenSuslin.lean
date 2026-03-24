@@ -1,10 +1,15 @@
 import QuillenSuslin.FiniteFreeResolution.Basic
-import QuillenSuslin.FiniteFreeResolution.FreeOfLocalizedEq
+import QuillenSuslin.FiniteFreeResolution.Exact
+import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
 import QuillenSuslin.FiniteFreeResolution.Localization
 import QuillenSuslin.FiniteFreeResolution.Polynomial
 import QuillenSuslin.FiniteFreeResolution.StablyFree
 import QuillenSuslin.MainTheorem
 import QuillenSuslin.PicardGroup
+import QuillenSuslin.StablyFree.Basic
+import QuillenSuslin.StablyFree.FreeOfLocalizedEq
+import QuillenSuslin.StablyFree.HasFiniteFreeResolution
+import QuillenSuslin.StablyFree.Polynomial
 import QuillenSuslin.UFD.Lemmas
 import QuillenSuslin.UFD.Regular
 import QuillenSuslin.UnimodularVector.Basic

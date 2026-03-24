@@ -57,18 +57,17 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
           (Ideal.Quotient.isDomain_iff_prime _).1 hquot_dom
         let M : Submonoid S := Submonoid.powers x
         have hM : M ≤ nonZeroDivisors S := powers_le_nonZeroDivisors_of_noZeroDivisors hxp.ne_zero
-        have hA_dom : IsDomain (Localization M) :=
-          IsLocalization.isDomain_of_le_nonZeroDivisors (Localization M) hM
-        have hA_ufd : UniqueFactorizationMonoid (Localization M) := by
-          apply (Ideal.ufd_iff_height_one_primes_principal).2
+        have hA_dom : IsDomain (Localization.Away x) := Localization.Away.isDomain hxp.ne_zero
+        have hA_ufd : UniqueFactorizationMonoid (Localization.Away x) := by
+          apply Ideal.ufd_iff_height_one_primes_principal.2
           intro q hq hqheight
           have hq_ne_bot : q ≠ ⊥ :=
             (Ideal.primeHeight_eq_zero_iff_eq_bot q).not.1 (ne_zero_of_eq_one hqheight)
-          have hloc : ∀ (P : Ideal (Localization M)) [P.IsMaximal],
+          have hloc : ∀ (P : Ideal (Localization.Away x)) [P.IsMaximal],
               LocalizedModule P.primeCompl q ≃ₗ[Localization.AtPrime P] Localization.AtPrime P := by
             intro P _
             let eIdeal : LocalizedModule P.primeCompl q ≃ₗ[Localization.AtPrime P]
-                Ideal.map (algebraMap (Localization M) (Localization.AtPrime P)) q :=
+                Ideal.map (algebraMap (Localization.Away x) (Localization.AtPrime P)) q :=
               LinearEquiv.extendScalarsOfIsLocalization P.primeCompl (Localization.AtPrime P) <|
                 IsLocalizedModule.linearEquiv P.primeCompl
                   (LocalizedModule.mkLinearMap P.primeCompl q)
@@ -78,7 +77,7 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
               have hpprime_disj : (Ideal.comap (algebraMap S (Localization M)) P).IsPrime ∧
                   Disjoint (M : Set S) (p : Set S) := by
                 simpa [p] using
-                  (IsLocalization.isPrime_iff_isPrime_disjoint M (Localization M) P).1
+                  (IsLocalization.isPrime_iff_isPrime_disjoint M (Localization.Away x) P).1
                     inferInstance
               have hp_disj := hpprime_disj.2
               have hx_not_mem_p : x ∉ p := by
@@ -122,35 +121,35 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
                 IsLocalization.localizationLocalizationAtPrimeIsoLocalization M P
                   |>.toMulEquiv.uniqueFactorizationMonoid (ih k hk_lt hk)
               have hmap_prime : (Ideal.map
-                  (algebraMap (Localization M) (Localization.AtPrime P)) q).IsPrime :=
+                  (algebraMap (Localization.Away x) (Localization.AtPrime P)) q).IsPrime :=
                 Ideal.isPrime_map_of_isLocalizationAtPrime P hqP
-              have hmap_disj : Disjoint (P.primeCompl : Set (Localization M))
-                  (q : Set (Localization M)) := by
+              have hmap_disj : Disjoint (P.primeCompl : Set (Localization.Away x))
+                  (q : Set (Localization.Away x)) := by
                 simp [Ideal.primeCompl, ← le_compl_iff_disjoint_left, hqP]
               have hmap_height : (Ideal.map (algebraMap
-                  (Localization M) (Localization.AtPrime P)) q).primeHeight = 1 := by
+                  (Localization.Away x) (Localization.AtPrime P)) q).primeHeight = 1 := by
                 simpa [IsLocalization.comap_map_of_isPrime_disjoint
                     P.primeCompl (Localization.AtPrime P) inferInstance hmap_disj, hqheight]
                   using (IsLocalization.primeHeight_comap P.primeCompl
-                    (Ideal.map (algebraMap (Localization M) (Localization.AtPrime P)) q)).symm
+                    (Ideal.map (algebraMap (Localization.Away x) (Localization.AtPrime P)) q)).symm
               have hmap_principal :
-                  (Ideal.map (algebraMap (Localization M) (Localization.AtPrime P)) q).IsPrincipal :=
+                  (Ideal.map (algebraMap (Localization.Away x) (Localization.AtPrime P)) q).IsPrincipal :=
                 (Ideal.ufd_iff_height_one_primes_principal).1 inferInstance
-                  (Ideal.map (algebraMap (Localization M) (Localization.AtPrime P)) q)
+                  (Ideal.map (algebraMap (Localization.Away x) (Localization.AtPrime P)) q)
                   hmap_height
               have hmap_ne_bot : Ideal.map
-                  (algebraMap (Localization M) (Localization.AtPrime P)) q ≠ ⊥ := by
+                  (algebraMap (Localization.Away x) (Localization.AtPrime P)) q ≠ ⊥ := by
                 intro hbot
                 have : (Ideal.map
-                    (algebraMap (Localization M) (Localization.AtPrime P)) q).primeHeight = 0 := by
+                    (algebraMap (Localization.Away x) (Localization.AtPrime P)) q).primeHeight = 0 := by
                   simp [hbot, Ideal.primeHeight_eq_zero_iff_eq_bot]
                 simp [hmap_height] at this
               exact eIdeal.trans (Ideal.isoBaseOfIsPrincipal hmap_ne_bot).symm
             · exact eIdeal.trans (LinearEquiv.ofTop _ <|
                 IsLocalization.AtPrime.map_eq_top_of_not_le (Localization.AtPrime P) hqP)
-          have hq_projective : Module.Projective (Localization M) q := by
-            have : Module.FinitePresentation (Localization M) q :=
-              Module.finitePresentation_of_finite (Localization M) q
+          have hq_projective : Module.Projective (Localization.Away x) q := by
+            have : Module.FinitePresentation (Localization.Away x) q :=
+              Module.finitePresentation_of_finite (Localization.Away x) q
             apply Module.projective_of_localization_maximal
             intro P _
             have : Module.Free (Localization.AtPrime P) (Localization.AtPrime P) :=
@@ -158,15 +157,15 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
             have : Module.Free (Localization.AtPrime P) (LocalizedModule P.primeCompl q) :=
               Module.Free.of_equiv (hloc P).symm
             exact Module.Projective.of_free
-          let p0 : Ideal S := Ideal.comap (algebraMap S (Localization M)) q
+          let p0 : Ideal S := Ideal.comap (algebraMap S (Localization.Away x)) q
           have hp0prime_disj : p0.IsPrime ∧ Disjoint (M : Set S) (p0 : Set S) := by
             simpa [p0] using
-              (IsLocalization.isPrime_iff_isPrime_disjoint M (Localization M) q).1 inferInstance
+              (IsLocalization.isPrime_iff_isPrime_disjoint M (Localization.Away x) q).1 inferInstance
           have hp0_disj := hp0prime_disj.2
-          have hqeq : Ideal.map (algebraMap S (Localization M)) p0 = q := by
-            have htmp : (RelIso.symm (IsLocalization.orderIsoOfPrime M (Localization M)))
+          have hqeq : Ideal.map (algebraMap S (Localization.Away x)) p0 = q := by
+            have htmp : (RelIso.symm (IsLocalization.orderIsoOfPrime M (Localization.Away x)))
                 ⟨p0, inferInstance, hp0_disj⟩ = ⟨q, inferInstance⟩ := by
-              apply (IsLocalization.orderIsoOfPrime M (Localization M)).injective
+              apply (IsLocalization.orderIsoOfPrime M (Localization.Away x)).injective
               ext I
               simp [p0, IsLocalization.orderIsoOfPrime_apply_coe]
             simpa using congrArg Subtype.val htmp
@@ -175,26 +174,26 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
               projectiveDimension_ne_top_of_isRegularLocalRing (ModuleCat.of S (S ⧸ p0))
           have hffr_p0 : HasFiniteFreeResolution S (S ⧸ p0) :=
             hasFiniteFreeResolution_of_hasProjectiveDimensionLE S (S ⧸ p0) m0
-          let eQuotMap : LocalizedModule M (S ⧸ p0) ≃ₗ[Localization M]
-              Localization M ⧸ Ideal.map (algebraMap S (Localization M)) p0 :=
+          let eQuotMap : LocalizedModule M (S ⧸ p0) ≃ₗ[Localization.Away x]
+              Localization.Away x ⧸ Ideal.map (algebraMap S (Localization.Away x)) p0 :=
             (localizedQuotientEquiv M p0).symm.trans
-              (Submodule.quotEquivOfEq _ _ (Ideal.localized'_eq_map (Localization M) M p0))
-          have hffr_q : HasFiniteFreeResolution (Localization M) q :=
-            have : Module.Free (Localization M) (Localization M) := Module.Free.self _
+              (Submodule.quotEquivOfEq _ _ (Ideal.localized'_eq_map (Localization.Away x) M p0))
+          have hffr_q : HasFiniteFreeResolution (Localization.Away x) q :=
+            have : Module.Free (Localization.Away x) (Localization.Away x) := Module.Free.self _
             hasFiniteFreeResolution_of_shortExact_of_middle_of_right _ _
               (Submodule.subtype_injective q) (Submodule.mkQ_surjective q)
                 (LinearMap.exact_subtype_mkQ q)
-                  (hasFiniteFreeResolution_of_finite_of_free (Localization M)) <|
+                  (hasFiniteFreeResolution_of_finite_of_free (Localization.Away x)) <|
                     hasFiniteFreeResolution_of_linearEquiv
-                      (Ideal.quotientEquivAlgOfEq (Localization M) hqeq) <|
+                      (Ideal.quotientEquivAlgOfEq (Localization.Away x) hqeq) <|
                         hasFiniteFreeResolution_of_linearEquiv eQuotMap <|
                           hasFiniteFreeResolution_localizedModule M hffr_p0
-          have hstable : IsStablyFree (Localization M) q :=
-            (isStablyFree_iff_hasFiniteFreeResolution (Localization M) q).2 hffr_q
+          have hstable : IsStablyFree (Localization.Away x) q :=
+            (isStablyFree_iff_hasFiniteFreeResolution (Localization.Away x) q).2 hffr_q
           obtain ⟨P0, hP0max, hqP0⟩ := Ideal.exists_le_maximal q Ideal.IsPrime.ne_top'
-          have hfree : Module.Free (Localization M) q :=
+          have hfree : Module.Free (Localization.Away x) q :=
             Module.free_of_isStablyFree_of_localized_eq_ring hstable hloc
-          exact Ideal.isPrincipal_of_free (Localization M)
+          exact Ideal.isPrincipal_of_free (Localization.Away x)
         exact ufd_of_ufd_localization_away_of_prime hxp
   obtain ⟨n, hn⟩ := exist_nat_eq R
   exact hmain n hn

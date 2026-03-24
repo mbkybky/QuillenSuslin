@@ -693,18 +693,19 @@ end polynomial
 private noncomputable def compatLinearEquiv {A : Type u} {B : Type w}
     [Semiring A] [Semiring B] {M : Type z} [AddCommMonoid M] [Module A M] [Module B M]
     (e : A ≃+* B) (hcompat : ∀ (a : A) (x : M), (e a : B) • x = (a : A) • x) := by
-  letI : RingHomInvPair (e : A →+* B) (e.symm : B →+* A) := RingHomInvPair.of_ringEquiv e
-  letI : RingHomInvPair (e.symm : B →+* A) (e : A →+* B) := RingHomInvPair.of_ringEquiv_symm e
-  exact
-    (show M ≃ₛₗ[(e : A →+* B)] M from
-    { toFun := id
-      invFun := id
-      left_inv _ := rfl
-      right_inv _ := rfl
-      map_add' _ _ := rfl
-      map_smul' := by
-        intro a x
-        exact (hcompat a x).symm })
+  let : RingHomInvPair (e : A →+* B) (e.symm : B →+* A) := RingHomInvPair.of_ringEquiv e
+  let : RingHomInvPair (e.symm : B →+* A) (e : A →+* B) := RingHomInvPair.of_ringEquiv_symm e
+  show M ≃ₛₗ[(e : A →+* B)] M
+  exact {
+    toFun := id
+    invFun := id
+    left_inv _ := rfl
+    right_inv _ := rfl
+    map_add' _ _ := rfl
+    map_smul' := by
+      intro a x
+      exact (hcompat a x).symm
+  }
 
 private theorem hasFiniteFreeResolutionOfLength_of_ringEquiv
     {A : Type u} {B : Type w} [CommRing A] [CommRing B] [Small.{z} A] [Small.{z} B]
