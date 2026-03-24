@@ -8,33 +8,13 @@ import Mathlib.LinearAlgebra.Basis.Prod
 import Mathlib.RingTheory.Finiteness.Prod
 import QuillenSuslin.FiniteFreeResolution.Basic
 
-universe u α β γ δ
+universe u α β γ
 
 variable {R : Type u} [CommRing R] [Small.{α} R] [Small.{β} R] [Small.{γ} R]
   {P₁ : Type α} {P₂ : Type β} {P₃ : Type γ} [AddCommGroup P₁] [Module R P₁]
   [AddCommGroup P₂] [Module R P₂] [AddCommGroup P₃] [Module R P₃]
   {F : Type γ} [AddCommGroup F] [Module R F] {K : Type γ} [AddCommGroup K] [Module R K]
   (f : P₁ →ₗ[R] P₂) (g : P₂ →ₗ[R] P₃) (f₃ : K →ₗ[R] F) (g₃ : F →ₗ[R] P₃)
-
-omit [Small.{α} R] [Small.{γ} R] in
-private theorem hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution
-    {P : Type β} {F : Type*} {K : Type δ}
-    [AddCommGroup P] [Module R P] [AddCommGroup F] [Module R F] [Module.Finite R F]
-    [Module.Free R F] [AddCommGroup K] [Module R K] [Module.Finite R K] [Small.{δ} R]
-    (i : K →ₗ[R] F) (s : F →ₗ[R] P) (hi : Function.Injective i)
-    (hs : Function.Surjective s) (he : Function.Exact i s)
-    (hk : HasFiniteFreeResolution R K) : HasFiniteFreeResolution R P := by
-  have : Small.{β} F := Module.Finite.small.{β} R F
-  have : Small.{β} K := Module.Finite.small.{β} R K
-  have eF : Shrink.{β} F ≃ₗ[R] F := Shrink.linearEquiv R F
-  have eK : Shrink.{β} K ≃ₗ[R] K := Shrink.linearEquiv R K
-  rcases hasFiniteFreeResolution_of_linearEquiv (Shrink.linearEquiv R K).symm hk with ⟨n, hk⟩
-  let i' : Shrink.{β} K →ₗ[R] Shrink.{β} F := eF.symm ∘ₗ (i.comp eK.toLinearMap)
-  let s' : Shrink.{β} F →ₗ[R] P := s.comp eF.toLinearMap
-  refine ⟨n + 1,  HasFiniteFreeResolutionOfLength.succ P n (Shrink.{β} F) (Shrink.{β} K) i' s'
-    (eF.symm.injective.comp (hi.comp eK.injective)) (hs.comp eF.surjective) ?_ hk⟩
-  exact (LinearEquiv.conj_exact_iff_exact (i.comp eK.toLinearMap) s eF.symm).2 <|
-    (Function.Surjective.comp_exact_iff_exact eK.surjective).2 he
 
 private noncomputable def leftLiftOfRightLift (hf : Function.Injective f) (h : Function.Exact f g)
     (he₃ : Function.Exact f₃ g₃) (l : F →ₗ[R] P₂) (hl : g.comp l = g₃) : K →ₗ[R] P₁ :=
