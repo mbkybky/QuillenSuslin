@@ -57,16 +57,10 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
         obtain ⟨hquot_reg, hquot_dim⟩ := @quotient_span_singleton S _ _ x hxmem hxnmem
         have hquot_dom : IsDomain (S ⧸ Ideal.span {x}) :=
           isDomain_of_isRegularLocalRing (S ⧸ Ideal.span {x})
-        have hxprime_ideal : (Ideal.span ({x} : Set S)).IsPrime :=
+        have hxp : Prime x := (Ideal.span_singleton_prime hx_ne_zero).1 <|
           (Ideal.Quotient.isDomain_iff_prime _).1 hquot_dom
-        have hxprime : Prime x := (Ideal.span_singleton_prime hx_ne_zero).1 hxprime_ideal
         let M : Submonoid S := Submonoid.powers x
-        have hM : M ≤ nonZeroDivisors S := by
-          refine Submonoid.powers_le.2 ?_
-          rw [mem_nonZeroDivisors_iff]
-          constructor <;> intro a ha
-          · exact mul_eq_zero.mp ha |>.resolve_left hxprime.ne_zero
-          · exact mul_eq_zero.mp ha |>.resolve_right hxprime.ne_zero
+        have hM : M ≤ nonZeroDivisors S := powers_le_nonZeroDivisors_of_noZeroDivisors hxp.ne_zero
         have hA_dom : IsDomain (Localization M) :=
           IsLocalization.isDomain_of_le_nonZeroDivisors (Localization M) hM
         have hA_ufd : UniqueFactorizationMonoid (Localization M) := by
@@ -74,12 +68,9 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
           intro q hq hqheight
           have hq_ne_bot : q ≠ ⊥ := by
             intro hqbot
-            have hbot_height : (⊥ : Ideal (Localization M)).primeHeight = 0 := by
-              rw [Ideal.primeHeight_eq_zero_iff]
-              simp [IsDomain.minimalPrimes_eq_singleton_bot (Localization M)]
-            have : q.primeHeight = 0 := by simpa [hqbot] using hbot_height
-            rw [hqheight] at this
-            norm_num at this
+            have : q.primeHeight = 0 := by
+              simp [hqbot, Ideal.primeHeight_eq_zero_iff, IsDomain.minimalPrimes_eq_singleton_bot]
+            simp [hqheight] at this
           have hloc : ∀ (P : Ideal (Localization M)) [P.IsMaximal],
               LocalizedModule P.primeCompl q ≃ₗ[Localization.AtPrime P] Localization.AtPrime P := by
             intro P _
@@ -157,12 +148,11 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
               have hmap_ne_bot : Ideal.map
                   (algebraMap (Localization M) (Localization.AtPrime P)) q ≠ ⊥ := by
                 intro hbot
-                have hcomap : Ideal.comap (algebraMap (Localization M) (Localization.AtPrime P))
-                    (Ideal.map (algebraMap (Localization M) (Localization.AtPrime P)) q) = q :=
-                  IsLocalization.comap_map_of_isPrime_disjoint
-                    P.primeCompl (Localization.AtPrime P) inferInstance hmap_disj
-                have : q = ⊥ := by simpa only [hbot, Ideal.under_bot] using hcomap.symm
-                exact hq_ne_bot this
+                have : (Ideal.map
+                    (algebraMap (Localization M) (Localization.AtPrime P)) q).primeHeight = 0 := by
+                  simp [hbot, Ideal.primeHeight_eq_zero_iff,
+                    IsDomain.minimalPrimes_eq_singleton_bot]
+                simp [hmap_height] at this
               exact eIdeal.trans (Ideal.isoBaseOfIsPrincipal hmap_ne_bot).symm
             · exact eIdeal.trans (LinearEquiv.ofTop _ <|
                 IsLocalization.AtPrime.map_eq_top_of_not_le (Localization.AtPrime P) hqP)
@@ -213,6 +203,6 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
           have hfree : Module.Free (Localization M) q :=
             Module.free_of_isStablyFree_of_localized_eq_ring hstable hloc
           exact Ideal.isPrincipal_of_free (Localization M)
-        exact ufd_of_ufd_localization_away_of_prime hxprime
+        exact ufd_of_ufd_localization_away_of_prime hxp
   obtain ⟨n, hn⟩ := exist_nat_eq R
   exact hmain n hn
