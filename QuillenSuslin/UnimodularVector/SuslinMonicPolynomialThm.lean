@@ -108,8 +108,7 @@ lemma leadingCoeff_finset_prod_le (s : Finset (Ideal A[X])) :
       le_trans (Ideal.mul_mono_right hs) h
 
 lemma height_le_one_of_isPrime_comap_C_eq_bot (Q : Ideal A[X]) [Q.IsPrime]
-    (hQ : Ideal.comap C Q = ⊥) :
-    Q.height ≤ 1 := by
+    (hQ : Ideal.comap C Q = ⊥) : Q.height ≤ 1 := by
   let K := FractionRing A
   let M : Submonoid A[X] := Submonoid.map C (nonZeroDivisors A)
   have hdisj : Disjoint (M : Set A[X]) (Q : Set A[X]) := by
@@ -132,9 +131,9 @@ lemma height_le_one_of_isPrime_comap_C_eq_bot (Q : Ideal A[X]) [Q.IsPrime]
     Ideal.IsPrime.ne_top hprime
   have hdim : ringKrullDim K[X] = (1 : WithBot ℕ∞) := by
     simp [Polynomial.ringKrullDim_of_isNoetherianRing]
-  calc _ = (Ideal.map (algebraMap A[X] K[X]) Q).height := by simpa using hheight.symm
-    _ ≤ 1 := (WithBot.coe_le_coe).1 <| by simpa only [WithBot.coe_one, WithBot.coe_le_one, hdim]
-      using (Ideal.map (algebraMap A[X] K[X]) Q).height_le_ringKrullDim_of_ne_top hne_top
+  rw [← hheight]
+  exact (WithBot.coe_le_coe).1 <| by simpa only [WithBot.coe_one, WithBot.coe_le_one, hdim] using
+    (Ideal.map (algebraMap A[X] K[X]) Q).height_le_ringKrullDim_of_ne_top hne_top
 
 variable [IsNoetherianRing A]
 
@@ -198,12 +197,9 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal A[X]) [P.IsPrime] :
           have hp0 : C a0 ∈ P ↔ a0 ∈ p := by simp [p, Ideal.mem_comap]
           have hq0 : (Ideal.Quotient.mk p a0 = (0 : A ⧸ p)) ↔ a0 ∈ p := by
             simpa using Ideal.Quotient.eq_zero_iff_mem
-          calc e (C (Ideal.Quotient.mk p a0)) ∈ Q ↔ q (C a0) ∈ Q := by simp [hCe]
-            _ ↔ C a0 ∈ P := hmem
-            _ ↔ a0 ∈ p := hp0
-            _ ↔ (Ideal.Quotient.mk p a0 = (0 : A ⧸ p)) := hq0.symm
-        simpa only [RingEquiv.toRingHom_eq_coe, mem_comap, RingHom.coe_coe, Submodule.mem_bot]
-          using hEq
+          change e (C (Ideal.Quotient.mk p a0)) ∈ Q ↔ Ideal.Quotient.mk p a0 = (0 : A ⧸ p)
+          simpa [hCe] using (hmem.trans hp0).trans hq0.symm
+        simpa using hEq
       have hcomap_height : (Ideal.comap e.toRingHom Q).height = Q.height :=
         e.height_comap Q
       calc _ = (Ideal.comap e.toRingHom Q).height := by simpa using hcomap_height.symm
@@ -318,18 +314,6 @@ theorem height_le_height_leadingCoeff (I : Ideal A[X]) : I.height ≤ I.leadingC
 
 end Ideal
 
-lemma bivariate_swap_C {A : Type*} [CommSemiring A] (p : A[X]) :
-    Polynomial.Bivariate.swap (C p) = Polynomial.map C p := by
-  induction p using Polynomial.induction_on' with
-  | add p q hp hq =>
-    have hp' : (aeval Y) p = Polynomial.map C p := by
-      simpa [Polynomial.Bivariate.swap_apply] using hp
-    have hq' : (aeval Y) q = Polynomial.map C q := by
-      simpa [Polynomial.Bivariate.swap_apply] using hq
-    simp [Polynomial.Bivariate.swap_apply, hp', hq', Polynomial.map_add]
-  | monomial n a =>
-    simp [C_mul_X_pow_eq_monomial, Polynomial.map_monomial]
-
 lemma finSuccEquiv_map_finSuccEquivLast_apply {R : Type*} [CommRing R] (n : ℕ)
     (f : MvPolynomial (Fin (n + 2)) R) :
     (mapAlgEquiv (MvPolynomial.finSuccEquivLast R n) (MvPolynomial.finSuccEquiv R (n + 1) f)) =
@@ -354,7 +338,9 @@ lemma finSuccEquiv_map_finSuccEquivLast_apply {R : Type*} [CommRing R] (n : ℕ)
       have hF : F (MvPolynomial.X (Fin.last (n + 1))) = C X := by
         simp [F, hlast, MvPolynomial.finSuccEquivLast_X_last R n]
       have hG' : G (MvPolynomial.X (Fin.last (n + 1))) = swapR Y := by simp [G]
-      have hG : G (MvPolynomial.X (Fin.last (n + 1))) = C X := by simp [hG', swapR]
+      have hG : G (MvPolynomial.X (Fin.last (n + 1))) = C X := by
+        rw [hG']
+        exact Polynomial.Bivariate.swap_Y
       simp [hF, hG]
     | cast i =>
       cases i using Fin.cases with
@@ -367,7 +353,7 @@ lemma finSuccEquiv_map_finSuccEquivLast_apply {R : Type*} [CommRing R] (n : ℕ)
             simpa using MvPolynomial.finSuccEquivLast_X_castSucc R (n + 1) (0 : Fin (n + 1))
           simp [G, h0, MvPolynomial.finSuccEquiv_X_zero]
         have hG : G (MvPolynomial.X (0 : Fin (n + 2))) = Y := by
-          have : swapR (C X) = Y := by simp [swapR]
+          have : swapR (C X) = Y := Polynomial.Bivariate.swap_X
           simp [hG', this]
         simp [hF, hG]
       | succ j =>
@@ -380,7 +366,7 @@ lemma finSuccEquiv_map_finSuccEquivLast_apply {R : Type*} [CommRing R] (n : ℕ)
               (MvPolynomial.finSuccEquivLast_X_castSucc R (n + 1) (Fin.succ j))
           simp [G, hcast, MvPolynomial.finSuccEquiv_X_succ]
         have hswap : swapR (C (C (MvPolynomial.X j))) = C (C (MvPolynomial.X j)) := by
-          simp only [swapR, AlgEquiv.restrictScalars_apply, bivariate_swap_C, Polynomial.map_C]
+          simpa [swapR] using Polynomial.Bivariate.swap_C (C (MvPolynomial.X j))
         have hG : G (MvPolynomial.X j.castSucc.succ) = C (C (MvPolynomial.X j)) := by
           simp [hG', hswap]
         simp [hF, hG]
@@ -405,7 +391,12 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontriv
     simpa [τ, N, Algebra.smul_def, mul_assoc, mul_left_comm, mul_comm] using
       Polynomial.aeval_eq_sum_range (Y + C t)
   have hswap_YCt : swapS (Y + C t) = base := by
-    simp [swapS, base, t, K]
+    have hswapY : swapS Y = C X := by
+      simpa [swapS] using (Polynomial.Bivariate.swap_Y (R := S))
+    have hswapCt : swapS (C t) = Polynomial.map C t := by
+      simpa [swapS] using (Polynomial.Bivariate.swap_C (R := S) t)
+    simp [map_add, hswapY, hswapCt]
+    simp [base, t, K]
   have hswap : swapS (τ p) = ∑ i ∈ Finset.range (N + 1), term i := by
     simpa [term, map_sum, map_mul, map_pow, map_add, hswap_YCt] using congrArg swapS hτ
   let rest : S[X][Y] := ∑ i ∈ Finset.range N, term i
@@ -422,7 +413,7 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontriv
   have hcoeffN : p.coeff N = p.leadingCoeff := by simp [N]
   have hswapLC_monic : (swapS (C p.leadingCoeff)).Monic := by
     have hswapC : swapS (C p.leadingCoeff) = Polynomial.map (C : S →+* S[X]) p.leadingCoeff := by
-      simpa [swapS] using (bivariate_swap_C p.leadingCoeff)
+      simpa [swapS] using (Polynomial.Bivariate.swap_C (R := S) p.leadingCoeff)
     simpa [hswapC] using (hp.map (C : S →+* S[X]))
   have hmain_monic : (term N).Monic := by
     have h1 : (swapS (C (p.coeff N))).Monic := by
@@ -438,7 +429,7 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontriv
       have hnat : (swapS (C (p.coeff i))).natDegree = (p.coeff i).natDegree := by
         have hswapC : swapS (C (p.coeff i)) =
             Polynomial.map (C : S →+* S[X]) (p.coeff i) := by
-          simpa [swapS] using (bivariate_swap_C (p.coeff i))
+          simpa [swapS] using (Polynomial.Bivariate.swap_C (R := S) (p.coeff i))
         simpa [hswapC] using Polynomial.natDegree_map_eq_of_injective C_injective (p.coeff i)
       have hdeg_le_nat : (swapS (C (p.coeff i))).degree ≤
           (swapS (C (p.coeff i))).natDegree := Polynomial.degree_le_natDegree
@@ -476,7 +467,7 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontriv
     have hnat_swapLC : (swapS (C p.leadingCoeff)).natDegree =
         p.leadingCoeff.natDegree := by
       have hswapC : swapS (C p.leadingCoeff) = Polynomial.map (C : S →+* S[X]) p.leadingCoeff := by
-        simpa [swapS] using (bivariate_swap_C p.leadingCoeff)
+        simpa [swapS] using (Polynomial.Bivariate.swap_C (R := S) p.leadingCoeff)
       simpa [hswapC] using Polynomial.natDegree_map_eq_of_injective C_injective p.leadingCoeff
     have hnat_baseN : (base ^ N).natDegree = N * K := by
       simpa [hbase_natDegree] using (hbase_monic.natDegree_pow N)
@@ -488,11 +479,8 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontriv
       simpa [hnat_main] using (Polynomial.degree_eq_natDegree hne)
     have hNK : N * K = (N - 1) * K + K := by
       have hpos : 0 < N := Nat.pos_of_ne_zero hN0
-      have h1 : 1 ≤ N := (Nat.succ_le_iff).2 hpos
-      have hsub : N - 1 + 1 = N := Nat.sub_add_cancel h1
-      calc _ = (N - 1 + 1) * K := by simp [hsub]
-        _ = (N - 1) * K + 1 * K := by simp [Nat.add_mul]
-        _ = (N - 1) * K + K := by simp
+      have hsucc : N = Nat.succ (N - 1) := (Nat.succ_pred_eq_of_pos hpos).symm
+      simpa [Nat.succ_eq_add_one, Nat.add_mul, one_mul] using congrArg (fun m => m * K) hsucc
     have hM_lt_TK : M < p.leadingCoeff.natDegree + K :=
       lt_of_lt_of_le (Nat.lt_succ_self M) (Nat.le_add_left _ _)
     have hbound_lt : (M : WithBot ℕ) + (((N - 1) * K : ℕ) : WithBot ℕ) <

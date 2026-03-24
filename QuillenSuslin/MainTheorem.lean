@@ -4,14 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
 import QuillenSuslin.UnimodularVector.PID
-import QuillenSuslin.FiniteFreeResolution.StablyFree
+import QuillenSuslin.StablyFree.Polynomial
 
 variable (R : Type*) [CommRing R]
 
 open Module
 
 private lemma module_free_of_prod_free_of_unimodularVectorEquiv
-    (hR : ∀ {s : Type} [Fintype s] [DecidableEq s] (o : s) {v : s → R} (_ : IsUnimodular v),
+    (hR : ∀ {σ : Type} [Fintype σ] [DecidableEq σ] (o : σ) {v : σ → R} (_ : IsUnimodular v),
       UnimodularVectorEquiv v (fun i => if i = o then 1 else 0))
     (Q : Type*) [AddCommGroup Q] [Module R Q] [Module.Free R (Q × R)] : Module.Free R Q := by
   rcases subsingleton_or_nontrivial R with hsub | hnontriv
@@ -196,7 +196,7 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
     exact Module.Free.of_equiv eQ
 
 theorem module_free_of_isStablyFree_of_unimodularVectorEquiv
-    (hR : ∀ {s : Type} [Fintype s] [DecidableEq s] (o : s) {v : s → R} (_ : IsUnimodular v),
+    (hR : ∀ {σ : Type} [Fintype σ] [DecidableEq σ] (o : σ) {v : σ → R} (_ : IsUnimodular v),
       UnimodularVectorEquiv v (fun i => if i = o then 1 else 0))
     (P : Type*) [AddCommGroup P] [Module R P] (h : IsStablyFree R P) : Module.Free R P := by
   rcases h with ⟨N, _, _, _, _, _⟩
@@ -243,12 +243,13 @@ theorem module_free_of_isStablyFree_of_unimodularVectorEquiv
         exact ih hQ'
   exact this n hPFin
 
-/-- Any finitely generated projective module over $k[x_1, \dots, x_n]$ for $k$ a
-  principal ideal domain is free. -/
-theorem quillenSuslin [IsDomain R] [IsPrincipalIdealRing R] (σ : Type*) [Fintype σ]
+/-- **Quillen-Suslin Theorem**: Any finitely generated projective module over $k[x_1, \dots, x_n]$
+  is free, where $k$ is a principal ideal domain. -/
+theorem quillenSuslin [IsDomain R] [IsPrincipalIdealRing R] (σ : Type*) [Finite σ]
     (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ R) P] [Module.Finite (MvPolynomial σ R) P]
     [Projective (MvPolynomial σ R) P] : Module.Free (MvPolynomial σ R) P := by
   refine module_free_of_isStablyFree_of_unimodularVectorEquiv (MvPolynomial σ R) ?_ P <|
     mvPolynomial_isStablyFree_of_isPrincipalIdealRing R σ P
   intro _ _ _
+  have : Fintype σ := Fintype.ofFinite σ
   exact thm12

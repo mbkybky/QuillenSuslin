@@ -780,17 +780,17 @@ private theorem hasFiniteFreeResolution_of_ringEquiv
 section MvPolynomial
 
 theorem mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing
-    [IsNoetherianRing R] [Small.{v, u} R] (s : Type w) [Finite s]
+    [IsNoetherianRing R] [Small.{v, u} R] (σ : Type w) [Finite σ]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P)
-    (P : Type v) [AddCommGroup P] [Module (MvPolynomial s R) P]
-    [Module.Finite (MvPolynomial s R) P] : HasFiniteFreeResolution (MvPolynomial s R) P := by
+    (P : Type v) [AddCommGroup P] [Module (MvPolynomial σ R) P]
+    [Module.Finite (MvPolynomial σ R) P] : HasFiniteFreeResolution (MvPolynomial σ R) P := by
   have : Small.{max u w} R := small_lift.{u, w, u} R
   let motive : Type w → Prop := fun σ =>
     ∀ (M : Type (max u w)) [AddCommGroup M] [Module (MvPolynomial σ R) M]
       [Module.Finite (MvPolynomial σ R) M], HasFiniteFreeResolution (MvPolynomial σ R) M
-  have hmotive : motive s := by
-    refine Finite.induction_empty_option ?_ ?_ ?_ s
+  have hmotive : motive σ := by
+    refine Finite.induction_empty_option ?_ ?_ ?_ σ
     · intro α β e hα M _ _ _
       let eσ : MvPolynomial α R ≃+* MvPolynomial β R := (MvPolynomial.renameEquiv R e).toRingEquiv
       let : Module (MvPolynomial α R) M := Module.compHom M (eσ : MvPolynomial α R →+* MvPolynomial β R)
@@ -832,9 +832,9 @@ theorem mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing
         polynomial_hasFiniteFreeResolution_of_isNoetherianRing (MvPolynomial α R)
           (fun N _ _ hN => hα N) M
       exact hasFiniteFreeResolution_of_ringEquiv eσ hA (fun _ _ => rfl)
-  have : Small.{max u w, v} P := Module.Finite.small (MvPolynomial s R) P
-  let eP : Shrink.{max u w} P ≃ₗ[MvPolynomial s R] P := Shrink.linearEquiv (MvPolynomial s R) P
-  have : Module.Finite (MvPolynomial s R) (Shrink.{max u w} P) := Module.Finite.equiv eP.symm
+  have : Small.{max u w, v} P := Module.Finite.small (MvPolynomial σ R) P
+  let eP : Shrink.{max u w} P ≃ₗ[MvPolynomial σ R] P := Shrink.linearEquiv (MvPolynomial σ R) P
+  have : Module.Finite (MvPolynomial σ R) (Shrink.{max u w} P) := Module.Finite.equiv eP.symm
   exact hasFiniteFreeResolution_of_linearEquiv eP (hmotive (Shrink.{max u w} P))
 
 end MvPolynomial
