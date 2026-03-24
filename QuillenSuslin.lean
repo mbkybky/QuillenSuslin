@@ -3,7 +3,6 @@ import QuillenSuslin.FiniteFreeResolution.Exact
 import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
 import QuillenSuslin.FiniteFreeResolution.Localization
 import QuillenSuslin.FiniteFreeResolution.Polynomial
-import QuillenSuslin.FiniteFreeResolution.StablyFree
 import QuillenSuslin.MainTheorem
 import QuillenSuslin.PicardGroup
 import QuillenSuslin.StablyFree.Basic
