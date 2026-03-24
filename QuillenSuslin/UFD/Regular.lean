@@ -33,11 +33,7 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
           intro hbot
           have hfield : IsField S := (IsLocalRing.isField_iff_maximalIdeal_eq).2 hbot
           have hdim0 : ringKrullDim S = 0 := ringKrullDim_eq_zero_of_isField hfield
-          have : ¬ (((n : ℕ∞) + 1 : ℕ∞) : WithBot ℕ∞) = 0 := by
-            intro hzero
-            have hneq : (((n : ℕ∞) + 1 : ℕ∞)) ≠ 0 := by simp
-            exact hneq (WithBot.coe_eq_coe.mp hzero)
-          exact this (by simpa [hdim, Nat.cast_add] using hdim0)
+          exact (not_eq_of_beq_eq_false rfl) (by simpa [hdim, Nat.cast_add] using hdim0)
         have hpd_ne_top : CategoryTheory.projectiveDimension
             (ModuleCat.of S (Shrink.{u, u} ↥(IsLocalRing.maximalIdeal S))) ≠ ⊤ :=
           projectiveDimension_ne_top_of_isRegularLocalRing
@@ -66,11 +62,8 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
         have hA_ufd : UniqueFactorizationMonoid (Localization M) := by
           apply (Ideal.ufd_iff_height_one_primes_principal).2
           intro q hq hqheight
-          have hq_ne_bot : q ≠ ⊥ := by
-            intro hqbot
-            have : q.primeHeight = 0 := by
-              simp [hqbot, Ideal.primeHeight_eq_zero_iff, IsDomain.minimalPrimes_eq_singleton_bot]
-            simp [hqheight] at this
+          have hq_ne_bot : q ≠ ⊥ :=
+            (Ideal.primeHeight_eq_zero_iff_eq_bot q).not.1 (ne_zero_of_eq_one hqheight)
           have hloc : ∀ (P : Ideal (Localization M)) [P.IsMaximal],
               LocalizedModule P.primeCompl q ≃ₗ[Localization.AtPrime P] Localization.AtPrime P := by
             intro P _
@@ -150,8 +143,7 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
                 intro hbot
                 have : (Ideal.map
                     (algebraMap (Localization M) (Localization.AtPrime P)) q).primeHeight = 0 := by
-                  simp [hbot, Ideal.primeHeight_eq_zero_iff,
-                    IsDomain.minimalPrimes_eq_singleton_bot]
+                  simp [hbot, Ideal.primeHeight_eq_zero_iff_eq_bot]
                 simp [hmap_height] at this
               exact eIdeal.trans (Ideal.isoBaseOfIsPrincipal hmap_ne_bot).symm
             · exact eIdeal.trans (LinearEquiv.ofTop _ <|

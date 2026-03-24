@@ -21,7 +21,23 @@ public import Mathlib.RingTheory.UniqueFactorizationDomain.Kaplansky
 
 public section
 
-variable {R : Type*} [CommRing R] [IsNoetherianRing R] [IsDomain R]
+variable {R : Type*} [CommRing R]
+
+section lemmas
+
+theorem Ideal.primeHeight_eq_zero_iff_eq_bot [IsDomain R] (p : Ideal R) [p.IsPrime] :
+    p.primeHeight = 0 ↔ p = ⊥ := by
+  rw [Ideal.primeHeight_eq_zero_iff, IsDomain.minimalPrimes_eq_singleton_bot R, Set.mem_singleton_iff]
+
+/-- If `x ≠ 0`, then the localization of a domain away from `x` is again a domain. -/
+theorem Localization.Away.isDomain [IsDomain R] {x : R} (hx : x ≠ 0) :
+    IsDomain (Localization.Away x) :=
+  IsLocalization.isDomain_of_le_nonZeroDivisors (Localization.Away x)
+    (powers_le_nonZeroDivisors_of_noZeroDivisors hx)
+
+end lemmas
+
+variable [IsNoetherianRing R] [IsDomain R]
 
 /-- Let `R` be a Noetherian domain. Then `R` is a UFD if and only if every height `1` prime ideal is
   principal. -/
@@ -32,10 +48,7 @@ theorem Ideal.ufd_iff_height_one_primes_principal :
   apply (UniqueFactorizationMonoid.iff_exists_prime_mem_of_isPrime).trans
   constructor
   · intro hufd p hp h1
-    have hp_ne_bot : p ≠ ⊥ := by
-      intro hp
-      simp_rw [hp] at h1
-      exact zero_ne_one ((Order.height_bot (PrimeSpectrum R)).symm.trans h1)
+    have hp_ne_bot : p ≠ ⊥ := (Ideal.primeHeight_eq_zero_iff_eq_bot p).not.1 (ne_zero_of_eq_one h1)
     rcases hufd p hp_ne_bot hp with ⟨x, hxmem, hxprime⟩
     have hx0 : x ≠ 0 := hxprime.ne_zero
     have hspan_prime : (Ideal.span {x}).IsPrime := (Ideal.span_singleton_prime hx0).2 hxprime
@@ -59,28 +72,16 @@ theorem Ideal.ufd_iff_height_one_primes_principal :
     rcases Ideal.exists_minimalPrimes_le ((Ideal.span_singleton_le_iff_mem I).2 hxI) with
       ⟨p, hpmin, hp_le_I⟩
     have : p.IsPrime := Ideal.minimalPrimes_isPrime hpmin
-    have hp_ne_bot : p ≠ ⊥ := by
-      intro hp_bot
-      exact hx0 (Ideal.span_singleton_eq_bot.1 (le_antisymm (hp_bot ▸ hpmin.1.2) bot_le))
+    have hp_ne_bot : p ≠ ⊥ := fun hp_bot ↦
+      hx0 (Ideal.span_singleton_eq_bot.1 (le_antisymm (hp_bot ▸ hpmin.1.2) bot_le))
     have hp_primeHeight_le : p.primeHeight ≤ 1 := by
       simpa [Ideal.height_eq_primeHeight p] using
         Ideal.height_le_one_of_isPrincipal_of_mem_minimalPrimes (Ideal.span {x}) p hpmin
-    have hp_primeHeight_ne_zero : p.primeHeight ≠ 0 := by
-      intro hp_zero
-      have hp_min : p ∈ minimalPrimes R := Ideal.primeHeight_eq_zero_iff.1 hp_zero
-      rw [IsDomain.minimalPrimes_eq_singleton_bot R] at hp_min
-      exact hp_ne_bot (Set.mem_singleton_iff.mp hp_min)
     have : p.IsPrincipal := hprincipal p <|
-      le_antisymm hp_primeHeight_le (ENat.one_le_iff_ne_zero.2 hp_primeHeight_ne_zero)
+      le_antisymm hp_primeHeight_le <| ENat.one_le_iff_ne_zero.2 <|
+        (Ideal.primeHeight_eq_zero_iff_eq_bot p).not.2 hp_ne_bot
     exact ⟨Submodule.IsPrincipal.generator p, hp_le_I (Submodule.IsPrincipal.generator_mem p),
       Submodule.IsPrincipal.prime_generator_of_isPrime p hp_ne_bot⟩
-
-omit [IsNoetherianRing R] [IsDomain R] in
-/-- If `x ≠ 0`, then the localization of a domain away from `x` is again a domain. -/
-theorem Localization.Away.isDomain [IsDomain R] {x : R} (hx : x ≠ 0) :
-    IsDomain (Localization.Away x) :=
-  IsLocalization.isDomain_of_le_nonZeroDivisors (Localization.Away x)
-    (powers_le_nonZeroDivisors_of_noZeroDivisors hx)
 
 theorem Ideal.isPrincipal_of_isPrincipal_localization_away_of_prime
     {x : R} (hx : Prime x) {p : Ideal R} [p.IsPrime] (hxp : x ∉ p)
