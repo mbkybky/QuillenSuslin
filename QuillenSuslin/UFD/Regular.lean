@@ -4,8 +4,10 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
 import Mathlib.RingTheory.RegularLocalRing.Localization
-import QuillenSuslin.StablyFree.FreeOfLocalizedEq
+import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
 import QuillenSuslin.FiniteFreeResolution.Localization
+import QuillenSuslin.StablyFree.FreeOfLocalizedEq
+import QuillenSuslin.StablyFree.HasFiniteFreeResolution
 import QuillenSuslin.UFD.Lemmas
 
 universe u
@@ -17,7 +19,7 @@ theorem Ideal.isPrincipal_of_free [IsDomain R] {I : Ideal R} [Module.Free R I] :
 
 theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMonoid R := by
   have hmain (n : ℕ) : ∀ {S : Type u} [CommRing S] [IsRegularLocalRing S],
-        ringKrullDim S = n → UniqueFactorizationMonoid S := by
+      ringKrullDim S = n → UniqueFactorizationMonoid S := by
     induction n using Nat.strong_induction_on with
     | h n ih =>
       intro S _ _ hdim
@@ -195,20 +197,19 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
               Localization M ⧸ Ideal.map (algebraMap S (Localization M)) p0 :=
             (localizedQuotientEquiv M p0).symm.trans
               (Submodule.quotEquivOfEq _ _ (Ideal.localized'_eq_map (Localization M) M p0))
-          have hffr_q : HasFiniteFreeResolution (Localization M) q := by
+          have hffr_q : HasFiniteFreeResolution (Localization M) q :=
             have : Module.Free (Localization M) (Localization M) := Module.Free.self _
-            exact hasFiniteFreeResolution_of_shortExact_of_middle_of_right q (Localization M)
-              (Localization M ⧸ q) (fun a b hab => Subtype.ext hab) Ideal.Quotient.mk_surjective
+            hasFiniteFreeResolution_of_shortExact_of_middle_of_right _ _
+              (Submodule.subtype_injective q) (Submodule.mkQ_surjective q)
                 (LinearMap.exact_subtype_mkQ q)
                   (hasFiniteFreeResolution_of_finite_of_free (Localization M)) <|
                     hasFiniteFreeResolution_of_linearEquiv
-                      (Ideal.quotientEquivAlgOfEq (Localization M) hqeq).toLinearEquiv <|
+                      (Ideal.quotientEquivAlgOfEq (Localization M) hqeq) <|
                         hasFiniteFreeResolution_of_linearEquiv eQuotMap <|
-                          hasFiniteFreeResolution_localized M hffr_p0
+                          hasFiniteFreeResolution_localizedModule M hffr_p0
           have hstable : IsStablyFree (Localization M) q :=
-            (stably_free_iff (Localization M) q).2 hffr_q
-          have hq_ne_top : q ≠ ⊤ := Ideal.IsPrime.ne_top'
-          obtain ⟨P0, hP0max, hqP0⟩ := Ideal.exists_le_maximal q hq_ne_top
+            (isStablyFree_iff_hasFiniteFreeResolution (Localization M) q).2 hffr_q
+          obtain ⟨P0, hP0max, hqP0⟩ := Ideal.exists_le_maximal q Ideal.IsPrime.ne_top'
           have hfree : Module.Free (Localization M) q :=
             Module.free_of_isStablyFree_of_localized_eq_ring hstable hloc
           exact Ideal.isPrincipal_of_free (Localization M)

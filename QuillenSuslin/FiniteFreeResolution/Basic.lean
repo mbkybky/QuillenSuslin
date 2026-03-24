@@ -37,7 +37,7 @@ theorem hasFiniteFreeResolution_of_subsingleton (M : Type v)
   ⟨0, HasFiniteFreeResolutionOfLength.zero M⟩
 
 /-- A finitely generated free module has a finite free resolution of length `0`. -/
-theorem hasFiniteFreeResolution_of_finite_free (M : Type v)
+theorem hasFiniteFreeResolution_of_finite_of_free (M : Type v)
     [AddCommGroup M] [Module R M] [Module.Finite R M] [Module.Free R M] :
     HasFiniteFreeResolution R M :=
   ⟨0, HasFiniteFreeResolutionOfLength.zero M⟩
