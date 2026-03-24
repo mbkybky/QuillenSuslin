@@ -17,6 +17,21 @@ variable {R : Type u} [CommRing R]
 theorem Ideal.isPrincipal_of_free [IsDomain R] {I : Ideal R} [Module.Free R I] : I.IsPrincipal :=
   (Submodule.rank_le_one_iff_isPrincipal I).1 ((Submodule.rank_le I).trans_eq (Module.rank_self R))
 
+set_option backward.isDefEq.respectTransparency false in
+lemma IsLocalRing.exists_mem_maximalIdeal_not_mem_sq [IsLocalRing R] [IsNoetherianRing R] {n : ℕ}
+    (hn : ringKrullDim R = n.succ) : ∃ x ∈ maximalIdeal R, x ∉ (maximalIdeal R) ^ 2 := by
+  have hmn : maximalIdeal R ≠ ⊥ := by
+    intro hbot
+    have hf : IsField R := IsLocalRing.isField_iff_maximalIdeal_eq.2 hbot
+    rw [ringKrullDim_eq_zero_of_isField hf, ← Nat.cast_zero, Nat.cast_inj] at hn
+    exact Nat.zero_ne_add_one n hn
+  have hm_sq_lt : maximalIdeal R ^ 2 < maximalIdeal R := by
+    rw [pow_two]
+    exact lt_of_le_of_ne Ideal.mul_le_right <| fun hsq ↦ hmn <|
+      Submodule.eq_bot_of_eq_ideal_smul_of_le_jacobson_annihilator Submodule.FG.of_finite hsq.symm
+        (IsLocalRing.maximalIdeal_le_jacobson (Submodule.annihilator (maximalIdeal R)))
+  exact Set.exists_of_ssubset hm_sq_lt
+
 private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd
     [IsRegularLocalRing R] {x : R} (hxmem : x ∈ IsLocalRing.maximalIdeal R) (hxp : Prime x)
     (hP : ∀ (P : Ideal R) [P.IsPrime] (_ : P < IsLocalRing.maximalIdeal R),
@@ -26,9 +41,8 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd
   have : IsDomain (Localization.Away x) := Localization.Away.isDomain hxp.ne_zero
   apply Ideal.ufd_iff_height_one_primes_principal.2
   intro Q hQ hQheight
-  have hloc : ∀ (P : Ideal (Localization.Away x)) [P.IsMaximal],
+  have hloc (P : Ideal (Localization.Away x)) [P.IsMaximal] :
       LocalizedModule P.primeCompl Q ≃ₗ[Localization.AtPrime P] Localization.AtPrime P := by
-    intro P _
     let eIdeal : LocalizedModule P.primeCompl Q ≃ₗ[Localization.AtPrime P]
         Ideal.map (algebraMap (Localization.Away x) (Localization.AtPrime P)) Q :=
       LinearEquiv.extendScalarsOfIsLocalization P.primeCompl (Localization.AtPrime P) <|
@@ -111,56 +125,27 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
       intro S _ _ hdim
       cases n with
       | zero =>
-        have : IsPrincipalIdealRing S := IsField.isPrincipalIdealRing <|
-          isField_of_isRegularLocalRing_of_dimension_zero hdim
-        infer_instance
+          have := (isField_of_isRegularLocalRing_of_dimension_zero hdim).isPrincipalIdealRing
+          infer_instance
       | succ n =>
-        have hmax_ne_bot : IsLocalRing.maximalIdeal S ≠ ⊥ := by
-          intro hbot
-          have hfield : IsField S := (IsLocalRing.isField_iff_maximalIdeal_eq).2 hbot
-          have hdim0 : ringKrullDim S = 0 := ringKrullDim_eq_zero_of_isField hfield
-          exact (not_eq_of_beq_eq_false rfl) (by simpa [hdim, Nat.cast_add] using hdim0)
-        have hpd_ne_top : CategoryTheory.projectiveDimension
-            (ModuleCat.of S (Shrink.{u, u} (IsLocalRing.maximalIdeal S))) ≠ ⊤ :=
-          projectiveDimension_ne_top_of_isRegularLocalRing
-            (ModuleCat.of S (Shrink.{u, u} (IsLocalRing.maximalIdeal S)))
-        obtain ⟨m, hm⟩ := CategoryTheory.projectiveDimension_ne_top_iff
-            (ModuleCat.of S (Shrink.{u, u} (IsLocalRing.maximalIdeal S))) |>.1 hpd_ne_top
-        obtain ⟨x, hxmem, hxnmem, hxreg⟩ :=
-          exist_isSMulRegular_of_exist_hasProjectiveDimensionLE hmax_ne_bot ⟨m, hm⟩
-        have : IsRegularLocalRing (S ⧸ Ideal.span {x}) := (quotient_span_singleton S hxmem hxnmem).1
-        have hxp : Prime x := (Ideal.span_singleton_prime (IsLeftRegular.ne_zero hxreg)).1 <|
-          (Ideal.Quotient.isDomain_iff_prime _).1 inferInstance
-        have hP (P : Ideal S) [P.IsPrime] (hP_lt_max : P < IsLocalRing.maximalIdeal S) :
-            UniqueFactorizationMonoid (Localization.AtPrime P) := by
-          have hdim_loc_succ : ringKrullDim (Localization.AtPrime P) + 1 ≤ ringKrullDim S := by
-            have hprime_succ :
-                (((P.primeHeight + 1 : ℕ∞) : WithBot ℕ∞)) ≤ ringKrullDim S := by
-              calc
-                _ ≤ (((IsLocalRing.maximalIdeal S).primeHeight : ℕ∞) : WithBot ℕ∞) := by
-                  exact_mod_cast Ideal.primeHeight_add_one_le_of_lt hP_lt_max
-                _ = ringKrullDim S := IsLocalRing.maximalIdeal_primeHeight_eq_ringKrullDim
-            calc
-              _ = (P.height : WithBot ℕ∞) + 1 := by
-                simpa using congrArg (fun t : WithBot ℕ∞ => t + 1)
-                  (IsLocalization.AtPrime.ringKrullDim_eq_height P (Localization.AtPrime P))
-              _ = (P.primeHeight : WithBot ℕ∞) + 1 := by simp [Ideal.height_eq_primeHeight]
-              _ = (((P.primeHeight + 1 : ℕ∞) : WithBot ℕ∞)) := by simp
-              _ ≤ ringKrullDim S := hprime_succ
-          have : IsRegularLocalRing (Localization.AtPrime P) := isRegularLocalRing_localization S P
-          let k : ℕ := Classical.choose (exist_nat_eq (Localization.AtPrime P))
-          have hk : ringKrullDim (Localization.AtPrime P) = k :=
-            Classical.choose_spec (exist_nat_eq (Localization.AtPrime P))
-          have hk_lt : k < n.succ := by
-            have hdim_loc_succ' : ((k + 1 : ℕ∞) : WithBot ℕ∞) ≤ ringKrullDim S := by
-              simpa [hk, Nat.cast_add] using hdim_loc_succ
-            have hdim_loc_succ'' : (k + 1 : ℕ∞) ≤ (n + 1 : ℕ∞) :=
-              WithBot.coe_le_coe.mp (by simpa [hdim] using hdim_loc_succ')
-            have : k + 1 ≤ n + 1 := ENat.coe_le_coe.mp hdim_loc_succ''
-            exact Nat.lt_succ_of_le (Nat.succ_le_succ_iff.mp this)
-          exact ih k hk_lt hk
-        have : UniqueFactorizationMonoid (Localization.Away x) :=
-          ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd hxmem hxp hP
-        exact ufd_of_ufd_localization_away_of_prime hxp
+          obtain ⟨x, hxm, hxnm⟩ := IsLocalRing.exists_mem_maximalIdeal_not_mem_sq hdim
+          have hx_ne_zero : x ≠ 0 := fun hx0 ↦ hxnm (by simp [hx0])
+          have : IsRegularLocalRing (S ⧸ Ideal.span {x}) := (quotient_span_singleton S hxm hxnm).1
+          have hxp : Prime x := (Ideal.span_singleton_prime hx_ne_zero).1 <|
+            (Ideal.Quotient.isDomain_iff_prime _).1 inferInstance
+          have hP (P : Ideal S) [P.IsPrime] (hP_lt_max : P < IsLocalRing.maximalIdeal S) :
+              UniqueFactorizationMonoid (Localization.AtPrime P) := by
+            have hdim_loc_lt : ringKrullDim (Localization.AtPrime P) < ringKrullDim S := by
+              apply (IsLocalization.AtPrime.ringKrullDim_eq_height P _).trans_lt
+              apply lt_of_lt_of_eq ?_ IsLocalRing.maximalIdeal_primeHeight_eq_ringKrullDim
+              rw [Ideal.height_eq_primeHeight]
+              exact_mod_cast Ideal.primeHeight_strict_mono hP_lt_max
+            have : IsRegularLocalRing _ := isRegularLocalRing_localization S P
+            obtain ⟨k, hk⟩ := exist_nat_eq (Localization.AtPrime P)
+            exact ih k (ENat.coe_lt_coe.mp <| WithBot.coe_lt_coe.mp <|
+              hk.symm.trans_lt <| hdim_loc_lt.trans_eq hdim) hk
+          have : UniqueFactorizationMonoid (Localization.Away x) :=
+            ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd hxm hxp hP
+          exact ufd_of_ufd_localization_away_of_prime hxp
   obtain ⟨n, hn⟩ := exist_nat_eq R
   exact hmain n hn
