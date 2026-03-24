@@ -21,20 +21,15 @@ theorem isStablyFree_of_projective_of_hasFiniteFreeResolutionLength
       intro _
       obtain ⟨l, hl⟩ := Module.projective_lifting_property g LinearMap.id hg
       let e : F ≃ₗ[R] K × P := ((Function.Exact.splitSurjectiveEquiv he hf) ⟨l, hl⟩).1
-      have hprojKP : Module.Projective R (K × P) := Module.Projective.of_equiv e
+      have : Module.Projective R (K × P) := Module.Projective.of_equiv e
       have hprojK : Module.Projective R K := Module.Projective.of_split
         (LinearMap.inl R K P) (LinearMap.fst R K P) (LinearMap.ext fun _ ↦ by simp)
       rcases ih hprojK with ⟨N, _, _, _, _, _⟩
       have : Module.Free R (K × P) := Module.Free.of_equiv e
-      have hfreeP : Module.Free R (P × (K × N)) := Module.Free.of_equiv <|
+      have : Module.Free R (P × (K × N)) := Module.Free.of_equiv <|
         (LinearEquiv.prodComm R K P).prodCongr (LinearEquiv.refl R N) ≪≫ₗ
           LinearEquiv.prodAssoc R P K N
-      have : Small.{u} (K × N) := Module.Finite.small.{u} R (K × N)
-      let eKN : Shrink.{u} (K × N) ≃ₗ[R] (K × N) := Shrink.linearEquiv R (K × N)
-      have : Module.Finite R (Shrink.{u} (K × N)) := Module.Finite.equiv eKN.symm
-      have : Module.Free R (Shrink.{u} (K × N)) := Module.Free.of_equiv eKN.symm
-      exact ⟨Shrink.{u} (K × N), inferInstance, inferInstance, inferInstance, inferInstance,
-        Module.Free.of_equiv ((LinearEquiv.refl R P).prodCongr eKN).symm⟩
+      exact IsStablyFree.of_free_prod R P (K × N)
 
 variable (R) in
 /-- Let `M` be a finite projective module. Then `M` is stably free if and only if `M` admits a

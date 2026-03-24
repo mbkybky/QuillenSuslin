@@ -79,20 +79,30 @@ theorem moduleFinite_of_hasFiniteFreeResolution {P : Type v} [AddCommGroup P] [M
   | zero => infer_instance
   | succ P n F K f g hf hg he hk ih => exact Module.Finite.of_surjective g hg
 
+theorem hasFiniteFreeResolutionOfLength_of_ker_hasFiniteFreeResolutionOfLength
+    {P : Type v} {F : Type*} {K : Type w} [AddCommGroup P] [Module R P] [AddCommGroup F]
+    [Module R F] [Module.Finite R F] [Module.Free R F] [AddCommGroup K] [Module R K]
+    [Module.Finite R K] (i : K →ₗ[R] F) (s : F →ₗ[R] P) (hi : Function.Injective i)
+    (hs : Function.Surjective s) (he : Function.Exact i s) {n : ℕ}
+    (hk : HasFiniteFreeResolutionOfLength R K n) : HasFiniteFreeResolutionOfLength R P (n + 1) := by
+  have : Small.{v} F := Module.Finite.small.{v} R F
+  have : Small.{v} K := Module.Finite.small.{v} R K
+  have eF : Shrink.{v} F ≃ₗ[R] F := Shrink.linearEquiv R F
+  have eK : Shrink.{v} K ≃ₗ[R] K := Shrink.linearEquiv R K
+  let i' : Shrink.{v} K →ₗ[R] Shrink.{v} F := eF.symm ∘ₗ (i.comp eK.toLinearMap)
+  let s' : Shrink.{v} F →ₗ[R] P := s.comp eF.toLinearMap
+  refine HasFiniteFreeResolutionOfLength.succ P n (Shrink.{v} F) (Shrink.{v} K) i' s'
+    (eF.symm.injective.comp (hi.comp eK.injective)) (hs.comp eF.surjective) ?_
+      (hasFiniteFreeResolutionOfLength_of_linearEquiv eK.symm hk)
+  exact (LinearEquiv.conj_exact_iff_exact (i.comp eK.toLinearMap) s eF.symm).2 <|
+    (Function.Surjective.comp_exact_iff_exact eK.surjective).2 he
+
 theorem hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution {P : Type v} {F : Type*} {K : Type w}
     [AddCommGroup P] [Module R P] [AddCommGroup F] [Module R F] [Module.Finite R F]
     [Module.Free R F] [AddCommGroup K] [Module R K] [Module.Finite R K]
     (i : K →ₗ[R] F) (s : F →ₗ[R] P) (hi : Function.Injective i)
     (hs : Function.Surjective s) (he : Function.Exact i s)
     (hk : HasFiniteFreeResolution R K) : HasFiniteFreeResolution R P := by
-  have : Small.{v} F := Module.Finite.small.{v} R F
-  have : Small.{v} K := Module.Finite.small.{v} R K
-  have eF : Shrink.{v} F ≃ₗ[R] F := Shrink.linearEquiv R F
-  have eK : Shrink.{v} K ≃ₗ[R] K := Shrink.linearEquiv R K
-  rcases hasFiniteFreeResolution_of_linearEquiv (Shrink.linearEquiv R K).symm hk with ⟨n, hk⟩
-  let i' : Shrink.{v} K →ₗ[R] Shrink.{v} F := eF.symm ∘ₗ (i.comp eK.toLinearMap)
-  let s' : Shrink.{v} F →ₗ[R] P := s.comp eF.toLinearMap
-  refine ⟨n + 1,  HasFiniteFreeResolutionOfLength.succ P n (Shrink.{v} F) (Shrink.{v} K) i' s'
-    (eF.symm.injective.comp (hi.comp eK.injective)) (hs.comp eF.surjective) ?_ hk⟩
-  exact (LinearEquiv.conj_exact_iff_exact (i.comp eK.toLinearMap) s eF.symm).2 <|
-    (Function.Surjective.comp_exact_iff_exact eK.surjective).2 he
+  rcases hk with ⟨n, hk⟩
+  exact ⟨n + 1,
+    hasFiniteFreeResolutionOfLength_of_ker_hasFiniteFreeResolutionOfLength i s hi hs he hk⟩

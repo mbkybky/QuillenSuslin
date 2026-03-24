@@ -147,8 +147,7 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
               _ = (P.primeHeight : WithBot ℕ∞) + 1 := by simp [Ideal.height_eq_primeHeight]
               _ = (((P.primeHeight + 1 : ℕ∞) : WithBot ℕ∞)) := by simp
               _ ≤ ringKrullDim S := hprime_succ
-          have _ : IsRegularLocalRing (Localization.AtPrime P) :=
-            isRegularLocalRing_localization S P
+          have : IsRegularLocalRing (Localization.AtPrime P) := isRegularLocalRing_localization S P
           let k : ℕ := Classical.choose (exist_nat_eq (Localization.AtPrime P))
           have hk : ringKrullDim (Localization.AtPrime P) = k :=
             Classical.choose_spec (exist_nat_eq (Localization.AtPrime P))

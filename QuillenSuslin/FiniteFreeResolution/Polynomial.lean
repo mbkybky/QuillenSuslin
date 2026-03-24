@@ -102,7 +102,81 @@ private theorem polyMap_exact (h : Function.Exact f g) :
 
 end polyMap
 
+private theorem smul_zero_of_smul_mem {A : Type*} [Ring A] {M : Type*} [AddCommGroup M] [Module A M]
+    (K : Submodule A M) {a : A} (hmem : ∀ y : M, a • y ∈ K) (x : M ⧸ K) : a • x = 0 :=
+  Quotient.inductionOn' x <| fun y ↦
+    (Submodule.Quotient.mk_smul K a y).symm.trans ((Submodule.Quotient.mk_eq_zero K).2 (hmem y))
+
+private theorem mem_ideal_of_smul_eq_zero_of_equiv_quotient
+    {A : Type*} [CommRing A] {M : Type*} [AddCommGroup M] [Module A M]
+    (I : Ideal A) (eM : M ≃ₗ[A] A ⧸ I) {a : A} (hAnn : ∀ x : M, a • x = 0) : a ∈ I := by
+  have h0 : a • (1 : A ⧸ I) = 0 := by simpa using congrArg eM (hAnn (eM.symm (1 : A ⧸ I)))
+  have hmk : (Ideal.Quotient.mk I a : A ⧸ I) = 0 := by simpa [Algebra.smul_def] using h0
+  exact (Ideal.Quotient.eq_zero_iff_mem).1 hmk
+
 section polynomial
+
+private noncomputable def polynomialModuleIdealMapCLinearMap (I : Ideal R) :
+    PolynomialModule R I →ₗ[R[X]] Ideal.map (C : R →+* R[X]) I := by
+  let inclX : PolynomialModule R I →ₗ[R[X]] PolynomialModule R R := polyMap I.subtype
+  let φ0 : PolynomialModule R I →ₗ[R[X]] R[X] :=
+    PolynomialModule.equivPolynomialSelf.toLinearMap.comp inclX
+  refine LinearMap.codRestrict (Ideal.map (C : R →+* R[X]) I) φ0 ?_
+  intro p
+  refine Ideal.mem_map_C_iff.2 ?_
+  intro n
+  have hφ : (φ0 p).coeff n = (inclX p) n := by
+    simp [φ0, PolynomialModule.equivPolynomialSelf, toFinsuppIso, coeff_ofFinsupp]
+  rw [hφ]
+  simp [inclX]
+
+private theorem polynomialModuleIdealMapCLinearMap_coeff (I : Ideal R)
+    (p : PolynomialModule R I) (n : ℕ) :
+    (((polynomialModuleIdealMapCLinearMap I p : Ideal.map (C : R →+* R[X]) I) :
+      R[X]).coeff n) = (p n : R) := by
+  simp [polynomialModuleIdealMapCLinearMap, PolynomialModule.equivPolynomialSelf, toFinsuppIso,
+    coeff_ofFinsupp]
+
+private noncomputable def polynomialModuleIdealMapCLinearEquiv (I : Ideal R) :
+    PolynomialModule R I ≃ₗ[R[X]] Ideal.map (C : R →+* R[X]) I := by
+  let φ := polynomialModuleIdealMapCLinearMap I
+  let ψ : Ideal.map (C : R →+* R[X]) I → PolynomialModule R I := fun f =>
+    Finsupp.onFinset f.1.support
+      (fun n => ⟨f.1.coeff n, Ideal.mem_map_C_iff.1 f.2 n⟩) <| by
+        intro n hn
+        have : f.1.coeff n ≠ 0 := by
+          intro h0
+          apply hn
+          apply Subtype.ext
+          simp [h0]
+        exact (Polynomial.mem_support_iff).2 this
+  have hφ_inj : Function.Injective φ := by
+    intro p q hpq
+    apply Finsupp.ext
+    intro n
+    apply Subtype.ext
+    have hcoeff := congrArg (fun f : Ideal.map (C : R →+* R[X]) I => (f : R[X]).coeff n) hpq
+    simpa [φ, polynomialModuleIdealMapCLinearMap_coeff] using hcoeff
+  have hright : ∀ f : Ideal.map (C : R →+* R[X]) I, φ (ψ f) = f := by
+    intro f
+    apply Subtype.ext
+    apply Polynomial.ext
+    intro n
+    rw [polynomialModuleIdealMapCLinearMap_coeff I (ψ f) n]
+    by_cases hn : n ∈ f.1.support
+    · simp [ψ, Finsupp.onFinset_apply]
+    · have h0 : f.1.coeff n = 0 := by
+        by_contra h0
+        exact hn <| (Polynomial.mem_support_iff).2 h0
+      simp [ψ, Finsupp.onFinset_apply, h0]
+  have hleft : ∀ p : PolynomialModule R I, ψ (φ p) = p := by
+    intro p
+    exact hφ_inj (hright (φ p))
+  exact
+    { toLinearMap := φ
+      invFun := ψ
+      left_inv := hleft
+      right_inv := hright }
 
 /-- Push a finite free resolution of an `R`-ideal `I` to a resolution of `I · R[X]`. -/
 theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
@@ -133,49 +207,8 @@ theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
         · exact polyMap_injective f hf
         · exact polyMap_surjective g hg
         · exact polyMap_exact f g he
-  have hPoly : HasFiniteFreeResolution R[X] (PolynomialModule R I) := ⟨n, liftLength hn⟩
-  let incl : I →ₗ[R] R := I.subtype
-  let inclX : PolynomialModule R I →ₗ[R[X]] PolynomialModule R R := polyMap incl
-  have inclX_apply (p : PolynomialModule R I) (n : ℕ) : (inclX p) n = (p n : R) := by
-    simp [inclX, incl]
-  let φ0 : PolynomialModule R I →ₗ[R[X]] R[X] :=
-    PolynomialModule.equivPolynomialSelf.toLinearMap.comp inclX
-  have hφ0inj : Function.Injective φ0 := by
-    intro x y hxy
-    have hxy' : inclX x = inclX y := by
-      simpa [φ0] using congrArg PolynomialModule.equivPolynomialSelf.symm hxy
-    exact polyMap_injective incl Subtype.coe_injective hxy'
-  have hφ0range : LinearMap.range φ0 = (Ideal.map (C : R →+* R[X]) I : Ideal R[X]) := by
-    ext f
-    constructor
-    · rintro ⟨p, rfl⟩
-      refine Ideal.mem_map_C_iff.2 fun n => ?_
-      have : (φ0 p).coeff n = (inclX p) n := by
-        simp [φ0, PolynomialModule.equivPolynomialSelf, toFinsuppIso,
-          coeff_ofFinsupp]
-      have hp : (inclX p) n = (p n : R) := inclX_apply p n
-      rw [this, hp]
-      exact (p n).2
-    · intro hf
-      have hf' : ∀ n, f.coeff n ∈ I := Ideal.mem_map_C_iff.1 hf
-      let p : PolynomialModule R I := Finsupp.onFinset f.support
-        (fun n => ⟨f.coeff n, Ideal.mem_map_C_iff.1 hf n⟩) <| by
-          intro n hn
-          have : f.coeff n ≠ 0 := by
-            intro h0
-            apply hn
-            apply Subtype.ext
-            simp [h0]
-          exact (Polynomial.mem_support_iff).2 this
-      refine ⟨p, ?_⟩
-      apply Polynomial.ext
-      intro n
-      have hφ : (φ0 p).coeff n = (inclX p) n := by
-        simp [φ0, PolynomialModule.equivPolynomialSelf, toFinsuppIso, coeff_ofFinsupp]
-      rw [hφ, inclX_apply p n]
-      simp [p, Finsupp.onFinset_apply]
   exact hasFiniteFreeResolution_of_linearEquiv
-    ((LinearEquiv.ofInjective φ0 hφ0inj).trans (LinearEquiv.ofEq _ _ hφ0range)) hPoly
+    (polynomialModuleIdealMapCLinearEquiv I) ⟨n, liftLength hn⟩
 
 /-- The canonical `R`-algebra equivalence `(R ⧸ I)[X] ≃ R[X] ⧸ I·R[X]`. -/
 noncomputable def polynomialQuotientEquiv (I : Ideal R) :
@@ -196,150 +229,114 @@ noncomputable def linearEquiv_mul_spanSingleton [IsDomain R] {f : R}
 /-- If `P ⊂ R[X]` is an ideal over a Noetherian domain `R` with `P ∩ R = (0)`, then there exists
   `d ≠ 0` and `f ∈ P` such that `d • P ⊆ (f)`. -/
 theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] [IsNoetherianRing R] {P : Ideal (R[X])}
-    (hP : ∀ x : R, C x ∈ P → x = 0) (hPne : P ≠ ⊥) :
-    ∃ d : R, d ≠ 0 ∧ ∃ f : R[X], f ∈ P ∧ f ≠ 0 ∧
+   (hPne : P ≠ ⊥) : ∃ d : R, d ≠ 0 ∧ ∃ f : R[X], f ∈ P ∧ f ≠ 0 ∧
       ∀ g ∈ P, C d * g ∈ Ideal.span ({f} : Set (R[X])) := by
   classical
   have hPfg : P.FG := IsNoetherian.noetherian P
   rcases hPfg with ⟨s, hs⟩
-  obtain ⟨⟨p0, hp0P⟩, hp0ne⟩ := Submodule.nonzero_mem_of_bot_lt (bot_lt_iff_ne_bot.2 hPne)
-  have hp0ne' : p0 ≠ 0 := by
-    intro h0
-    apply hp0ne
-    simp [Subtype.ext_iff, h0]
-  -- Pick `f ∈ P` of minimal `natDegree` among the nonzero elements of `P`.
-  let Q : ℕ → Prop := fun n => ∃ f : R[X], f ∈ P ∧ f ≠ 0 ∧ f.natDegree = n
-  have hQ : ∃ n, Q n := ⟨p0.natDegree, p0, hp0P, hp0ne', rfl⟩
-  set nmin : ℕ := Nat.find hQ
-  have hspec : Q nmin := Nat.find_spec hQ
-  rcases hspec with ⟨f, hfP, hfne, hfnat⟩
-  have hfmin : ∀ g : R[X], g ∈ P → g ≠ 0 → f.natDegree ≤ g.natDegree := by
-    intro g hg hgne
-    have : Q g.natDegree := ⟨g, hg, hgne, rfl⟩
-    have hle : nmin ≤ g.natDegree := Nat.find_min' hQ this
-    simpa [hfnat] using hle
-  -- `f` cannot have degree `0`, because `P ∩ R = (0)`.
-  have hf_natDegree_ne_zero : f.natDegree ≠ 0 := by
-    intro hdeg0
-    have hfC : f = C (f.coeff 0) := eq_C_of_natDegree_eq_zero hdeg0
-    have hmem : C (f.coeff 0) ∈ P := hfC ▸ hfP
-    have hcoeff0 : f.coeff 0 = 0 := hP (f.coeff 0) hmem
-    apply hfne
-    calc f = C (f.coeff 0) := hfC
-      _ = C 0 := by simp [hcoeff0]
-      _ = 0 := by simp
   let K := FractionRing R
   let i : R →+* K := algebraMap R K
   have hi : Function.Injective i := IsFractionRing.injective R K
-  let fK : K[X] := f.map i
-  have hfKne : fK ≠ 0 := by
-    intro h0
-    apply hfne
-    exact (Polynomial.map_injective i hi) (by simpa [fK] using h0)
-  have hfK_natDegree_ne_zero : fK.natDegree ≠ 0 := by
-    have hfKdeg : fK.natDegree = f.natDegree := by
-      simpa [fK] using natDegree_map_eq_of_injective hi f
-    simpa only [hfKdeg, ne_eq] using hf_natDegree_ne_zero
-  let : Algebra R[X] K[X] := (mapRingHom (algebraMap R K)).toAlgebra
-  have : IsLocalization ((nonZeroDivisors R).map (C : R →+* R[X])) K[X] := by
-    simpa using (isLocalization (nonZeroDivisors R) K)
-  let q (g : R[X]) : K[X] := (g.map i) / fK
-  let r (g : R[X]) : K[X] := (g.map i) % fK
-  let fracs : Finset K[X] := s.biUnion fun g => ({q g, r g} : Finset K[X])
+  let : Algebra R[X] K[X] := (Polynomial.mapRingHom i).toAlgebra
+  have : IsLocalization ((nonZeroDivisors R).map (C : R →+* R[X])) K[X] :=
+    (isLocalization (nonZeroDivisors R) K)
+  let Pext : Ideal K[X] := Ideal.map (Polynomial.mapRingHom i) P
+  have hPext_ne : Pext ≠ ⊥ := by
+    intro hbot
+    obtain ⟨⟨p0, hp0P⟩, hp0ne⟩ := Submodule.nonzero_mem_of_bot_lt (bot_lt_iff_ne_bot.2 hPne)
+    have hp0eq0 : (p0 : R[X]) = 0 := by
+      apply (Polynomial.map_injective i hi)
+      have hp0Pext : Polynomial.map i p0 ∈ Pext := Ideal.mem_map_of_mem (Polynomial.mapRingHom i) hp0P
+      have : Polynomial.map i p0 = 0 := by simpa [Pext, hbot] using hp0Pext
+      simpa using this
+    apply hp0ne
+    simp [Subtype.ext_iff, hp0eq0]
+  let fK : K[X] := Submodule.IsPrincipal.generator Pext
+  have hPext_span : Ideal.span ({fK} : Set K[X]) = Pext := Ideal.span_singleton_generator Pext
+  have hfK_mem : fK ∈ Pext := by
+    rw [← hPext_span]
+    exact Ideal.subset_span (by simp)
+  have hfK_ne : fK ≠ 0 := by
+    intro hfK0
+    apply hPext_ne
+    rw [← hPext_span, hfK0, Ideal.span_singleton_zero]
+  have hq0 : ∀ a : ↥s, ∃ q : K[X], q * fK = (a : R[X]).map i := by
+    intro a
+    have haP : (a : R[X]) ∈ P := by
+      simpa [hs] using (Ideal.subset_span a.2 : (a : R[X]) ∈ Ideal.span (s : Set (R[X])))
+    have haPext : (a : R[X]).map i ∈ Pext := Ideal.mem_map_of_mem (Polynomial.mapRingHom i) haP
+    have haSpan : (a : R[X]).map i ∈ Ideal.span ({fK} : Set K[X]) := by
+      simpa [hPext_span] using haPext
+    exact (Ideal.mem_span_singleton'.1 haSpan)
+  choose q hq using hq0
+  let v : ↥s → K[X] := fun a => (a : R[X]).map i
+  have hspan : Ideal.span (Set.range v) = Pext := by
+    simp [Pext, ← hs, Ideal.map_span]
+    congr
+    ext x
+    simp [v]
+  have hfK_mem' : fK ∈ Ideal.span (Set.range v) := by simpa [hspan] using hfK_mem
+  rcases (Ideal.mem_span_range_iff_exists_fun).1 hfK_mem' with ⟨c, hc⟩
+  let fracs : Finset K[X] := s.attach.biUnion fun a => ({q a, c a} : Finset K[X])
   obtain ⟨b, hb⟩ := IsLocalization.exist_integer_multiples_of_finset
     ((nonZeroDivisors R).map (C : R →+* R[X])) fracs
   rcases b.2 with ⟨d, hd, hdEq⟩
-  have hbEq : (b : R[X]) = C d := by
-    simpa using hdEq.symm
+  have hbEq : (b : R[X]) = C d := hdEq.symm
   have hd0 : d ≠ 0 := nonZeroDivisors.ne_zero hd
   have hid0 : i d ≠ 0 := by
     intro h0
     apply hd0
-    exact hi (by simpa only [map_zero] using h0)
-  have hgen : ∀ g, g ∈ (s : Set R[X]) → C d * g ∈ Ideal.span ({f} : Set R[X]) := by
-    intro g hg
-    have hg' : g ∈ s := by simpa using hg
-    have hq : IsLocalization.IsInteger (R[X]) ((b : R[X]) • q g) := by
-      have : q g ∈ fracs := by
-        refine Finset.mem_biUnion.2 ⟨g, hg', ?_⟩
-        simp only [Finset.mem_insert, Finset.mem_singleton, true_or]
-      simpa only [Algebra.smul_def, algebraMap_def, coe_mapRingHom] using hb (q g) this
-    have hr : IsLocalization.IsInteger (R[X]) ((b : R[X]) • r g) := by
-      have : r g ∈ fracs := by
-        refine Finset.mem_biUnion.2 ⟨g, hg', ?_⟩
-        simp only [Finset.mem_insert, Finset.mem_singleton, or_true]
-      simpa [Algebra.smul_def] using hb (r g) this
-    rcases hq with ⟨qR, hqR⟩
-    rcases hr with ⟨rR, hrR⟩
-    have hdiv : q g * fK + r g = (g.map i) := by
-      simpa only [mul_comm, add_comm] using (EuclideanDomain.div_add_mod (g.map i) fK)
-    have hEq : (b : R[X]) * g = qR * f + rR := by
-      apply (map_injective i hi)
-      have : (mapRingHom i) ((b : R[X]) * g) = (mapRingHom i) (qR * f + rR) := by
-        have hqR' : (mapRingHom i) (b : R[X]) * q g = (mapRingHom i) qR := by
-          simpa [Algebra.smul_def, mul_assoc] using (Eq.symm hqR)
-        have hrR' : (mapRingHom i) (b : R[X]) * r g = (mapRingHom i) rR := by
-          simpa [Algebra.smul_def, mul_assoc] using (Eq.symm hrR)
-        calc _ = (mapRingHom i) (b : R[X]) * (g.map i) := by simp only [coe_mapRingHom, map_mul]
-          _ = (mapRingHom i) (b : R[X]) * (q g * fK + r g) := by simp only [coe_mapRingHom, hdiv]
-          _ = (mapRingHom i) (b : R[X]) * (q g * fK) + (mapRingHom i) (b : R[X]) * r g := by
-            simp only [coe_mapRingHom, mul_add]
-          _ = (mapRingHom i) qR * fK + (mapRingHom i) rR := by
-            have hqRmul : (mapRingHom i) (b : R[X]) * (q g * fK) = (mapRingHom i) qR * fK := by
-              calc _ = ((mapRingHom i) (b : R[X]) * q g) * fK := by simp [mul_assoc]
-                _ = (mapRingHom i) qR * fK := by simpa using congrArg (fun t => t * fK) hqR'
-            calc _ = (mapRingHom i) qR * fK + (mapRingHom i) (b : R[X]) * r g := by simpa [hqRmul]
-              _ = (mapRingHom i) qR * fK + (mapRingHom i) rR := by
-                simpa only [coe_mapRingHom, add_right_inj]
-          _ = (mapRingHom i) (qR * f) + (mapRingHom i) rR := by simp [fK, map_mul]
-          _ = (mapRingHom i) (qR * f + rR) := by simp [map_add, map_mul]
-      simpa only [Polynomial.map_mul, Polynomial.map_add, coe_mapRingHom] using this
-    have hrRP : rR ∈ P := by
-      have hgP : g ∈ P := by
-        simpa [hs] using (Ideal.subset_span hg)
-      have hbgg : (b : R[X]) * g ∈ P := P.mul_mem_left _ hgP
-      have hqff : qR * f ∈ P := P.mul_mem_left _ hfP
-      have : rR = (b : R[X]) * g - qR * f := by
-        have hsub : (b : R[X]) * g - qR * f = rR := by
-          simpa [sub_eq_add_neg, add_assoc, add_left_comm, add_comm] using
-            congrArg (fun t => t - qR * f) hEq
-        simpa only [sub_eq_add_neg] using hsub.symm
-      have hmem : (b : R[X]) * g - qR * f ∈ P := P.sub_mem hbgg hqff
-      simpa [this] using hmem
-    have hdegK : (r g).natDegree < fK.natDegree := by
-      simpa only using natDegree_mod_lt (g.map i) hfK_natDegree_ne_zero
-    have hdegK' : (rR.map i).natDegree < fK.natDegree := by
-      have hrR' : rR.map i = C (i d) * r g := by
-        simpa [Algebra.smul_def, hbEq, map_mul] using hrR
-      simpa [hrR', natDegree_C_mul hid0] using hdegK
-    have hrdeg : rR.natDegree < f.natDegree := by
-      have hrRdeg : (rR.map i).natDegree = rR.natDegree := by
-        simpa only [natDegree_map_eq_iff, ne_eq] using (natDegree_map_eq_of_injective hi rR)
-      have hfKdeg : fK.natDegree = f.natDegree := by
-        simpa [fK] using (natDegree_map_eq_of_injective hi f)
-      simpa [hrRdeg, hfKdeg] using hdegK'
-    have hrR0 : rR = 0 := by
-      by_contra hrR0
-      have hle : f.natDegree ≤ rR.natDegree := hfmin rR hrRP hrR0
-      exact (not_lt_of_ge hle) hrdeg
-    have hEq' : (b : R[X]) * g = qR * f := by
-      simpa [hrR0] using hEq
-    have hbmem : (b : R[X]) * g ∈ Ideal.span ({f} : Set R[X]) := by
-      refine (Ideal.mem_span_singleton.2 ?_)
-      refine ⟨qR, ?_⟩
-      calc _ = qR * f := hEq'
-        _ = f * qR := by simp [mul_comm]
-    simpa [hbEq] using hbmem
-  refine ⟨d, hd0, f, hfP, hfne, ?_⟩
+    exact hi (by simpa using h0)
+  have hqInt : ∀ a : ↥s, IsLocalization.IsInteger (R[X]) ((b : R[X]) • q a) := by
+    intro a
+    exact hb (q a) (Finset.mem_biUnion.2 ⟨a, by simp, by simp⟩)
+  choose qR hqR using hqInt
+  have hcInt : ∀ a : ↥s, IsLocalization.IsInteger (R[X]) ((b : R[X]) • c a) := by
+    intro a
+    exact hb (c a) (Finset.mem_biUnion.2 ⟨a, by simp, by simp⟩)
+  choose cR hcR using hcInt
+  have hqR' : ∀ a : ↥s, Polynomial.map i (qR a) = C (i d) * q a := by
+    intro a
+    simpa [Algebra.smul_def, hbEq, Polynomial.map_C] using hqR a
+  have hcR' : ∀ a : ↥s, Polynomial.map i (cR a) = C (i d) * c a := by
+    intro a
+    simpa [Algebra.smul_def, hbEq, Polynomial.map_C] using hcR a
+  let f : R[X] := ∑ a, cR a * (a : R[X])
+  have hfP : f ∈ P := by
+    refine Ideal.sum_mem _ ?_
+    intro a _
+    exact P.mul_mem_left _ (by
+      simpa [hs] using (Ideal.subset_span a.2 : (a : R[X]) ∈ Ideal.span (s : Set (R[X]))))
+  have hmap_f : Polynomial.map i f = C (i d) * fK := by
+    simp only [f, Polynomial.map_sum, Polynomial.map_mul]
+    simp_rw [hcR']
+    simp_rw [mul_assoc]
+    rw [← Finset.mul_sum]
+    rw [hc]
+  have hf_ne : f ≠ 0 := by
+    have hCd_ne : (C (i d) : K[X]) ≠ 0 := by simpa using hid0
+    intro hf0
+    have : Polynomial.map i f ≠ 0 := by
+      rw [hmap_f]
+      exact mul_ne_zero hCd_ne hfK_ne
+    exact this (by simp [hf0])
+  have hgen : ∀ a : ↥s, C (d * d) * (a : R[X]) ∈ Ideal.span ({f} : Set (R[X])) := by
+    intro a
+    refine Ideal.mem_span_singleton'.2 ?_
+    refine ⟨qR a, ?_⟩
+    apply (Polynomial.map_injective i hi)
+    rw [Polynomial.map_mul, hqR' a, hmap_f, Polynomial.map_mul, Polynomial.map_C]
+    simp [map_mul, mul_left_comm, mul_comm, ← hq a, mul_assoc]
+  refine ⟨d * d, mul_ne_zero hd0 hd0, f, hfP, hf_ne, ?_⟩
   intro g hgP
-  have hgspan : g ∈ Ideal.span (s : Set R[X]) := by simpa [hs] using hgP
-  exact Submodule.span_induction hgen (by simp only [mul_zero, zero_mem])
-    (fun x y _ _ hx hy => by simpa only [mul_add] using Ideal.add_mem _ hx hy)
+  have hgspan : g ∈ Ideal.span (s : Set (R[X])) := by simpa [hs] using hgP
+  exact Submodule.span_induction (fun a ha => by simpa using hgen ⟨a, ha⟩) (by simp)
+    (fun x y _ _ hx hy => by simpa [mul_add] using Ideal.add_mem _ hx hy)
     (fun a x _ hx => by
-      have : C d * (a * x) = a * (C d * x) := by simp only [mul_comm, mul_assoc]
-      simpa only [smul_eq_mul, this] using Ideal.mul_mem_left _ a hx) hgspan
+      have hy : a * (C (d * d) * x) ∈ Ideal.span ({f} : Set (R[X])) := Ideal.mul_mem_left _ a hx
+      have hmul : C (d * d) * (a * x) = a * (C (d * d) * x) := by group
+      exact hmul ▸ hy) hgspan
 
-set_option maxHeartbeats 600000 in
 private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P) : ∀ I : Ideal R, ∀ q : PrimeSpectrum R[X],
@@ -351,7 +348,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
   intro I ih q hqI
   let P : Ideal A := q.1
   have : P.IsPrime := q.2
-  have hcomap : Ideal.comap (C : R →+* A) P = I := by simpa [contr, P] using hqI
+  have hcomap : Ideal.comap (C : R →+* A) P = I := hqI
   have hIA_le_P : Ideal.map (C : R →+* A) I ≤ P :=
     (Ideal.map_le_iff_le_comap).2 <| by simp [hcomap]
   let IA : Ideal A := Ideal.map (C : R →+* A) I
@@ -363,10 +360,10 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     have hquot : HasFiniteFreeResolution A (A ⧸ IA) :=
       hasFiniteFreeResolution_of_shortExact_of_left_of_middle IA.subtype (Submodule.mkQ IA)
         Subtype.coe_injective (Submodule.mkQ_surjective IA)
-        (by simpa using LinearMap.exact_subtype_mkQ IA) hIA_res hA
+        (by exact LinearMap.exact_subtype_mkQ IA) hIA_res hA
     have hquotP : HasFiniteFreeResolution A (A ⧸ P) :=
       hasFiniteFreeResolution_of_linearEquiv (Submodule.quotEquivOfEq IA P hPIA.symm) hquot
-    simpa [P] using hquotP
+    exact hquotP
   · have hIprime : Ideal.IsPrime I := by
       simpa [hcomap] using show (Ideal.comap (C : R →+* A) P).IsPrime from inferInstance
     let R₀ : Type u := R ⧸ I
@@ -380,42 +377,18 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
       intro hbot
       have hle : P ≤ RingHom.ker π := (P.map_eq_bot_iff_le_ker π).1 hbot
       have hker : RingHom.ker π = IA := IA.mk_ker
-      have hP_le_IA : P ≤ IA := by
-        simpa [A, hker] using hle
+      have hP_le_IA : P ≤ IA := hker ▸ hle
       exact hPIA (le_antisymm hP_le_IA hIA_le_P)
     have hP₀_ne : P₀ ≠ ⊥ := by
       intro hbot
-      have : Ideal.map e.toRingHom P₀ = Pbar := by
-        simpa [P₀] using (Ideal.map_comap_of_surjective e.toRingHom e.surjective Pbar)
-      have : Pbar = ⊥ := by simpa [hbot] using this.symm
+      have : Ideal.map e.toRingHom P₀ = Pbar :=
+        Ideal.map_comap_of_surjective e.toRingHom e.surjective Pbar
+      have : Pbar = Ideal.map e.toRingHom ⊥ := by rw [← this, hbot]
+      rw [show (Ideal.map e.toRingHom ⊥ : Ideal B) = ⊥ by simp] at this
       exact hPbar_ne this
-    have hP₀_contr : ∀ x : R₀, (C x : A₀) ∈ P₀ → x = 0 := by
-      intro x hx
-      rcases Ideal.Quotient.mk_surjective x with ⟨r, rfl⟩
-      have hx' : (e (C (Ideal.Quotient.mk I r) : A₀)) ∈ Pbar := by
-        simpa [P₀, Ideal.mem_comap] using hx
-      have hCr : e (C (Ideal.Quotient.mk I r) : A₀) = (Ideal.Quotient.mk IA) (C r) := by
-        simpa [IA, Polynomial.map_C] using
-          (Ideal.polynomialQuotientEquivQuotientPolynomial_map_mk I (C r : A))
-      have hx'' : (Ideal.Quotient.mk IA) (C r) ∈ Pbar := by simpa [hCr] using hx'
-      rcases (Ideal.mem_map_iff_of_surjective π Ideal.Quotient.mk_surjective).1 hx'' with
-        ⟨a, haP, haEq⟩
-      have hab : a - C r ∈ IA := (Ideal.Quotient.eq).1 haEq
-      have habP : a - C r ∈ P := hIA_le_P hab
-      have hCrP : (C r : A) ∈ P := by
-        have : (C r : A) = a - (a - C r) := by abel
-        exact this ▸ P.sub_mem haP habP
-      have hrI : r ∈ I := by
-        have : r ∈ Ideal.comap (C : R →+* A) P := by simpa [Ideal.mem_comap] using hCrP
-        simpa [hcomap] using this
-      exact (Ideal.Quotient.eq_zero_iff_mem).2 hrI
-    obtain ⟨d₀, hd₀, f₀, hf₀P₀, hf₀ne, hmul₀⟩ :=
-      exists_nonzero_C_mul_mem_span_singleton hP₀_contr hP₀_ne
+    obtain ⟨d₀, hd₀, f₀, hf₀P₀, hf₀ne, hmul₀⟩ := exists_nonzero_C_mul_mem_span_singleton hP₀_ne
     rcases Ideal.Quotient.mk_surjective d₀ with ⟨d, rfl⟩
-    have hd_not_mem : d ∉ I := by
-      intro hdI
-      apply hd₀
-      exact (Ideal.Quotient.eq_zero_iff_mem).2 hdI
+    have hd_not_mem : d ∉ I := fun hdI ↦ hd₀ ((Ideal.Quotient.eq_zero_iff_mem).2 hdI)
     let fbar : B := e f₀
     have hfbar_mem : fbar ∈ Pbar := by
       have : f₀ ∈ P₀ := hf₀P₀
@@ -458,9 +431,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     let N := Psub ⧸ K
     let acgN : AddCommGroup N := Submodule.Quotient.addCommGroup K
     let : AddCommMonoid N := acgN.toAddCommMonoid
-    have hAnn_d : ∀ x : N, (C d : A) • x = 0 := by
-      intro x
-      refine Quotient.inductionOn' x ?_
+    have hsmul_d_mem_K : ∀ y : Psub, (C d : A) • y ∈ K := by
       intro y
       have hyF : ((C d : A) • (y : B)) ∈ Fsub := by
         have hyFmul : (π (C d) : B) * (y : B) ∈ Fsub := by
@@ -469,37 +440,19 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
         have hsmul : ((C d : A) • (y : B)) = (π (C d) : B) * (y : B) := by
           have hAlgebraMap : (algebraMap A B) = π := rfl
           simpa [hAlgebraMap] using (Algebra.smul_def (C d : A) (y : B))
-        simpa [hsmul] using hyFmul
-      have hyK : (C d : A) • y ∈ K := by
-        simpa [K] using hyF
-      have h0 : Submodule.Quotient.mk ((C d : A) • y) = (0 : N) :=
-        (Submodule.Quotient.mk_eq_zero K).2 hyK
-      have hmksmul : Submodule.Quotient.mk ((C d : A) • y) = (C d : A) • Submodule.Quotient.mk y :=
-        Submodule.Quotient.mk_smul K (C d : A) y
-      exact hmksmul.symm.trans h0
+        exact hsmul ▸ hyFmul
+      exact hyF
     have hN : HasFiniteFreeResolution A N := by
-      have hAnn_I : ∀ r : R, r ∈ I → ∀ x : N, (C r : A) • x = 0 := by
-        intro r hrI x
-        refine Quotient.inductionOn' x ?_
-        intro y
+      have hsmul_I_mem_K : ∀ r : R, r ∈ I → ∀ y : Psub, (C r : A) • y ∈ K := by
+        intro r hrI y
         have hCrIA : (C r : A) ∈ IA := Ideal.mem_map_of_mem (C : R →+* A) hrI
         have hπCr : (π (C r) : B) = 0 := (Ideal.Quotient.eq_zero_iff_mem).2 hCrIA
         have hy0 : (C r : A) • (y : B) = 0 := by
           have hAlgebraMap : (algebraMap A B) = π := rfl
-          have hsmul : (C r : A) • (y : B) = (π (C r) : B) * (y : B) := by
-            simpa [hAlgebraMap] using (Algebra.smul_def (C r : A) (y : B))
-          calc
-            (C r : A) • (y : B) = (π (C r) : B) * (y : B) := hsmul
-            _ = 0 * (y : B) := by simp [hπCr]
-            _ = 0 := by exact zero_mul _
+          rw [Algebra.smul_def, hAlgebraMap, hπCr]
+          exact zero_mul _
         have hyF : (C r : A) • (y : B) ∈ Fsub := by simp [hy0]
-        have hyK : (C r : A) • y ∈ K := by simpa [K] using hyF
-        have h0 : Submodule.Quotient.mk ((C r : A) • y) = (0 : N) :=
-          (Submodule.Quotient.mk_eq_zero K).2 hyK
-        have hmksmul : Submodule.Quotient.mk ((C r : A) • y) =
-            (C r : A) • Submodule.Quotient.mk y :=
-          Submodule.Quotient.mk_smul K (C r : A) y
-        exact hmksmul.symm.trans h0
+        exact hyF
       let motive : ∀ (M : Type u), [AddCommGroup M] → [Module A M] → [Module.Finite A M] → Prop :=
         fun M _ _ _ => (∀ x : M, (C d : A) • x = 0) →
           (∀ r : R, r ∈ I → ∀ x : M, (C r : A) • x = 0) → HasFiniteFreeResolution A M
@@ -509,68 +462,15 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
         · intro M _ _ _ _ _ _
           exact hasFiniteFreeResolution_of_subsingleton M
         · intro M _ _ _ p' eM hAnn_dM hAnn_IM
-          have hCd0_M : (C d : A) • (1 : A ⧸ p'.1) = 0 := by
-            have h := hAnn_dM (eM.symm (1 : A ⧸ p'.1))
-            have h' : eM ((C d : A) • eM.symm (1 : A ⧸ p'.1)) = eM (0 : M) := congrArg eM h
-            have hs :
-                eM ((C d : A) • eM.symm (1 : A ⧸ p'.1)) = (C d : A) • eM (eM.symm (1 : A ⧸ p'.1)) :=
-              eM.map_smul (C d : A) (eM.symm (1 : A ⧸ p'.1))
-            have h'' : (C d : A) • eM (eM.symm (1 : A ⧸ p'.1)) = eM (0 : M) := by
-              calc _ = eM ((C d : A) • eM.symm (1 : A ⧸ p'.1)) := hs.symm
-                _ = eM (0 : M) := h'
-            have : (C d : A) • eM (eM.symm (1 : A ⧸ p'.1)) = (0 : A ⧸ p'.1) :=
-              h''.trans eM.map_zero
-            have h1 : eM (eM.symm (1 : A ⧸ p'.1)) = (1 : A ⧸ p'.1) :=
-              eM.apply_symm_apply (1 : A ⧸ p'.1)
-            rwa [← h1]
-          have hCd_mem : (C d : A) ∈ p'.1 := by
-            have hmk : (Ideal.Quotient.mk p'.1 (C d : A) : A ⧸ p'.1) = 0 := by
-              have hAlgebraMap : (algebraMap A (A ⧸ p'.1)) = Ideal.Quotient.mk p'.1 := rfl
-              have hmul : (Ideal.Quotient.mk p'.1 (C d : A) : A ⧸ p'.1) * 1 = 0 := by
-                simpa [Algebra.smul_def, hAlgebraMap] using hCd0_M
-              calc
-                (Ideal.Quotient.mk p'.1 (C d : A) : A ⧸ p'.1)
-                    = (Ideal.Quotient.mk p'.1 (C d : A) : A ⧸ p'.1) * 1 := by
-                      symm
-                      exact mul_one _
-                _ = 0 := hmul
-            exact (Ideal.Quotient.eq_zero_iff_mem).1 hmk
+          have hCd_mem : (C d : A) ∈ p'.1 :=
+            mem_ideal_of_smul_eq_zero_of_equiv_quotient p'.1 eM hAnn_dM
           have hI_le_contr : I ≤ Ideal.comap (C : R →+* A) p'.1 := by
             intro r hrI
-            have hCr0_M : (C r : A) • (1 : A ⧸ p'.1) = 0 := by
-              have h := hAnn_IM r hrI (eM.symm (1 : A ⧸ p'.1))
-              have h' : eM ((C r : A) • eM.symm (1 : A ⧸ p'.1)) = eM (0 : M) := congrArg eM h
-              have hs : eM ((C r : A) • eM.symm (1 : A ⧸ p'.1)) =
-                  (C r : A) • eM (eM.symm (1 : A ⧸ p'.1)) :=
-                eM.map_smul (C r : A) (eM.symm (1 : A ⧸ p'.1))
-              have h'' : (C r : A) • eM (eM.symm (1 : A ⧸ p'.1)) = eM (0 : M) := by
-                calc _ = eM ((C r : A) • eM.symm (1 : A ⧸ p'.1)) := hs.symm
-                  _ = eM (0 : M) := h'
-              have : (C r : A) • eM (eM.symm (1 : A ⧸ p'.1)) = (0 : A ⧸ p'.1) :=
-                h''.trans eM.map_zero
-              have h1 : eM (eM.symm (1 : A ⧸ p'.1)) = (1 : A ⧸ p'.1) :=
-                eM.apply_symm_apply (1 : A ⧸ p'.1)
-              rwa [← h1]
-            have hCr_mem : (C r : A) ∈ p'.1 := by
-              have hmk : (Ideal.Quotient.mk p'.1 (C r : A) : A ⧸ p'.1) = 0 := by
-                have hAlgebraMap : (algebraMap A (A ⧸ p'.1)) = Ideal.Quotient.mk p'.1 := rfl
-                have hmul : (Ideal.Quotient.mk p'.1 (C r : A) : A ⧸ p'.1) * 1 = 0 := by
-                  simpa [Algebra.smul_def, hAlgebraMap] using hCr0_M
-                calc
-                  (Ideal.Quotient.mk p'.1 (C r : A) : A ⧸ p'.1)
-                      = (Ideal.Quotient.mk p'.1 (C r : A) : A ⧸ p'.1) * 1 := by
-                        symm
-                        exact mul_one _
-                  _ = 0 := hmul
-              exact (Ideal.Quotient.eq_zero_iff_mem).1 hmk
-            simpa [Ideal.mem_comap] using hCr_mem
+            exact mem_ideal_of_smul_eq_zero_of_equiv_quotient p'.1 eM (hAnn_IM r hrI)
           have hlt : Ideal.comap (C : R →+* A) p'.1 > I := by
             refine lt_of_le_of_ne hI_le_contr ?_
             intro hEq
-            have : d ∈ I := by
-              have : d ∈ Ideal.comap (C : R →+* A) p'.1 := by
-                simpa [Ideal.mem_comap] using hCd_mem
-              simpa [hEq] using this
+            have : d ∈ I := by simpa [hEq] using hCd_mem
             exact hd_not_mem this
           have hquot : HasFiniteFreeResolution A (A ⧸ p'.1) :=
             ih (Ideal.comap (C : R →+* A) p'.1) hlt p' rfl
@@ -597,7 +497,8 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
           have h₁' : HasFiniteFreeResolution A M₁ := h₁ hAnn_d1 hAnn_I1
           have h₃' : HasFiniteFreeResolution A M₃ := h₃ hAnn_d3 hAnn_I3
           exact hasFiniteFreeResolution_of_shortExact_of_left_of_right f g hf hg hfg h₁' h₃'
-      exact hN' hAnn_d hAnn_I
+      exact hN' (smul_zero_of_smul_mem K hsmul_d_mem_K) <|
+        fun r hrI => smul_zero_of_smul_mem K (hsmul_I_mem_K r hrI)
     have hI_res : HasFiniteFreeResolution R I := hR I inferInstance
     have hIA_res : HasFiniteFreeResolution A IA :=
       hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution I hI_res
@@ -605,20 +506,20 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     have hB : HasFiniteFreeResolution A B :=
       hasFiniteFreeResolution_of_shortExact_of_left_of_middle IA.subtype (Submodule.mkQ IA)
         Subtype.coe_injective (Submodule.mkQ_surjective IA)
-        (by simpa using LinearMap.exact_subtype_mkQ IA) hIA_res hA
+        (by exact LinearMap.exact_subtype_mkQ IA) hIA_res hA
     have : IsDomain B := MulEquiv.isDomain A₀ e.symm.toMulEquiv
     have hFbar : HasFiniteFreeResolution A Fbar :=
       hasFiniteFreeResolution_of_linearEquiv
         ((linearEquiv_mul_spanSingleton hfbar_ne).restrictScalars A) hB
     have hK : HasFiniteFreeResolution A K :=
-      have hFsub : HasFiniteFreeResolution A Fsub := by simpa [Fsub] using hFbar
+      have hFsub : HasFiniteFreeResolution A Fsub := by exact hFbar
       hasFiniteFreeResolution_of_linearEquiv (Submodule.comapSubtypeEquivOfLe hFsub_le).symm hFsub
     have hPbar : HasFiniteFreeResolution A Psub := by
       -- Short exact sequence `0 → K → Psub → N → 0`.
       refine hasFiniteFreeResolution_of_shortExact_of_left_of_right
         ((K.subtype).restrictScalars A) (Submodule.mkQ K) Subtype.coe_injective
         (Submodule.mkQ_surjective K) ?_ hK hN
-      simpa using LinearMap.exact_subtype_mkQ K
+      exact LinearMap.exact_subtype_mkQ K
     let fIP : IA →ₗ[A] P := Submodule.inclusion hIA_le_P
     let gPP : P →ₗ[A] Pbar :=
       { toFun := fun x => ⟨π x.1, Ideal.mem_map_of_mem π x.2⟩
@@ -657,12 +558,12 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     have hP : HasFiniteFreeResolution A P :=
       -- Use `0 → IA → P → Pbar → 0`.
       hasFiniteFreeResolution_of_shortExact_of_left_of_right fIP gPP hfIP hgPP hexPP
-        hIA_res <| by simpa only [Psub] using hPbar
+        hIA_res <| by exact hPbar
     -- Finally, `0 → P → A → A ⧸ P → 0`.
     have hquot : HasFiniteFreeResolution A (A ⧸ P) :=
       hasFiniteFreeResolution_of_shortExact_of_left_of_middle P.subtype (Submodule.mkQ P)
         Subtype.coe_injective (Submodule.mkQ_surjective P)
-        (by simpa only [Submodule.coe_subtype] using LinearMap.exact_subtype_mkQ P) hP hA
+        (by exact LinearMap.exact_subtype_mkQ P) hP hA
     exact hquot
 
 variable (R)
@@ -671,7 +572,7 @@ theorem hasFiniteFreeResolution_quotient_prime [IsNoetherianRing R]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P)
     (p : PrimeSpectrum (R[X])) : HasFiniteFreeResolution (R[X]) (R[X] ⧸ p.1) := by
-  simpa using hasFiniteFreeResolution_quotient_prime_aux hR (Ideal.comap (C : R →+* R[X]) p.1) p rfl
+  exact hasFiniteFreeResolution_quotient_prime_aux hR (Ideal.comap (C : R →+* R[X]) p.1) p rfl
 
 /-- Let `R` be a noetherian ring such that every finitely generated `R`-module admits a finite
 free resolution. Then the same property holds for finitely generated `R[X]`-modules. -/
@@ -761,9 +662,9 @@ private theorem hasFiniteFreeResolutionOfLength_of_ringEquiv
             rw [g.map_smul]
             simpa using (hcompatM (e.symm b) (g x)).symm }
       refine HasFiniteFreeResolutionOfLength.succ M n F K fB gB
-        (by simpa [fB] using hf)
-        (by simpa [gB] using hg)
-        (by simpa [fB, gB] using he)
+        hf
+        hg
+        he
         (ih hcompatK)
 
 private theorem hasFiniteFreeResolution_of_ringEquiv
