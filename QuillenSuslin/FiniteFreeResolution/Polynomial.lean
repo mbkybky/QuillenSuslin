@@ -8,9 +8,10 @@ import Mathlib.RingTheory.Ideal.IsPrincipal
 import Mathlib.RingTheory.Ideal.Quotient.Noetherian
 import Mathlib.RingTheory.PicardGroup
 import Mathlib.RingTheory.Polynomial.Quotient
+import QuillenSuslin.FiniteFreeResolution.BaseChange
 import QuillenSuslin.FiniteFreeResolution.Exact
 
-universe u v w z
+universe u v w
 
 variable {R : Type u} [CommRing R]
 
@@ -64,37 +65,13 @@ private noncomputable def polynomialModuleIdealMapCLinearEquiv (I : Ideal R) :
   exact eI.trans <| (LinearEquiv.ofInjective φ hφ_inj).trans <|
     LinearEquiv.ofEq _ _ hφ_range
 
-/-- Extending scalars along `C : R →+* R[X]` preserves finite free resolutions. -/
-private theorem hasFiniteFreeResolutionOfLength_polynomialTensorProduct
-    {P : Type u} [AddCommGroup P] [Module R P] {n : ℕ}
-    (hP : HasFiniteFreeResolutionOfLength R P n) :
-    HasFiniteFreeResolutionOfLength R[X] (R[X] ⊗[R] P) n := by
-  induction hP with
-  | zero P =>
-      exact HasFiniteFreeResolutionOfLength.zero (R[X] ⊗[R] P)
-  | succ P n F K f g hf hg he hk ih =>
-      refine HasFiniteFreeResolutionOfLength.succ (R[X] ⊗[R] P) n
-        (R[X] ⊗[R] F) (R[X] ⊗[R] K)
-        (AlgebraTensorModule.lTensor R[X] R[X] f)
-        (AlgebraTensorModule.lTensor R[X] R[X] g) ?_ ?_ ?_ ih
-      · simpa using Module.Flat.lTensor_preserves_injective_linearMap (M := R[X]) f hf
-      · simpa using (LinearMap.lTensor_surjective (Q := R[X]) (g := g) hg)
-      · simpa using Module.Flat.lTensor_exact (M := R[X]) he
-
-private theorem hasFiniteFreeResolutionOfLength_polynomialModule
-    {P : Type u} [AddCommGroup P] [Module R P] {n : ℕ}
-    (hP : HasFiniteFreeResolutionOfLength R P n) :
-    HasFiniteFreeResolutionOfLength R[X] (PolynomialModule R P) n := by
-  exact hasFiniteFreeResolutionOfLength_of_linearEquiv
-    (PolynomialModule.polynomialTensorProductLEquivPolynomialModule R P)
-    (hasFiniteFreeResolutionOfLength_polynomialTensorProduct hP)
-
 private theorem hasFiniteFreeResolution_polynomialModule
     {P : Type u} [AddCommGroup P] [Module R P]
     (hP : HasFiniteFreeResolution R P) :
     HasFiniteFreeResolution R[X] (PolynomialModule R P) := by
-  rcases hP with ⟨n, hn⟩
-  exact ⟨n, hasFiniteFreeResolutionOfLength_polynomialModule hn⟩
+  exact hasFiniteFreeResolution_of_linearEquiv
+    (PolynomialModule.polynomialTensorProductLEquivPolynomialModule R P)
+    (hasFiniteFreeResolution_tensorProduct_of_flat (A := R[X]) hP)
 
 /-- Push a finite free resolution of an `R`-ideal `I` to a resolution of `I · R[X]`. -/
 theorem hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
@@ -455,93 +432,6 @@ theorem polynomial_hasFiniteFreeResolution_of_isNoetherianRing [IsNoetherianRing
         hasFiniteFreeResolution_of_shortExact_of_left_of_right f g hf hg hfg h₁ h₃)
 
 end polynomial
-
-private noncomputable def compatLinearEquiv {A : Type u} {B : Type w}
-    [Semiring A] [Semiring B] {M : Type z} [AddCommMonoid M] [Module A M] [Module B M]
-    (e : A ≃+* B) (hcompat : ∀ (a : A) (x : M), (e a : B) • x = (a : A) • x) := by
-  let : RingHomInvPair (e : A →+* B) (e.symm : B →+* A) := RingHomInvPair.of_ringEquiv e
-  let : RingHomInvPair (e.symm : B →+* A) (e : A →+* B) := RingHomInvPair.of_ringEquiv_symm e
-  show M ≃ₛₗ[(e : A →+* B)] M
-  exact {
-    toFun := id
-    invFun := id
-    left_inv _ := rfl
-    right_inv _ := rfl
-    map_add' _ _ := rfl
-    map_smul' := by
-      intro a x
-      exact (hcompat a x).symm
-  }
-
-private theorem hasFiniteFreeResolutionOfLength_of_ringEquiv
-    {A : Type u} {B : Type w} [CommRing A] [CommRing B] [Small.{z} A] [Small.{z} B]
-    (e : A ≃+* B) :
-    ∀ {M : Type z} [AddCommGroup M] [Module A M] {n : ℕ},
-      HasFiniteFreeResolutionOfLength A M n →
-      ∀ [Module B M], (∀ (a : A) (x : M), (e a : B) • x = (a : A) • x) →
-        HasFiniteFreeResolutionOfLength B M n := by
-  intro M _ _ n hn
-  induction hn with
-  | zero M =>
-      intro _ hcompat
-      letI : RingHomInvPair (e : A →+* B) (e.symm : B →+* A) := RingHomInvPair.of_ringEquiv e
-      letI : RingHomInvPair (e.symm : B →+* A) (e : A →+* B) := RingHomInvPair.of_ringEquiv_symm e
-      let eM := compatLinearEquiv e hcompat
-      have : Module.Finite B M := (LinearMap.finite_iff_of_bijective
-        (eM : M →ₛₗ[(e : A →+* B)] M) eM.bijective).1 inferInstance
-      have : Module.Free B M := Module.Free.of_equiv eM
-      exact HasFiniteFreeResolutionOfLength.zero M
-  | succ M n F K f g hf hg he hk ih =>
-      intro _ hcompatM
-      letI : RingHomInvPair (e : A →+* B) (e.symm : B →+* A) := RingHomInvPair.of_ringEquiv e
-      letI : RingHomInvPair (e.symm : B →+* A) (e : A →+* B) := RingHomInvPair.of_ringEquiv_symm e
-      let : Module B F := Module.compHom F (e.symm : B →+* A)
-      let : Module B K := Module.compHom K (e.symm : B →+* A)
-      have hcompatF : ∀ (a : A) (x : F), (e a : B) • x = (a : A) • x := by
-        intro a x
-        change ((e.symm (e a) : A) • x) = a • x
-        simp
-      have hcompatK : ∀ (a : A) (x : K), (e a : B) • x = (a : A) • x := by
-        intro a x
-        change ((e.symm (e a) : A) • x) = a • x
-        simp
-      let eF := compatLinearEquiv e hcompatF
-      let eK := compatLinearEquiv e hcompatK
-      have : Module.Finite B F := (LinearMap.finite_iff_of_bijective
-        (eF : F →ₛₗ[(e : A →+* B)] F) eF.bijective).1 inferInstance
-      have : Module.Free B F := Module.Free.of_equiv eF
-      have : Module.Finite B K := (LinearMap.finite_iff_of_bijective
-        (eK : K →ₛₗ[(e : A →+* B)] K) eK.bijective).1 inferInstance
-      let fB : K →ₗ[B] F :=
-        { toFun := f
-          map_add' := f.map_add
-          map_smul' := by
-            intro b x
-            exact f.map_smul (e.symm b) x }
-      let gB : F →ₗ[B] M :=
-        { toFun := g
-          map_add' := g.map_add
-          map_smul' := by
-            intro b x
-            change g ((e.symm b : A) • x) = b • g x
-            rw [g.map_smul]
-            simpa using (hcompatM (e.symm b) (g x)).symm }
-      refine HasFiniteFreeResolutionOfLength.succ M n F K fB gB
-        hf
-        hg
-        he
-        (ih hcompatK)
-
-private theorem hasFiniteFreeResolution_of_ringEquiv
-    {A : Type u} {B : Type w} [CommRing A] [CommRing B] [Small.{z} A] [Small.{z} B]
-    (e : A ≃+* B) :
-    ∀ {M : Type z} [AddCommGroup M] [Module A M],
-      HasFiniteFreeResolution A M →
-      ∀ [Module B M], (∀ (a : A) (x : M), (e a : B) • x = (a : A) • x) →
-        HasFiniteFreeResolution B M := by
-  intro M _ _ hM _ hcompat
-  rcases hM with ⟨n, hn⟩
-  exact ⟨n, hasFiniteFreeResolutionOfLength_of_ringEquiv e hn hcompat⟩
 
 section MvPolynomial
 
