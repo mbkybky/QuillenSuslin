@@ -26,6 +26,14 @@ lemma IsLocalRing.exists_mem_maximalIdeal_not_mem_sq [IsLocalRing R] [IsNoetheri
   obtain ⟨x, rfl⟩ := Ideal.toCotangent_surjective (maximalIdeal R) u
   exact ⟨x, x.2, by simpa [Ideal.toCotangent_eq_zero] using hu⟩
 
+lemma ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal [IsLocalRing R] [IsNoetherianRing R]
+    {P : Ideal R} [P.IsPrime] (hP_lt_max : P < IsLocalRing.maximalIdeal R) :
+    ringKrullDim (Localization.AtPrime P) < ringKrullDim R := by
+  apply (IsLocalization.AtPrime.ringKrullDim_eq_height P _).trans_lt
+  apply lt_of_lt_of_eq ?_ IsLocalRing.maximalIdeal_primeHeight_eq_ringKrullDim
+  rw [Ideal.height_eq_primeHeight]
+  exact_mod_cast Ideal.primeHeight_strict_mono hP_lt_max
+
 private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd
     [IsRegularLocalRing R] {x : R} (hxmem : x ∈ IsLocalRing.maximalIdeal R) (hxp : Prime x)
     (hP : ∀ (P : Ideal R) [P.IsPrime] (_ : P < IsLocalRing.maximalIdeal R),
@@ -119,11 +127,8 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
             (Ideal.Quotient.isDomain_iff_prime _).1 inferInstance
           have hP (P : Ideal S) [P.IsPrime] (hP_lt_max : P < IsLocalRing.maximalIdeal S) :
               UniqueFactorizationMonoid (Localization.AtPrime P) := by
-            have hdim_loc_lt : ringKrullDim (Localization.AtPrime P) < ringKrullDim S := by
-              apply (IsLocalization.AtPrime.ringKrullDim_eq_height P _).trans_lt
-              apply lt_of_lt_of_eq ?_ IsLocalRing.maximalIdeal_primeHeight_eq_ringKrullDim
-              rw [Ideal.height_eq_primeHeight]
-              exact_mod_cast Ideal.primeHeight_strict_mono hP_lt_max
+            have hdim_loc_lt : ringKrullDim (Localization.AtPrime P) < ringKrullDim S :=
+              ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal hP_lt_max
             have : IsRegularLocalRing _ := isRegularLocalRing_localization S P
             obtain ⟨k, hk⟩ := exist_nat_eq (Localization.AtPrime P)
             exact ih k (ENat.coe_lt_coe.mp <| WithBot.coe_lt_coe.mp <|
