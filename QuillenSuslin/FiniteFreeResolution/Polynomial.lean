@@ -136,7 +136,7 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] {P : Ideal (R[X])}
     intro hfK0
     apply hPext_ne
     rw [← hPext_span, hfK0, Ideal.span_singleton_zero]
-  have hq0 : ∀ a : ↥s, ∃ q : K[X], q * fK = (a : R[X]).map i := by
+  have hq0 : ∀ a : s, ∃ q : K[X], q * fK = (a : R[X]).map i := by
     intro a
     have haP : (a : R[X]) ∈ P := by
       simpa [hs] using (Ideal.subset_span a.2 : (a : R[X]) ∈ Ideal.span (s : Set (R[X])))
@@ -145,7 +145,7 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] {P : Ideal (R[X])}
       simpa [hPext_span] using haPext
     exact (Ideal.mem_span_singleton'.1 haSpan)
   choose q hq using hq0
-  let v : ↥s → K[X] := fun a => (a : R[X]).map i
+  let v : s → K[X] := fun a => (a : R[X]).map i
   have hspan : Ideal.span (Set.range v) = Pext := by
     simp [Pext, ← hs, Ideal.map_span]
     congr
@@ -163,18 +163,18 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] {P : Ideal (R[X])}
     intro h0
     apply hd0
     exact hi (by simpa using h0)
-  have hqInt : ∀ a : ↥s, IsLocalization.IsInteger (R[X]) ((b : R[X]) • q a) := by
+  have hqInt : ∀ a : s, IsLocalization.IsInteger (R[X]) ((b : R[X]) • q a) := by
     intro a
     exact hb (q a) (Finset.mem_biUnion.2 ⟨a, by simp, by simp⟩)
   choose qR hqR using hqInt
-  have hcInt : ∀ a : ↥s, IsLocalization.IsInteger (R[X]) ((b : R[X]) • c a) := by
+  have hcInt : ∀ a : s, IsLocalization.IsInteger (R[X]) ((b : R[X]) • c a) := by
     intro a
     exact hb (c a) (Finset.mem_biUnion.2 ⟨a, by simp, by simp⟩)
   choose cR hcR using hcInt
-  have hqR' : ∀ a : ↥s, Polynomial.map i (qR a) = C (i d) * q a := by
+  have hqR' : ∀ a : s, Polynomial.map i (qR a) = C (i d) * q a := by
     intro a
     simpa [Algebra.smul_def, hbEq, Polynomial.map_C] using hqR a
-  have hcR' : ∀ a : ↥s, Polynomial.map i (cR a) = C (i d) * c a := by
+  have hcR' : ∀ a : s, Polynomial.map i (cR a) = C (i d) * c a := by
     intro a
     simpa [Algebra.smul_def, hbEq, Polynomial.map_C] using hcR a
   let f : R[X] := ∑ a, cR a * (a : R[X])
@@ -196,7 +196,7 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] {P : Ideal (R[X])}
       rw [hmap_f]
       exact mul_ne_zero hCd_ne hfK_ne
     exact this (by simp [hf0])
-  have hgen : ∀ a : ↥s, C (d * d) * (a : R[X]) ∈ Ideal.span ({f} : Set (R[X])) := by
+  have hgen : ∀ a : s, C (d * d) * (a : R[X]) ∈ Ideal.span ({f} : Set (R[X])) := by
     intro a
     refine Ideal.mem_span_singleton'.2 ?_
     refine ⟨qR a, ?_⟩

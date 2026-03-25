@@ -491,6 +491,7 @@ theorem unimodularVectorEquiv_modByMonic_all (o : s) (v : s → R[X]) (ho : (v o
     simp [w, hio]
 
 omit [DecidableEq s] in
+set_option backward.isDefEq.respectTransparency false in
 /-- Over a local ring, a unimodular vector with a monic component of positive degree has another
 component with a coefficient that is a unit. -/
 theorem exists_unit_coeff_of_isUnimodular [IsLocalRing R] (o : s) (v : s → R[X])
@@ -529,15 +530,7 @@ theorem exists_unit_coeff_of_isUnimodular [IsLocalRing R] (o : s) (v : s → R[X
     have hdeg' : 0 < (F (v o)).natDegree := by
       have hcoeff : (F (v o)).coeff (v o).natDegree = 1 := by
         simp [F, Polynomial.coeff_map, ho.coeff_natDegree]
-      have hne : (F (v o)).coeff (v o).natDegree ≠ 0 := by
-        have h10 : (1 : k) ≠ 0 := by
-          intro h10
-          have hm_ne_top : m ≠ ⊤ := by
-            simpa [m] using (IsLocalRing.maximalIdeal.isMaximal R).ne_top
-          have h1m : (1 : R) ∈ m := by
-            simpa [f] using (Ideal.Quotient.eq_zero_iff_mem (a := (1 : R))).1 h10
-          exact hm_ne_top ((Ideal.eq_top_iff_one _).2 h1m)
-        simpa [hcoeff] using h10
+      have hne : (F (v o)).coeff (v o).natDegree ≠ 0 := by simp [hcoeff]
       have hle : (v o).natDegree ≤ (F (v o)).natDegree := le_natDegree_of_ne_zero hne
       exact lt_of_lt_of_le hd hle
     exact (Polynomial.not_isUnit_of_natDegree_pos (F (v o)) hdeg') hunit

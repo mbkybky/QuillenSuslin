@@ -30,25 +30,32 @@ def HasFiniteFreeResolution (R : Type u) [CommRing R] [Small.{v} R]
 
 variable {R : Type u} [CommRing R] [Small.{v} R]
 
-/-- A subsingleton finitely generated module has a finite free resolution. -/
-theorem hasFiniteFreeResolution_of_subsingleton (M : Type v)
-    [AddCommGroup M] [Module R M] [Module.Finite R M] [Subsingleton M] :
-    HasFiniteFreeResolution R M :=
+/-- A finitely generated free module has a finite free resolution of length `0`. -/
+theorem hasFiniteFreeResolution_of_finite_of_free (M : Type v) [AddCommGroup M] [Module R M]
+    [Module.Finite R M] [Module.Free R M] : HasFiniteFreeResolution R M :=
   ⟨0, HasFiniteFreeResolutionOfLength.zero M⟩
 
-/-- A finitely generated free module has a finite free resolution of length `0`. -/
-theorem hasFiniteFreeResolution_of_finite_of_free (M : Type v)
-    [AddCommGroup M] [Module R M] [Module.Finite R M] [Module.Free R M] :
-    HasFiniteFreeResolution R M :=
-  ⟨0, HasFiniteFreeResolutionOfLength.zero M⟩
+/-- A subsingleton module has a finite free resolution. -/
+theorem hasFiniteFreeResolution_of_subsingleton (M : Type v)
+    [AddCommGroup M] [Module R M] [Subsingleton M] : HasFiniteFreeResolution R M :=
+  hasFiniteFreeResolution_of_finite_of_free M
+
+theorem moduleFinite_of_hasFiniteFreeResolutionOfLength {P : Type v} [AddCommGroup P] [Module R P]
+    {n : ℕ} (hP : HasFiniteFreeResolutionOfLength R P n) : Module.Finite R P := by
+  induction hP with
+  | zero => infer_instance
+  | succ P n F K f g hf hg he hk ih => exact Module.Finite.of_surjective g hg
+
+theorem moduleFinite_of_hasFiniteFreeResolution {P : Type v} [AddCommGroup P] [Module R P]
+    (hP : HasFiniteFreeResolution R P) : Module.Finite R P := by
+  rcases hP with ⟨n, hn⟩
+  exact moduleFinite_of_hasFiniteFreeResolutionOfLength hn
 
 /-- A semilinear equivalence over mutually inverse ring homomorphisms preserves finite free
 resolutions. -/
-theorem hasFiniteFreeResolutionOfLength_of_semilinearEquiv
-    {S : Type u'} [CommRing S] [Small.{v'} S] {σ : R →+* S} {σ' : S →+* R}
-    [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
-    {P : Type v} [AddCommGroup P] [Module R P] {n : ℕ}
-    (hn : HasFiniteFreeResolutionOfLength R P n)
+theorem hasFiniteFreeResolutionOfLength_of_semilinearEquiv {S : Type u'} [CommRing S] [Small.{v'} S]
+    {σ : R →+* S} {σ' : S →+* R} [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
+    {P : Type v} [AddCommGroup P] [Module R P] {n : ℕ} (hn : HasFiniteFreeResolutionOfLength R P n)
     {Q : Type v'} [AddCommGroup Q] [Module S Q] (e : P ≃ₛₗ[σ] Q) :
     HasFiniteFreeResolutionOfLength S Q n := by
   induction hn generalizing Q with
@@ -148,20 +155,13 @@ theorem hasFiniteFreeResolution_of_linearEquiv {P : Type v} {Q : Type w}
   rcases hn with ⟨n, hn⟩
   exact ⟨n, hasFiniteFreeResolutionOfLength_of_linearEquiv e hn⟩
 
-omit [Small.{w} R] in
-theorem moduleFinite_of_hasFiniteFreeResolution {P : Type v} [AddCommGroup P] [Module R P]
-    (hP : HasFiniteFreeResolution R P) : Module.Finite R P := by
-  rcases hP with ⟨n, hn⟩
-  induction hn with
-  | zero => infer_instance
-  | succ P n F K f g hf hg he hk ih => exact Module.Finite.of_surjective g hg
-
 theorem hasFiniteFreeResolutionOfLength_of_ker_hasFiniteFreeResolutionOfLength
     {P : Type v} {F : Type*} {K : Type w} [AddCommGroup P] [Module R P] [AddCommGroup F]
     [Module R F] [Module.Finite R F] [Module.Free R F] [AddCommGroup K] [Module R K]
-    [Module.Finite R K] (i : K →ₗ[R] F) (s : F →ₗ[R] P) (hi : Function.Injective i)
+    (i : K →ₗ[R] F) (s : F →ₗ[R] P) (hi : Function.Injective i)
     (hs : Function.Surjective s) (he : Function.Exact i s) {n : ℕ}
     (hk : HasFiniteFreeResolutionOfLength R K n) : HasFiniteFreeResolutionOfLength R P (n + 1) := by
+  have : Module.Finite R K := moduleFinite_of_hasFiniteFreeResolutionOfLength hk
   have : Small.{v} F := Module.Finite.small.{v} R F
   have : Small.{v} K := Module.Finite.small.{v} R K
   have eF : Shrink.{v} F ≃ₗ[R] F := Shrink.linearEquiv R F
@@ -176,9 +176,8 @@ theorem hasFiniteFreeResolutionOfLength_of_ker_hasFiniteFreeResolutionOfLength
 
 theorem hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution {P : Type v} {F : Type*} {K : Type w}
     [AddCommGroup P] [Module R P] [AddCommGroup F] [Module R F] [Module.Finite R F]
-    [Module.Free R F] [AddCommGroup K] [Module R K] [Module.Finite R K]
-    (i : K →ₗ[R] F) (s : F →ₗ[R] P) (hi : Function.Injective i)
-    (hs : Function.Surjective s) (he : Function.Exact i s)
+    [Module.Free R F] [AddCommGroup K] [Module R K] (i : K →ₗ[R] F) (s : F →ₗ[R] P)
+    (hi : Function.Injective i) (hs : Function.Surjective s) (he : Function.Exact i s)
     (hk : HasFiniteFreeResolution R K) : HasFiniteFreeResolution R P := by
   rcases hk with ⟨n, hk⟩
   exact ⟨n + 1,

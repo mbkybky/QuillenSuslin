@@ -25,7 +25,7 @@ variable {R : Type*} [CommRing R]
 
 section lemmas
 
-theorem Ideal.primeHeight_eq_zero_iff_eq_bot [IsDomain R] (p : Ideal R) [p.IsPrime] :
+theorem Ideal.primeHeight_eq_zero_iff_eq_bot [IsDomain R] {p : Ideal R} [p.IsPrime] :
     p.primeHeight = 0 ↔ p = ⊥ := by
   rw [Ideal.primeHeight_eq_zero_iff, IsDomain.minimalPrimes_eq_singleton_bot R, Set.mem_singleton_iff]
 
@@ -48,7 +48,7 @@ theorem Ideal.ufd_iff_height_one_primes_principal :
   apply (UniqueFactorizationMonoid.iff_exists_prime_mem_of_isPrime).trans
   constructor
   · intro hufd p hp h1
-    have hp_ne_bot : p ≠ ⊥ := (Ideal.primeHeight_eq_zero_iff_eq_bot p).not.1 (ne_zero_of_eq_one h1)
+    have hp_ne_bot : p ≠ ⊥ := p.primeHeight_eq_zero_iff_eq_bot.not.1 (ne_zero_of_eq_one h1)
     rcases hufd p hp_ne_bot hp with ⟨x, hxmem, hxprime⟩
     have hx0 : x ≠ 0 := hxprime.ne_zero
     have hspan_prime : (Ideal.span {x}).IsPrime := (Ideal.span_singleton_prime hx0).2 hxprime
@@ -79,7 +79,7 @@ theorem Ideal.ufd_iff_height_one_primes_principal :
         Ideal.height_le_one_of_isPrincipal_of_mem_minimalPrimes (Ideal.span {x}) p hpmin
     have : p.IsPrincipal := hprincipal p <|
       le_antisymm hp_primeHeight_le <| ENat.one_le_iff_ne_zero.2 <|
-        (Ideal.primeHeight_eq_zero_iff_eq_bot p).not.2 hp_ne_bot
+        p.primeHeight_eq_zero_iff_eq_bot.not.2 hp_ne_bot
     exact ⟨Submodule.IsPrincipal.generator p, hp_le_I (Submodule.IsPrincipal.generator_mem p),
       Submodule.IsPrincipal.prime_generator_of_isPrime p hp_ne_bot⟩
 
