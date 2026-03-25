@@ -92,9 +92,8 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
               have hxy0 : y.1 + t k = 0 := hf <| by simpa [add_comm] using hsum
               exact ⟨k, Prod.ext (by simp [i, eq_neg_iff_add_eq_zero.mpr hxy0]) hk⟩
             · rintro ⟨k, rfl⟩
-              simpa [i, s] using
-                congrArg (fun z => -z + l (f₃ k))
-                  (leftLiftOfRightLift_apply f g f₃ g₃ hf h he₃ l hl k)
+              simpa [i, s] using congrArg (fun z => - z + l (f₃ k))
+                (leftLiftOfRightLift_apply f g f₃ g₃ hf h he₃ l hl k)
   | succ P₁ n F₁ K₁ f₁ g₁ hf₁ hg₁ he₁ hk₁ ih =>
       rcases h₃ with ⟨n₃, h₃⟩
       cases h₃ with
