@@ -8,7 +8,6 @@ import QuillenSuslin.PicardGroup
 import QuillenSuslin.StablyFree.Basic
 import QuillenSuslin.StablyFree.FreeOfLocalizedEq
 import QuillenSuslin.StablyFree.HasFiniteFreeResolution
-import QuillenSuslin.StablyFree.Polynomial
 import QuillenSuslin.UFD.Lemmas
 import QuillenSuslin.UFD.Regular
 import QuillenSuslin.UnimodularVector.Basic

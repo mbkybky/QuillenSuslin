@@ -89,13 +89,12 @@ lemma leadingCoeff_mul_le (I J : Ideal A[X]) :
 
 lemma leadingCoeff_pow_le (I : Ideal A[X]) : ∀ n : ℕ, I.leadingCoeff ^ n ≤ (I ^ n).leadingCoeff
    | 0 => by
-       simp [pow_zero, Ideal.one_eq_top, leadingCoeff_top]
+        simp [pow_zero, Ideal.one_eq_top, leadingCoeff_top]
    | n + 1 => by
-       have h₁ : I.leadingCoeff ^ n ≤ (I ^ n).leadingCoeff := leadingCoeff_pow_le I n
-       have hmul : (I.leadingCoeff ^ n) * I.leadingCoeff ≤ ((I ^ n) * I).leadingCoeff := by
-         refine le_trans (Ideal.mul_mono_left h₁) ?_
-         simpa [mul_assoc] using leadingCoeff_mul_le (I ^ n) I
-       simpa [pow_succ] using hmul
+        have hmul : (I.leadingCoeff ^ n) * I.leadingCoeff ≤ ((I ^ n) * I).leadingCoeff := by
+          refine le_trans (Ideal.mul_mono_left (leadingCoeff_pow_le I n)) ?_
+          simpa [mul_assoc] using leadingCoeff_mul_le (I ^ n) I
+        simpa [pow_succ] using hmul
 
 lemma leadingCoeff_finset_prod_le (s : Finset (Ideal A[X])) :
     (s.prod fun P => P.leadingCoeff) ≤ (s.prod id).leadingCoeff := by
@@ -374,10 +373,6 @@ lemma finSuccEquiv_map_finSuccEquivLast_apply {R : Type*} [CommRing R] (n : ℕ)
 
 theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontrivial S] (p : S[X][Y])
     (hp : p.leadingCoeff.Monic) : ∃ K : ℕ, (swap ((algEquivAevalXAddC (X ^ K)) p)).Monic := by
-  have hp0 : p ≠ 0 := by
-    intro h
-    have : p.leadingCoeff = 0 := by simp [h]
-    exact hp.ne_zero this
   let N : ℕ := p.natDegree
   let M : ℕ := (Finset.range N).sup fun i => (p.coeff i).natDegree
   let K : ℕ := M + 1
@@ -387,24 +382,23 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontriv
   let swapS : S[X][Y] ≃ₐ[S] _ := Polynomial.Bivariate.swap
   let base : S[X][Y] := (C X) + Y ^ K
   let term : ℕ → S[X][Y] := fun i => swapS (C (p.coeff i)) * base ^ i
+  have hswapC (q : S[X]) : swapS (C q) = Polynomial.map C q := by
+    simpa [swapS] using (Polynomial.Bivariate.swap_C (R := S) q)
+  have hnat_swapC (q : S[X]) : (swapS (C q)).natDegree = q.natDegree := by
+    simpa [hswapC q] using Polynomial.natDegree_map_eq_of_injective C_injective q
   have hτ : τ p =  ∑ i ∈ Finset.range (N + 1), (C (p.coeff i)) * (Y + C t) ^ i := by
     simpa [τ, N, Algebra.smul_def, mul_assoc, mul_left_comm, mul_comm] using
       Polynomial.aeval_eq_sum_range (Y + C t)
   have hswap_YCt : swapS (Y + C t) = base := by
     have hswapY : swapS Y = C X := by
       simpa [swapS] using (Polynomial.Bivariate.swap_Y (R := S))
-    have hswapCt : swapS (C t) = Polynomial.map C t := by
-      simpa [swapS] using (Polynomial.Bivariate.swap_C (R := S) t)
-    simp [map_add, hswapY, hswapCt]
-    simp [base, t, K]
+    simp [base, t, K, map_add, hswapY, hswapC]
   have hswap : swapS (τ p) = ∑ i ∈ Finset.range (N + 1), term i := by
     simpa [term, map_sum, map_mul, map_pow, map_add, hswap_YCt] using congrArg swapS hτ
   let rest : S[X][Y] := ∑ i ∈ Finset.range N, term i
   let main : S[X][Y] := term N
   have hswap' : swapS (τ p) = rest + main := by
-    have hsum : (∑ i ∈ Finset.range (N + 1), term i) = rest + main := by
-      simp [rest, main, Finset.sum_range_succ]
-    simpa [hswap] using (hswap.trans hsum)
+    simp [hswap, rest, main, Finset.sum_range_succ]
   have hK0 : K ≠ 0 := Nat.succ_ne_zero M
   have hbase_monic : base.Monic := by
     simpa [base, add_comm, add_left_comm, add_assoc] using Polynomial.monic_X_pow_add_C X hK0
@@ -412,8 +406,6 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontriv
     simp only [add_comm, natDegree_add_C, natDegree_X_pow, base]
   have hcoeffN : p.coeff N = p.leadingCoeff := by simp [N]
   have hswapLC_monic : (swapS (C p.leadingCoeff)).Monic := by
-    have hswapC : swapS (C p.leadingCoeff) = Polynomial.map (C : S →+* S[X]) p.leadingCoeff := by
-      simpa [swapS] using (Polynomial.Bivariate.swap_C (R := S) p.leadingCoeff)
     simpa [hswapC] using (hp.map (C : S →+* S[X]))
   have hmain_monic : (term N).Monic := by
     have h1 : (swapS (C (p.coeff N))).Monic := by
@@ -427,10 +419,7 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontriv
       Finset.le_sup (f := fun j => (p.coeff j).natDegree) hi_mem
     have hdeg_swapCi : (swapS (C (p.coeff i))).degree ≤ (M : WithBot ℕ) := by
       have hnat : (swapS (C (p.coeff i))).natDegree = (p.coeff i).natDegree := by
-        have hswapC : swapS (C (p.coeff i)) =
-            Polynomial.map (C : S →+* S[X]) (p.coeff i) := by
-          simpa [swapS] using (Polynomial.Bivariate.swap_C (R := S) (p.coeff i))
-        simpa [hswapC] using Polynomial.natDegree_map_eq_of_injective C_injective (p.coeff i)
+        simpa using hnat_swapC (p.coeff i)
       have hdeg_le_nat : (swapS (C (p.coeff i))).degree ≤
           (swapS (C (p.coeff i))).natDegree := Polynomial.degree_le_natDegree
       exact le_trans hdeg_le_nat (by
@@ -453,9 +442,8 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontriv
       refine Finset.sup_le ?_
       intro i hi
       exact (hdeg_term i (Finset.mem_range.1 hi)).trans le_rfl
-    have : rest.degree ≤ (Finset.range N).sup (fun i => (term i).degree) := by
-      simpa [rest] using Polynomial.degree_sum_le (Finset.range N) (fun i => term i)
-    exact le_trans this hsup
+    exact le_trans (by
+      simpa [rest] using Polynomial.degree_sum_le (Finset.range N) (fun i => term i)) hsup
   have hdeg_lt : rest.degree < main.degree := by
     by_cases hN0 : N = 0
     · have hmain0 : main ≠ 0 := by
@@ -466,9 +454,7 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontriv
       simpa [hN0, rest, main] using hdeg0
     have hnat_swapLC : (swapS (C p.leadingCoeff)).natDegree =
         p.leadingCoeff.natDegree := by
-      have hswapC : swapS (C p.leadingCoeff) = Polynomial.map (C : S →+* S[X]) p.leadingCoeff := by
-        simpa [swapS] using (Polynomial.Bivariate.swap_C (R := S) p.leadingCoeff)
-      simpa [hswapC] using Polynomial.natDegree_map_eq_of_injective C_injective p.leadingCoeff
+      simpa using hnat_swapC p.leadingCoeff
     have hnat_baseN : (base ^ N).natDegree = N * K := by
       simpa [hbase_natDegree] using (hbase_monic.natDegree_pow N)
     have hnat_main : main.natDegree = p.leadingCoeff.natDegree + N * K := by
@@ -487,9 +473,7 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {S : Type*} [CommRing S] [Nontriv
         ((p.leadingCoeff.natDegree + N * K : ℕ) : WithBot ℕ) := by
       simpa [hNK, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm, bound] using
         WithBot.coe_lt_coe.2 <| Nat.add_lt_add_right hM_lt_TK ((N - 1) * K)
-    have hmain_eq : ((p.leadingCoeff.natDegree + N * K : ℕ) : WithBot ℕ) = main.degree := by
-      simp [hmain_deg]
-    exact lt_of_le_of_lt hdeg_rest (by simpa [hmain_eq] using hbound_lt)
+    exact lt_of_le_of_lt hdeg_rest (by simpa [hmain_deg] using hbound_lt)
   have : (swapS (τ p)).Monic := by
     simpa [hswap', rest, main, add_comm, add_left_comm, add_assoc] using
       Polynomial.Monic.add_of_right hmain_monic hdeg_lt

@@ -17,20 +17,14 @@ variable {R : Type u} [CommRing R]
 theorem Ideal.isPrincipal_of_free [IsDomain R] {I : Ideal R} [Module.Free R I] : I.IsPrincipal :=
   (Submodule.rank_le_one_iff_isPrincipal I).1 ((Submodule.rank_le I).trans_eq (Module.rank_self R))
 
-set_option backward.isDefEq.respectTransparency false in
 lemma IsLocalRing.exists_mem_maximalIdeal_not_mem_sq [IsLocalRing R] [IsNoetherianRing R] {n : ℕ}
     (hn : ringKrullDim R = n.succ) : ∃ x ∈ maximalIdeal R, x ∉ (maximalIdeal R) ^ 2 := by
-  have hmn : maximalIdeal R ≠ ⊥ := by
-    intro hbot
-    have hf : IsField R := IsLocalRing.isField_iff_maximalIdeal_eq.2 hbot
-    rw [ringKrullDim_eq_zero_of_isField hf, ← Nat.cast_zero, Nat.cast_inj] at hn
-    exact Nat.zero_ne_add_one n hn
-  have hm_sq_lt : maximalIdeal R ^ 2 < maximalIdeal R := by
-    rw [pow_two]
-    exact lt_of_le_of_ne Ideal.mul_le_right <| fun hsq ↦ hmn <|
-      Submodule.eq_bot_of_eq_ideal_smul_of_le_jacobson_annihilator Submodule.FG.of_finite hsq.symm
-        (IsLocalRing.maximalIdeal_le_jacobson (Submodule.annihilator (maximalIdeal R)))
-  exact Set.exists_of_ssubset hm_sq_lt
+  have : Nontrivial (IsLocalRing.CotangentSpace R) := by
+    simpa only [← not_subsingleton_iff_nontrivial, subsingleton_cotangentSpace_iff] using fun hf ↦
+      ((ringKrullDim_eq_zero_of_isField hf).symm.trans hn).not_lt (WithBot.coe_lt_coe.2 (by simp))
+  obtain ⟨u, hu⟩ := exists_ne (0 : CotangentSpace R)
+  obtain ⟨x, rfl⟩ := Ideal.toCotangent_surjective (maximalIdeal R) u
+  exact ⟨x, x.2, by simpa [Ideal.toCotangent_eq_zero] using hu⟩
 
 private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd
     [IsRegularLocalRing R] {x : R} (hxmem : x ∈ IsLocalRing.maximalIdeal R) (hxp : Prime x)
@@ -71,21 +65,13 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd
             P.primeCompl (Localization.AtPrime P) inferInstance hmap_disj, hQheight]
           using (IsLocalization.primeHeight_comap P.primeCompl
             (Ideal.map (algebraMap (Localization.Away x) (Localization.AtPrime P)) Q)).symm
-      have hmap_principal :
-          (Ideal.map (algebraMap (Localization.Away x) (Localization.AtPrime P)) Q).IsPrincipal :=
-        (Ideal.ufd_iff_height_one_primes_principal).1 inferInstance
-          (Ideal.map (algebraMap (Localization.Away x) (Localization.AtPrime P)) Q) hmap_height
-      have hmap_ne_bot : Ideal.map
-          (algebraMap (Localization.Away x) (Localization.AtPrime P)) Q ≠ ⊥ := by
-        intro hbot
-        have h0 : (Ideal.map
-            (algebraMap (Localization.Away x) (Localization.AtPrime P)) Q).primeHeight = 0 := by
-          simp [hbot, Ideal.primeHeight_eq_zero_iff_eq_bot]
-        simp [hmap_height] at h0
-      exact eIdeal.trans (Ideal.isoBaseOfIsPrincipal hmap_ne_bot).symm
+      have := (Ideal.ufd_iff_height_one_primes_principal).1 inferInstance
+        (Ideal.map (algebraMap (Localization.Away x) (Localization.AtPrime P)) Q) hmap_height
+      exact eIdeal.trans <| LinearEquiv.symm <| Ideal.isoBaseOfIsPrincipal <|
+        (Ideal.primeHeight_eq_zero_iff_eq_bot _).not.mp (by simp [hmap_height])
     · exact eIdeal.trans (LinearEquiv.ofTop _ <|
         IsLocalization.AtPrime.map_eq_top_of_not_le (Localization.AtPrime P) hQP)
-  have hQ_projective : Module.Projective (Localization.Away x) Q := by
+  have : Module.Projective (Localization.Away x) Q := by
     have := Module.finitePresentation_of_finite (Localization.Away x) Q
     apply Module.projective_of_localization_maximal
     intro P _
@@ -100,20 +86,18 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd
       Localization.Away x ⧸ Ideal.map (algebraMap R (Localization.Away x)) q :=
     (localizedQuotientEquiv M q).symm.trans
       (Submodule.quotEquivOfEq _ _ (Ideal.localized'_eq_map (Localization.Away x) M q))
+  have hffr_quot : HasFiniteFreeResolution (Localization.Away x) (Localization.Away x ⧸ Q) :=
+    hasFiniteFreeResolution_of_linearEquiv
+      (Ideal.quotientEquivAlgOfEq (Localization.Away x) (IsLocalization.map_comap M _ Q)) <|
+        hasFiniteFreeResolution_of_linearEquiv eQuotMap <| hasFiniteFreeResolution_localizedModule M
+          (hasFiniteFreeResolution_of_hasProjectiveDimensionLE R (R ⧸ q) n)
   have hffr_Q : HasFiniteFreeResolution (Localization.Away x) Q :=
     have : Module.Free (Localization.Away x) (Localization.Away x) := Module.Free.self _
     hasFiniteFreeResolution_of_shortExact_of_middle_of_right _ _
-      (Submodule.subtype_injective Q) (Submodule.mkQ_surjective Q)
-        (LinearMap.exact_subtype_mkQ Q)
-          (hasFiniteFreeResolution_of_finite_of_free (Localization.Away x)) <|
-            hasFiniteFreeResolution_of_linearEquiv
-              (Ideal.quotientEquivAlgOfEq (Localization.Away x) (IsLocalization.map_comap M _ Q)) <|
-                hasFiniteFreeResolution_of_linearEquiv eQuotMap <|
-                  hasFiniteFreeResolution_localizedModule M <|
-                    hasFiniteFreeResolution_of_hasProjectiveDimensionLE R (R ⧸ q) n
-  have hfree : Module.Free (Localization.Away x) Q :=
-    Module.free_of_isStablyFree_of_localized_eq_ring
-      ((isStablyFree_iff_hasFiniteFreeResolution (Localization.Away x) Q).2 hffr_Q) hloc
+      (Submodule.subtype_injective Q) (Submodule.mkQ_surjective Q) (LinearMap.exact_subtype_mkQ Q)
+        (hasFiniteFreeResolution_of_finite_of_free (Localization.Away x)) hffr_quot
+  have : Module.Free (Localization.Away x) Q := Module.free_of_isStablyFree_of_localized_eq_ring
+    ((isStablyFree_iff_hasFiniteFreeResolution (Localization.Away x) Q).2 hffr_Q) hloc
   exact Q.isPrincipal_of_free
 
 variable (R) in
@@ -144,8 +128,7 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
             obtain ⟨k, hk⟩ := exist_nat_eq (Localization.AtPrime P)
             exact ih k (ENat.coe_lt_coe.mp <| WithBot.coe_lt_coe.mp <|
               hk.symm.trans_lt <| hdim_loc_lt.trans_eq hdim) hk
-          have : UniqueFactorizationMonoid (Localization.Away x) :=
-            ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd hxm hxp hP
+          have := ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd hxm hxp hP
           exact ufd_of_ufd_localization_away_of_prime hxp
   obtain ⟨n, hn⟩ := exist_nat_eq R
   exact hmain n hn

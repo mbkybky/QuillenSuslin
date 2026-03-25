@@ -3,10 +3,14 @@ Copyright (c) 2026 Yongle Hu. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
+import Mathlib.LinearAlgebra.FreeModule.PID
+import QuillenSuslin.FiniteFreeResolution.Polynomial
+import QuillenSuslin.StablyFree.HasFiniteFreeResolution
 import QuillenSuslin.UnimodularVector.PID
-import QuillenSuslin.StablyFree.Polynomial
 
-variable (R : Type*) [CommRing R]
+universe u v
+
+variable (R : Type u) [CommRing R]
 
 open Module
 
@@ -155,13 +159,11 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
       ext x
       constructor
       · intro hx
-        have hx₂ : x.2 = 0 := by
-          simpa [projU] using congrArg Prod.snd (show projU x = 0 from hx)
+        have hx₂ : x.2 = 0 := by simpa [projU] using congrArg Prod.snd hx
         have hx₁ : ∀ i : Fin n, i ≠ o' → x.1 i = 0 := by
           intro i hi
           have : restrict x.1 ⟨i, hi⟩ = 0 := by
-            simpa [projU] using
-              congrArg (fun f : t' → R => f ⟨i, hi⟩) <| congrArg Prod.fst (show projU x = 0 from hx)
+            simpa [projU] using congrArg (fun f : t' → R => f ⟨i, hi⟩) <| congrArg Prod.fst hx
           simpa [restrict] using this
         refine ⟨x.1 o', Prod.ext ?_ ?_⟩
         · funext i
@@ -242,6 +244,23 @@ theorem module_free_of_isStablyFree_of_unimodularVectorEquiv
           module_free_of_prod_free_of_unimodularVectorEquiv R hR (P × (Fin n → R))
         exact ih hQ'
   exact this n hPFin
+
+theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrincipalIdealRing R]
+    (σ : Type v) [Finite σ] (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ R) P]
+    [Module.Finite (MvPolynomial σ R) P] [Module.Projective (MvPolynomial σ R) P] :
+    IsStablyFree (MvPolynomial σ R) P := by
+  have e : (ULift.{max u v} P) ≃ₗ[MvPolynomial σ R] P := ULift.moduleEquiv
+  have : Module.Projective (MvPolynomial σ R) (ULift P) := Module.Projective.of_equiv' e.symm
+  refine IsStablyFree.equiv e <|
+    (isStablyFree_iff_hasFiniteFreeResolution (MvPolynomial σ R) (ULift P)).2 <|
+      mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing σ (fun Q _ _ hQ ↦ ?_) (ULift P)
+  rcases Module.Finite.exists_fin' R Q with ⟨n, f, hf⟩
+  obtain ⟨m, bK⟩ := Submodule.basisOfPid (Pi.basisFun R (Fin n)) (LinearMap.ker f)
+  have : Module.Free R (LinearMap.ker f) := Module.Free.of_basis bK
+  have : Module.Finite R (LinearMap.ker f) := Module.Finite.of_basis bK
+  exact hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution (LinearMap.ker f).subtype f
+    Subtype.val_injective hf (LinearMap.exact_subtype_ker_map f)
+      (hasFiniteFreeResolution_of_finite_of_free (LinearMap.ker f))
 
 /-- **Quillen-Suslin Theorem**: Any finitely generated projective module over $k[x_1, \dots, x_n]$
   is free, where $k$ is a principal ideal domain. -/

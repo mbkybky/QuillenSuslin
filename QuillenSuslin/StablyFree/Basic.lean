@@ -31,7 +31,7 @@ variable {R : Type u} [CommRing R] {M N : Type*} [AddCommGroup M] [Module R M]
   [AddCommGroup N] [Module R N]
 
 theorem IsStablyFree.equiv (e : M ≃ₗ[R] N) (h : IsStablyFree R M) : IsStablyFree R N := by
-  obtain ⟨P, hPc, hPm, hPfin, hPfree, hMPfree⟩ := h
+  obtain ⟨P, hPc, hPm, hPfin, hPfree, _⟩ := h
   exact ⟨P, hPc, hPm, hPfin, hPfree, Module.Free.of_equiv ((e.prodCongr (LinearEquiv.refl R P)))⟩
 
 theorem IsStablyFree.equiv_iff (e : M ≃ₗ[R] N) : IsStablyFree R M ↔ IsStablyFree R N :=
