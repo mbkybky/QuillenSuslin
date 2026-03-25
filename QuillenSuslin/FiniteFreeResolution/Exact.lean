@@ -92,9 +92,9 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
               have hxy0 : y.1 + t k = 0 := hf <| by simpa [add_comm] using hsum
               exact ⟨k, Prod.ext (by simp [i, eq_neg_iff_add_eq_zero.mpr hxy0]) hk⟩
             · rintro ⟨k, rfl⟩
-              have ht : f (t k) = l (f₃ k) := leftLiftOfRightLift_apply f g f₃ g₃ hf h he₃ l hl k
-              change f (- t k) + l (f₃ k) = 0
-              simp [ht]
+              simpa [i, s] using
+                congrArg (fun z => -z + l (f₃ k))
+                  (leftLiftOfRightLift_apply f g f₃ g₃ hf h he₃ l hl k)
   | succ P₁ n F₁ K₁ f₁ g₁ hf₁ hg₁ he₁ hk₁ ih =>
       rcases h₃ with ⟨n₃, h₃⟩
       cases h₃ with
@@ -110,35 +110,26 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
             constructor
             · intro hy
               have hy0 : y.2 = 0 := coprod_snd_eq_zero_of_eq_zero f g g₁ LinearMap.id l h hl y hy
-              have hx0 : g₁ y.1 = 0 := by
-                apply hf
-                simpa [s, hy0] using hy
+              have hx0 : g₁ y.1 = 0 := hf <| by simpa [s, hy0] using hy
               rcases (he₁ y.1).1 hx0 with ⟨x, hx⟩
               exact ⟨x, Prod.ext hx (by simp [hy0, i])⟩
             · rintro ⟨x, rfl⟩
-              have hx0 : g₁ (f₁ x) = 0 := Function.Exact.apply_apply_eq_zero he₁ x
-              change f (g₁ (f₁ x)) + l 0 = 0
-              simp [hx0]
+              simpa [i, s] using congrArg f (Function.Exact.apply_apply_eq_zero he₁ x)
       | succ P₃ n₃ F₃ K₃ f₃ g₃ hf₃ hg₃ he₃ hk₃ =>
           have : Small.{β} (F₁ × F₃) := Module.Finite.small.{β} R (F₁ × F₃)
           obtain ⟨l, hl⟩ := Module.projective_lifting_property g g₃ hg
           let s : F₁ × F₃ →ₗ[R] P₂ := (f.comp g₁).coprod l
           let K : Submodule R (F₁ × F₃) := s.ker
           let i₁ : K₁ →ₗ[R] F₁ × F₃ := (LinearMap.inl R F₁ F₃).comp f₁
-          have hi₁ : ∀ k, i₁ k ∈ K := by
-            intro k
-            change s (i₁ k) = 0
-            have : g₁ (f₁ k) = 0 := Function.Exact.apply_apply_eq_zero he₁ k
-            simp [s, i₁, this]
+          have hi₁ : ∀ k, i₁ k ∈ K := fun k ↦ by
+            simp [K, s, i₁, Function.Exact.apply_apply_eq_zero he₁ k]
           let α : K₁ →ₗ[R] K := LinearMap.codRestrict K i₁ hi₁
           let p : F₁ × F₃ →ₗ[R] F₃ := LinearMap.snd R F₁ F₃
-          have hp : ∀ x : K, p x.1 ∈ g₃.ker := by
-            intro x
-            exact coprod_snd_eq_zero_of_eq_zero f g g₁ g₃ l h hl x.1 x.2
+          have hp : ∀ x : K, p x.1 ∈ g₃.ker :=
+            fun x ↦ coprod_snd_eq_zero_of_eq_zero f g g₁ g₃ l h hl x.1 x.2
           let β : K →ₗ[R] g₃.ker := LinearMap.codRestrict g₃.ker (p.comp K.subtype) hp
-          have hα : Function.Injective α := by
-            intro x y hxy
-            exact hf₁ <| congrArg Prod.fst (congrArg Subtype.val hxy)
+          have hα : Function.Injective α := fun _ _ hxy =>
+            hf₁ <| congrArg Prod.fst (congrArg Subtype.val hxy)
           have hβ : Function.Surjective β := by
             intro y
             have hy0 : g₃ (y : F₃) = 0 := y.2
@@ -147,12 +138,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
               rw [hl, hy0]
             rcases (h (l (y : F₃))).1 hly0 with ⟨x₁, hx₁⟩
             rcases hg₁ (-x₁) with ⟨x, hx⟩
-            have hxmem : (x, (y : F₃)) ∈ K := by
-              change s (x, (y : F₃)) = 0
-              simp [s, hx, hx₁]
-            refine ⟨⟨(x, (y : F₃)), hxmem⟩, ?_⟩
-            ext
-            simp [β, p]
+            exact ⟨⟨(x, (y : F₃)), by simp [K, s, hx, hx₁]⟩, Subtype.ext (by simp [β, p])⟩
           have hKer : Function.Exact α β := by
             refine LinearMap.exact_of_comp_eq_zero_of_ker_le_range ?_ ?_
             · ext k
@@ -160,15 +146,9 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
             · intro x hx
               have hx2 : x.1.2 = 0 := congrArg Subtype.val hx
               have hx1mem : (x.1.1 : F₁) ∈ f₁.range := by
-                have hlx : l x.1.2 = 0 := by
-                  rw [hx2, LinearMap.map_zero]
-                have hfx0 : f (g₁ x.1.1) = 0 := by
-                  have : f (g₁ x.1.1) = -l x.1.2 := eq_neg_of_add_eq_zero_left x.2
-                  rw [hlx] at this
-                  simpa using this
-                have hxg1 : g₁ x.1.1 = 0 := by
-                  apply hf
-                  simpa using hfx0
+                have hlx : l x.1.2 = 0 := by simp [hx2]
+                have hxg1 : g₁ x.1.1 = 0 := hf <| by
+                  simpa [hlx] using (eq_neg_of_add_eq_zero_left x.2 : f (g₁ x.1.1) = -l x.1.2)
                 simpa [Function.Exact.linearMap_ker_eq he₁] using
                   (show (x.1.1 : F₁) ∈ g₁.ker from hxg1)
               rcases hx1mem with ⟨k, hk⟩
@@ -203,33 +183,23 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_middle
   | succ P₂ n F₂ K₂ f₂ g₂ hf₂ hg₂ he₂ hk₂ =>
       let s : F₂ →ₗ[R] P₃ := g.comp g₂
       let L : Submodule R F₂ := s.ker
-      have hLmem : ∀ x : K₂, f₂ x ∈ L := by
-        intro x
-        change s (f₂ x) = 0
-        have hx : g₂ (f₂ x) = 0 := Function.Exact.apply_apply_eq_zero he₂ x
-        simp [s, hx]
+      have hLmem : ∀ x : K₂, f₂ x ∈ L := fun x ↦ by
+        simp [L, s, Function.Exact.apply_apply_eq_zero he₂ x]
       let α : K₂ →ₗ[R] L := LinearMap.codRestrict L f₂ hLmem
       let e : P₁ ≃ₗ[R] f.range := LinearEquiv.ofInjective f hf
       have hRange (x : L) : g₂ x.1 ∈ f.range := (h (g₂ x.1)).1 x.2
       let β : L →ₗ[R] P₁ := e.symm ∘ₗ LinearMap.codRestrict f.range (g₂.comp L.subtype) hRange
-      have hα : Function.Injective α := by
-        intro x y hxy
-        exact hf₂ (congrArg Subtype.val hxy)
+      have hα : Function.Injective α := fun _ _ hxy => hf₂ (congrArg Subtype.val hxy)
       have hβ_apply (x : L) : f (β x) = g₂ x.1 := by simp [β, e]
       have hβ : Function.Surjective β := by
         intro y
         rcases hg₂ (f y) with ⟨x, hx⟩
-        have hxL : x ∈ L := by
-          change s x = 0
-          simpa [s, hx] using Function.Exact.apply_apply_eq_zero h y
-        refine ⟨⟨x, hxL⟩, ?_⟩
-        refine hf ?_
-        simp [hβ_apply, hx]
+        have hxL : x ∈ L := by simpa [L, s, hx] using Function.Exact.apply_apply_eq_zero h y
+        exact ⟨⟨x, hxL⟩, hf <| by simp [hβ_apply, hx]⟩
       have hExact : Function.Exact α β := by
         refine LinearMap.exact_of_comp_eq_zero_of_ker_le_range ?_ ?_
         · ext k
-          apply hf
-          simpa [hβ_apply, α] using Function.Exact.apply_apply_eq_zero he₂ k
+          exact hf <| by simpa [hβ_apply, α] using Function.Exact.apply_apply_eq_zero he₂ k
         · intro x hx
           have hx0 : g₂ x.1 = 0 := by simpa [hβ_apply x] using congrArg f hx
           rcases (he₂ x.1).1 hx0 with ⟨k, hk⟩
@@ -266,7 +236,8 @@ private theorem hasFiniteFreeResolution_of_shortExact_of_middle_of_free_right
 resolutions, then so does `P₁`. -/
 theorem hasFiniteFreeResolution_of_shortExact_of_middle_of_right
     (hf : Function.Injective f) (hg : Function.Surjective g) (h : Function.Exact f g)
-    (h₂ : HasFiniteFreeResolution R P₂) (h₃ : HasFiniteFreeResolution R P₃) : HasFiniteFreeResolution R P₁ := by
+    (h₂ : HasFiniteFreeResolution R P₂) (h₃ : HasFiniteFreeResolution R P₃) :
+    HasFiniteFreeResolution R P₁ := by
   have : Module.Finite R P₂ := moduleFinite_of_hasFiniteFreeResolution h₂
   rcases h₃ with ⟨n₃, h₃⟩
   cases h₃ with
@@ -275,24 +246,16 @@ theorem hasFiniteFreeResolution_of_shortExact_of_middle_of_right
       let s : P₂ × F₃ →ₗ[R] P₃ := g.coprod (- g₃)
       let Q : Submodule R (P₂ × F₃) := s.ker
       let i₁ : K₃ →ₗ[R] P₂ × F₃ := (LinearMap.inr R P₂ F₃).comp f₃
-      have hi₁ : ∀ x : K₃, i₁ x ∈ Q := by
-        intro x
-        change s (i₁ x) = 0
-        have hx : g₃ (f₃ x) = 0 := Function.Exact.apply_apply_eq_zero he₃ x
-        simp [s, i₁, hx]
+      have hi₁ : ∀ x : K₃, i₁ x ∈ Q :=  fun x ↦ by
+        simp [Q, s, i₁, Function.Exact.apply_apply_eq_zero he₃ x]
       let α₁ : K₃ →ₗ[R] Q := LinearMap.codRestrict Q i₁ hi₁
       let β₁ : Q →ₗ[R] P₂ := (LinearMap.fst R P₂ F₃).comp Q.subtype
-      have hα₁ : Function.Injective α₁ := by
-        intro x y hxy
-        exact hf₃ (congrArg Prod.snd (congrArg Subtype.val hxy))
+      have hα₁ : Function.Injective α₁ := fun _ _ hxy =>
+        hf₃ (congrArg Prod.snd (congrArg Subtype.val hxy))
       have hβ₁ : Function.Surjective β₁ := by
         intro y
         rcases hg₃ (g y) with ⟨z, hz⟩
-        have hyQ : (y, z) ∈ Q := by
-          change s (y, z) = 0
-          simp [s, hz]
-        refine ⟨⟨(y, z), hyQ⟩, ?_⟩
-        simp [β₁]
+        refine ⟨⟨(y, z), by simp [Q, s, hz]⟩, by simp [β₁]⟩
       have hExact₁₀ : Function.Exact α₁ β₁ := by
         refine LinearMap.exact_of_comp_eq_zero_of_ker_le_range ?_ ?_
         · ext x
@@ -300,33 +263,23 @@ theorem hasFiniteFreeResolution_of_shortExact_of_middle_of_right
         · intro y hy
           have hy₁ : y.1.1 = 0 := by simpa [β₁] using hy
           have hy0 : g y.1.1 + (-g₃) y.1.2 = 0 := y.2
-          have hy₂ : g₃ y.1.2 = 0 := by
-            rw [hy₁, LinearMap.map_zero, zero_add] at hy0
-            exact neg_eq_zero.mp hy0
+          have hy₂ : g₃ y.1.2 = 0 := by simpa [hy₁] using hy0
           rcases (he₃ y.1.2).1 hy₂ with ⟨x, hx⟩
           exact ⟨x, by ext <;> simp [α₁, i₁, hy₁, hx]⟩
       have : Module.Finite R Q := Module.Finite.of_exact hExact₁₀ hβ₁
       have : Small.{γ} Q := Module.Finite.small.{γ} R Q
       let eQ : Shrink.{γ} Q ≃ₗ[R] Q := Shrink.linearEquiv R Q
       let i₂ : P₁ →ₗ[R] P₂ × F₃ := (LinearMap.inl R P₂ F₃).comp f
-      have hi₂ : ∀ x : P₁, i₂ x ∈ Q := by
-        intro x
-        change s (i₂ x) = 0
-        have hx : g (f x) = 0 := Function.Exact.apply_apply_eq_zero h x
-        simp [s, i₂, hx]
+      have hi₂ : ∀ x : P₁, i₂ x ∈ Q := fun x ↦ by
+        simp [Q, s, i₂, Function.Exact.apply_apply_eq_zero h x]
       let α₂ : P₁ →ₗ[R] Q := LinearMap.codRestrict Q i₂ hi₂
       let β₂ : Q →ₗ[R] F₃ := (LinearMap.snd R P₂ F₃).comp Q.subtype
-      have hα₂ : Function.Injective α₂ := by
-        intro x y hxy
-        exact hf (congrArg Prod.fst (congrArg Subtype.val hxy))
+      have hα₂ : Function.Injective α₂ := fun _ _ hxy =>
+        hf (congrArg Prod.fst (congrArg Subtype.val hxy))
       have hβ₂ : Function.Surjective β₂ := by
         intro z
         rcases hg (g₃ z) with ⟨y, hy⟩
-        have hzQ : (y, z) ∈ Q := by
-          change s (y, z) = 0
-          simp [s, hy]
-        refine ⟨⟨(y, z), hzQ⟩, ?_⟩
-        simp [β₂]
+        refine ⟨⟨(y, z), by simp [Q, s, hy]⟩, by simp [β₂]⟩
       have hExact₂₀ : Function.Exact α₂ β₂ := by
         refine LinearMap.exact_of_comp_eq_zero_of_ker_le_range ?_ ?_
         · ext x
