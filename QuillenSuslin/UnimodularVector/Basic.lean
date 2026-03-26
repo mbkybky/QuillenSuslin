@@ -865,8 +865,7 @@ open Bivariate
 
 variable {R : Type*} [CommRing R] [IsDomain R] {s : Type*} [Fintype s] [DecidableEq s]
 
-set_option maxHeartbeats 800000
-
+set_option maxHeartbeats 800000 in
 /-- Suppose $v(x) \sim v(0)$ over the localization $R_S[x]$. Then there exists a $c \in S$ such
   that $v(x) \sim v(x + cy)$ over $R[x, y]$. -/
 theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])

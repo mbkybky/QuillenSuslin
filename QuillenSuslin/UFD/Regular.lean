@@ -76,7 +76,7 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd
       have := (Ideal.ufd_iff_height_one_primes_principal).1 inferInstance
         (Ideal.map (algebraMap (Localization.Away x) (Localization.AtPrime P)) Q) hmap_height
       exact eIdeal.trans <| LinearEquiv.symm <| Ideal.isoBaseOfIsPrincipal <|
-        (Ideal.primeHeight_eq_zero_iff_eq_bot _).not.mp (by simp [hmap_height])
+        Ideal.primeHeight_eq_zero_iff_eq_bot.not.mp (by simp [hmap_height])
     · exact eIdeal.trans <| LinearEquiv.ofTop _ <|
         IsLocalization.AtPrime.map_eq_top_of_not_le (Localization.AtPrime P) hQP
   have : Module.Projective (Localization.Away x) Q := by
