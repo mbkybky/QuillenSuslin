@@ -592,7 +592,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
             have h' : (1 : ℕ∞) = (⊤ : ℕ∞) := WithBot.coe_eq_coe.mp (by simpa using h)
             exact WithTop.coe_ne_top h'
           exact lt_of_le_of_lt hle h1lt
-        rcases suslin_monic_polynomial_theorem n I (by simpa [I] using hheight) with
+        rcases suslin_monic_polynomial_thm n I (by simpa [I] using hheight) with
           ⟨α, f, hfI, hmonicf⟩
         -- Express `f` as a linear combination of the generators of `I`.
         rcases (Ideal.mem_span_range_iff_exists_fun).1 hfI with ⟨c, hc⟩
