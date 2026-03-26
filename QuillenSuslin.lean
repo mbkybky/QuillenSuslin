@@ -1,3 +1,4 @@
+import QuillenSuslin.FiniteFreeResolution.BaseChange
 import QuillenSuslin.FiniteFreeResolution.Basic
 import QuillenSuslin.FiniteFreeResolution.Exact
 import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
@@ -11,6 +12,5 @@ import QuillenSuslin.StablyFree.HasFiniteFreeResolution
 import QuillenSuslin.UFD.Lemmas
 import QuillenSuslin.UFD.Regular
 import QuillenSuslin.UnimodularVector.Basic
-import QuillenSuslin.UnimodularVector.BivariatePolynomial
 import QuillenSuslin.UnimodularVector.PID
 import QuillenSuslin.UnimodularVector.SuslinMonicPolynomialThm

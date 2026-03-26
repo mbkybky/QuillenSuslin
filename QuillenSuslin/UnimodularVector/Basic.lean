@@ -888,9 +888,8 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
   let vxy1L : s → L[X][Y] := fun i => (vL i).eval₂ ιL (C X + Y)
   let constL : s → L[X] := fun i => C (f ((v i).eval 0))
   let const2L : s → L[X][Y] := fun i => C (constL i)
-  haveI : IsDomain L := IsLocalization.isDomain_of_le_nonZeroDivisors L hs
-  have hf_inj : Function.Injective f := IsLocalization.injective L hs
-  have hfX_inj : Function.Injective fX := Polynomial.map_injective f hf_inj
+  have : IsDomain L := IsLocalization.isDomain_of_le_nonZeroDivisors L hs
+  have hfX_inj : Function.Injective fX := Polynomial.map_injective f (IsLocalization.injective L hs)
   have hfXY_inj : Function.Injective fXY := Polynomial.map_injective fX hfX_inj
   have clearX : ∀ p : L[X], ∃ c : S, ∃ q : R[X], Polynomial.map f q = p * C (f c) := by
     intro p
@@ -1158,15 +1157,14 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
     simp [vxL, substL]
   have hPsubvxL : (substL.mapMatrix P.1).mulVec vxL = vxyL := by
     funext i
-    have hi : substL ((P.1.mulVec vxL) i) = substL (vxy1L i) := congrArg substL (congrArg (fun u : s → L[X][Y] => u i) hPvxL)
+    have hi : substL ((P.1.mulVec vxL) i) = substL (vxy1L i) :=
+      congrArg substL (congrArg (fun u : s → L[X][Y] => u i) hPvxL)
     have hmap : (substL.mapMatrix P.1).mulVec vxL i = substL ((P.1.mulVec vxL) i) := by
           calc
             (substL.mapMatrix P.1).mulVec vxL i
                 = (substL.mapMatrix P.1).mulVec (fun j ↦ substL (vxL j)) i := by
                     rw [hvxL_fixed]
-            _ = substL ((P.1.mulVec vxL) i) := by
-                  symm
-                  exact RingHom.map_mulVec substL P.1 vxL i
+            _ = substL ((P.1.mulVec vxL) i) := (RingHom.map_mulVec substL P.1 vxL i).symm
     calc
       (substL.mapMatrix P.1).mulVec vxL i = substL ((P.1.mulVec vxL) i) := hmap
       _ = substL (vxy1L i) := hi
