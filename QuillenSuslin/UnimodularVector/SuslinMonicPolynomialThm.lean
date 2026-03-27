@@ -33,6 +33,10 @@ lemma leadingCoeff_map_C (p : Ideal A) : (Ideal.map C p).leadingCoeff = p := by
         cases n <;> simp [hx]),
       by simp⟩
 
+lemma leadingCoeff_top : ((⊤ : Ideal A[X]).leadingCoeff : Ideal A) = ⊤ := by
+  rw [← Ideal.map_top (C : A →+* A[X])]
+  exact leadingCoeff_map_C (p := (⊤ : Ideal A))
+
 variable [IsDomain A]
 
 lemma leadingCoeff_mul_le (I J : Ideal A[X]) :
@@ -46,23 +50,17 @@ lemma leadingCoeff_mul_le (I J : Ideal A[X]) :
   simp [Polynomial.leadingCoeff_mul, hp, hq]
 
 lemma leadingCoeff_pow_le (I : Ideal A[X]) : ∀ n : ℕ, I.leadingCoeff ^ n ≤ (I ^ n).leadingCoeff
-   | 0 => by
-        have htop : ((⊤ : Ideal A[X]).leadingCoeff : Ideal A) = ⊤ := by
-          rw [← Ideal.map_top (C : A →+* A[X])]
-          exact leadingCoeff_map_C (A := A) (p := (⊤ : Ideal A))
-        simp [pow_zero, Ideal.one_eq_top, htop]
-   | n + 1 => by
-        simpa [pow_succ] using
-          (le_trans (Ideal.mul_mono_left (leadingCoeff_pow_le I n)) <|
-            by simpa [mul_assoc] using leadingCoeff_mul_le (I ^ n) I)
+  | 0 => by
+      simp [pow_zero, Ideal.one_eq_top, leadingCoeff_top]
+  | n + 1 => by
+      simpa [pow_succ] using
+        (Ideal.mul_mono_left (leadingCoeff_pow_le I n)).trans <|
+          by simpa [mul_assoc] using leadingCoeff_mul_le (I ^ n) I
 
 lemma leadingCoeff_finset_prod_le (s : Finset (Ideal A[X])) :
     (s.prod fun P => P.leadingCoeff) ≤ (s.prod id).leadingCoeff := by
   classical refine Finset.induction_on s ?_ ?_
-  · have htop : ((⊤ : Ideal A[X]).leadingCoeff : Ideal A) = ⊤ := by
-      rw [← Ideal.map_top (C : A →+* A[X])]
-      exact leadingCoeff_map_C (A := A) (p := (⊤ : Ideal A))
-    simp [htop]
+  · simp [leadingCoeff_top]
   · intro P s hP hs
     have h : P.leadingCoeff * (s.prod id).leadingCoeff ≤ (P * s.prod id).leadingCoeff := by
       simpa [mul_assoc] using leadingCoeff_mul_le P (s.prod id)
@@ -96,11 +94,54 @@ lemma height_le_one_of_isPrime_comap_C_eq_bot (Q : Ideal A[X]) [Q.IsPrime]
   exact (WithBot.coe_le_coe).1 <| by simpa only [WithBot.coe_one, WithBot.coe_le_one, hdim] using
     (Ideal.map (algebraMap A[X] K[X]) Q).height_le_ringKrullDim_of_ne_top hne_top
 
+lemma eq_map_C_of_leadingCoeff_eq_comap (I : Ideal A[X])
+    (hI : I.leadingCoeff = Ideal.comap C I) : I = Ideal.map C (Ideal.comap C I) := by
+  apply le_antisymm
+  · intro f hfI
+    let J : Ideal A := Ideal.comap C I
+    have hmem : ∀ n : ℕ, ∀ g : A[X], g ∈ I → g.natDegree = n → g ∈ Ideal.map C J := by
+      intro n
+      refine Nat.strongRecOn' n ?_
+      intro n ih g hgI hgn
+      by_cases hg0 : g = 0
+      · simp [J, hg0]
+      · let t : A[X] := C g.leadingCoeff * X ^ n
+        let r : A[X] := g - t
+        have hLCI : g.leadingCoeff ∈ I.leadingCoeff :=
+          (I.mem_leadingCoeff g.leadingCoeff).2 ⟨g, hgI, rfl⟩
+        have hLCJ : g.leadingCoeff ∈ J := by
+          simpa [J, hI] using hLCI
+        have htJ : t ∈ Ideal.map C J := by
+          exact (Ideal.map C J).mul_mem_right (X ^ n) (Ideal.mem_map_of_mem C hLCJ)
+        have htI : t ∈ I := (Ideal.map_comap_le (f := C) (K := I)) htJ
+        have hrI : r ∈ I := by
+          simpa [r] using I.sub_mem hgI htI
+        by_cases hr0 : r = 0
+        · have hgt : g = t := by
+            simpa [r] using sub_eq_zero.mp hr0
+          exact hgt ▸ htJ
+        · have hgdeg : g.degree = (n : WithBot ℕ) := by
+            simpa [hgn] using Polynomial.degree_eq_natDegree hg0
+          have htdeg : t.degree = (n : WithBot ℕ) := by
+            have hLC0 : g.leadingCoeff ≠ 0 := (Polynomial.leadingCoeff_ne_zero).2 hg0
+            simpa [t] using (Polynomial.degree_C_mul_X_pow n hLC0)
+          have hdeg_lt : r.degree < g.degree := by
+            have hLCeq : g.leadingCoeff = t.leadingCoeff := by
+              simp [t]
+            simpa [r] using Polynomial.degree_sub_lt (by simp [hgdeg, htdeg]) hg0 hLCeq
+          have hr_lt : r.natDegree < n := by
+            simpa [hgn] using Polynomial.natDegree_lt_natDegree hr0 hdeg_lt
+          have hrJ : r ∈ Ideal.map C J := ih r.natDegree hr_lt r hrI rfl
+          have hgr : g = r + t := by
+            simp [r, t]
+          exact hgr ▸ Ideal.add_mem _ hrJ htJ
+    exact hmem f.natDegree f hfI rfl
+  · exact Ideal.map_comap_le (f := C) (K := I)
+
 variable [IsNoetherianRing A]
 
 lemma height_le_leadingCoeff_of_isPrime (P : Ideal A[X]) [P.IsPrime] :
     P.height ≤ P.leadingCoeff.height := by
-  -- Let `p = P ∩ A`.
   let p : Ideal A := Ideal.comap C P
   have : p.IsPrime := Ideal.comap_isPrime C P
   have hp_le : p ≤ P.leadingCoeff :=
@@ -133,105 +174,44 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal A[X]) [P.IsPrime] :
     have hQle : Q.height ≤ 1 := by
       let e : (A ⧸ p)[X] ≃+* (A[X] ⧸ I0) :=
         p.polynomialQuotientEquivQuotientPolynomial
+      have hcomap_q : Ideal.comap q Q = P := by
+        simpa [Q] using (Ideal.comap_map_of_surjective' q Ideal.Quotient.mk_surjective P).trans <|
+          by rw [sup_eq_left.mpr hker]
       have hcomap : Ideal.comap (C : (A ⧸ p) →+* (A ⧸ p)[X]) (Ideal.comap e.toRingHom Q) =
           (⊥ : Ideal (A ⧸ p)) := by
         ext a
-        have hEq : e (C a) ∈ Q ↔ a = 0 := by
-          refine Quotient.inductionOn a ?_
-          intro a0
-          have hCe : e (C (Ideal.Quotient.mk p a0)) = q (C a0) := by
-            simpa [I0, q] using p.polynomialQuotientEquivQuotientPolynomial_map_mk (C a0)
-          have hmem : q (C a0) ∈ Q ↔ C a0 ∈ P := by
-            constructor
-            · intro hx
-              rcases (Ideal.mem_map_iff_of_surjective q Ideal.Quotient.mk_surjective).1 hx
-                with ⟨y, hyP, hyEq⟩
-              have hySub : y - C a0 ∈ I0 := Ideal.Quotient.eq.1 hyEq
-              have hySubP : y - C a0 ∈ P := hI0_le hySub
-              have : y - (y - C a0) ∈ P := Ideal.sub_mem P hyP hySubP
-              simpa [sub_sub] using this
-            · intro hx
-              exact Ideal.mem_map_of_mem q hx
-          have hp0 : C a0 ∈ P ↔ a0 ∈ p := by simp [p, Ideal.mem_comap]
-          have hq0 : (Ideal.Quotient.mk p a0 = (0 : A ⧸ p)) ↔ a0 ∈ p := by
-            simpa using Ideal.Quotient.eq_zero_iff_mem
-          change e (C (Ideal.Quotient.mk p a0)) ∈ Q ↔ Ideal.Quotient.mk p a0 = (0 : A ⧸ p)
-          simpa [hCe] using (hmem.trans hp0).trans hq0.symm
-        simpa using hEq
+        refine Quotient.inductionOn a ?_
+        intro a0
+        have hCe : e (C (Ideal.Quotient.mk p a0)) = q (C a0) := by
+          simpa [I0, q] using p.polynomialQuotientEquivQuotientPolynomial_map_mk (C a0)
+        have hmem : q (C a0) ∈ Q ↔ C a0 ∈ P := by
+          change C a0 ∈ Ideal.comap q Q ↔ C a0 ∈ P
+          simp [hcomap_q]
+        have hp0 : C a0 ∈ P ↔ a0 ∈ p := by
+          simp [p, Ideal.mem_comap]
+        have hq0 : (Ideal.Quotient.mk p a0 = (0 : A ⧸ p)) ↔ a0 ∈ p := by
+          simpa using Ideal.Quotient.eq_zero_iff_mem
+        change e (C (Ideal.Quotient.mk p a0)) ∈ Q ↔ Ideal.Quotient.mk p a0 = (0 : A ⧸ p)
+        simpa [hCe] using (hmem.trans hp0).trans hq0.symm
       have hcomap_height : (Ideal.comap e.toRingHom Q).height = Q.height := e.height_comap Q
       calc _ = (Ideal.comap e.toRingHom Q).height := by simpa using hcomap_height.symm
         _ ≤ 1 := height_le_one_of_isPrime_comap_C_eq_bot (Ideal.comap e.toRingHom Q) hcomap
-    -- `P.height = p.height + Q.height ≤ p.height + 1`.
     have hP_le : P.height ≤ p.height + 1 := by
-      have hheight' : P.height = p.height + Q.height := by simpa [Q, q, I0] using hheight
+      have hheight' : P.height = p.height + Q.height := by
+        simpa [Q, q, I0] using hheight
       simpa [hheight'] using add_le_add_right hQle p.height
     have hp_lt : p < P.leadingCoeff := by
       refine lt_of_le_of_ne hp_le ?_
-      -- Choose a polynomial of minimal `natDegree` in `P \ I0`.
-      have hex : ∃ f : A[X], f ∈ P ∧ f ∉ I0 := by
-        by_contra h
-        have hle : P ≤ I0 := by
-          intro f hfP
-          by_contra hfI0
-          exact h ⟨f, hfP, hfI0⟩
-        exact hPeq (by simpa [I0] using le_antisymm hle hI0_le)
-      let Pred : ℕ → Prop := fun n => ∃ f : A[X], f ∈ P ∧ f ∉ I0 ∧ f.natDegree = n
-      have hNat : ∃ n, Pred n := by
-        rcases hex with ⟨f, hfP, hfI0⟩
-        exact ⟨f.natDegree, f, hfP, hfI0, rfl⟩
-      classical
-      let n0 : ℕ := Nat.find hNat
-      have hn0 : Pred n0 := Nat.find_spec hNat
-      rcases hn0 with ⟨f0, hf0P, hf0I0, hf0deg⟩
-      have hf0_ne0 : f0 ≠ 0 := by
-        intro hf0z
-        apply hf0I0
-        simp [hf0z]
-      have hmin : ∀ m : ℕ, m < n0 → ¬ Pred m := ((n0.find_eq_iff hNat).1 rfl).2
-      have hLCnot : f0.leadingCoeff ∉ p := by
-        intro hLC
-        let d : ℕ := f0.natDegree
-        let t : A[X] := C f0.leadingCoeff * Polynomial.X ^ d
-        let g : A[X] := f0 - t
-        have htP : t ∈ P :=
-          P.mul_mem_right (Polynomial.X ^ d) <| by simpa [p, Ideal.mem_comap] using hLC
-        have hgP : g ∈ P := by simpa [g] using P.sub_mem hf0P htP
-        have htI0 : t ∈ I0 :=
-          I0.mul_mem_right (Polynomial.X ^ d) (Ideal.mem_map_of_mem C hLC)
-        have hgI0 : g ∉ I0 := by
-          intro hg
-          exact hf0I0 <| by simpa [g, sub_add_cancel] using I0.add_mem hg htI0
-        have hdeg_lt : g.degree < f0.degree := by
-          have hdeg_f0 : f0.degree = (d : WithBot ℕ) := by
-            simpa [hf0deg, d] using (Polynomial.degree_eq_natDegree hf0_ne0)
-          have hdeg_t : t.degree = (d : WithBot ℕ) := by
-            have hLC0 : f0.leadingCoeff ≠ 0 := (Polynomial.leadingCoeff_ne_zero).2 hf0_ne0
-            simpa [t] using (Polynomial.degree_C_mul_X_pow d hLC0)
-          have hLCeq : f0.leadingCoeff = t.leadingCoeff := by simp [t]
-          simpa [g] using Polynomial.degree_sub_lt (by simp [hdeg_f0, hdeg_t]) hf0_ne0 hLCeq
-        have hnat_lt : g.natDegree < n0 := by
-          by_cases hg0 : g = 0
-          · have hn0' : n0 ≠ 0 := by
-              intro hn0z
-              have hd0 : d = 0 := by simp [d, hf0deg, hn0z]
-              have hf0_eq_t : f0 = t := sub_eq_zero.mp <| by simpa [g] using hg0
-              exact hf0I0 <| by simpa [hf0_eq_t] using htI0
-            simpa [hg0] using Nat.pos_of_ne_zero hn0'
-          · simpa [hf0deg, d] using Polynomial.natDegree_lt_natDegree hg0 hdeg_lt
-        exact (hmin g.natDegree hnat_lt) ⟨g, hgP, hgI0, rfl⟩
-      have hLCmem : f0.leadingCoeff ∈ P.leadingCoeff :=
-        (P.mem_leadingCoeff f0.leadingCoeff).2 ⟨f0, hf0P, rfl⟩
-      intro hEq
-      exact hLCnot <| by simpa [hEq] using hLCmem
+      intro hp_eq
+      have hmap : P = Ideal.map C p := by
+        simpa [p] using eq_map_C_of_leadingCoeff_eq_comap P (by simpa [p] using hp_eq.symm)
+      exact hPeq hmap
     exact hP_le.trans (Order.add_one_le_of_lt <| Ideal.height_strict_mono_of_is_prime hp_lt)
 
 theorem height_le_height_leadingCoeff (I : Ideal A[X]) : I.height ≤ I.leadingCoeff.height := by
   by_cases hI : I = ⊤
   · subst hI
-    have htop : ((⊤ : Ideal A[X]).leadingCoeff : Ideal A) = ⊤ := by
-      rw [← Ideal.map_top (C : A →+* A[X])]
-      exact leadingCoeff_map_C (A := A) (p := (⊤ : Ideal A))
-    simp [htop]
+    simp [leadingCoeff_top]
   have hfin : I.minimalPrimes.Finite := Ideal.finite_minimalPrimes_of_isNoetherianRing A[X] I
   let Pset : Finset (Ideal A[X]) := hfin.toFinset
   let J : Ideal A[X] := Pset.prod id

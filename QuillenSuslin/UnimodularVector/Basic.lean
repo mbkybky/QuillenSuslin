@@ -865,7 +865,38 @@ open Bivariate
 
 variable {R : Type*} [CommRing R] [IsDomain R] {s : Type*} [Fintype s] [DecidableEq s]
 
-set_option maxHeartbeats 800000 in
+section lem10
+
+lemma clearDenominators_poly {T A B : Type*} [CommRing T] [CommRing A] [CommRing B]
+    {S : Submonoid T} (g : A →+* B) (num : S →* A) (den : S →* B)
+    (hnum : ∀ c : S, g (num c) = den c)
+    (hclear : ∀ b : B, ∃ c : S, ∃ a : A, g a = b * den c) :
+    ∀ p : B[X], ∃ c : S, ∃ q : A[X], Polynomial.map g q = p * C (den c) := by
+  intro p
+  refine Polynomial.induction_on' p ?_ ?_
+  · intro p q hp hq
+    rcases hp with ⟨cp, qp, hqp⟩
+    rcases hq with ⟨cq, qq, hqq⟩
+    refine ⟨cp * cq, qp * C (num cq) + qq * C (num cp), ?_⟩
+    calc
+      Polynomial.map g (qp * C (num cq) + qq * C (num cp))
+          = Polynomial.map g qp * C (g (num cq)) + Polynomial.map g qq * C (g (num cp)) := by
+              simp [Polynomial.map_add, Polynomial.map_mul]
+      _ = Polynomial.map g qp * C (den cq) + Polynomial.map g qq * C (den cp) := by
+            rw [hnum, hnum]
+      _ = p * C (den cp) * C (den cq) + q * C (den cq) * C (den cp) := by
+            simp [hqp, hqq, mul_left_comm, mul_comm]
+      _ = (p + q) * C (den (cp * cq)) := by
+            simp [map_mul, add_mul, mul_left_comm, mul_comm]
+  · intro n b
+    rcases hclear b with ⟨c, a, ha⟩
+    refine ⟨c, Polynomial.monomial n a, ?_⟩
+    calc
+      Polynomial.map g (Polynomial.monomial n a) = Polynomial.monomial n (g a) := by simp
+      _ = Polynomial.monomial n (b * den c) := by rw [ha]
+      _ = Polynomial.monomial n b * C (den c) := by simp
+
+set_option maxHeartbeats 250000 in
 /-- Suppose $v(x) \sim v(0)$ over the localization $R_S[x]$. Then there exists a $c \in S$ such
   that $v(x) \sim v(x + cy)$ over $R[x, y]$. -/
 theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
@@ -890,81 +921,58 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
   have : IsDomain L := IsLocalization.isDomain_of_le_nonZeroDivisors L hs
   have hfX_inj : Function.Injective fX := Polynomial.map_injective f (IsLocalization.injective L hs)
   have hfXY_inj : Function.Injective fXY := Polynomial.map_injective fX hfX_inj
+  let numR : S →* R := {
+    toFun := fun c : S => (c : R)
+    map_one' := rfl
+    map_mul' := fun _ _ => rfl
+  }
+  let denL : S →* L := {
+    toFun := fun c : S => f c
+    map_one' := by simp
+    map_mul' := fun _ _ => by simp
+  }
+  have clearCoeff : ∀ a : L, ∃ c : S, ∃ r : R, f r = a * denL c := by
+    intro a
+    rcases IsLocalization.surj S a with ⟨⟨r, c⟩, hc⟩
+    exact ⟨c, r, by simpa [denL] using hc.symm⟩
   have clearX : ∀ p : L[X], ∃ c : S, ∃ q : R[X], Polynomial.map f q = p * C (f c) := by
-    intro p
-    refine Polynomial.induction_on' p ?_ ?_
-    · intro p q hp hq
-      rcases hp with ⟨cp, qp, hqp⟩
-      rcases hq with ⟨cq, qq, hqq⟩
-      refine ⟨cp * cq, qp * C (cq : R) + qq * C (cp : R), ?_⟩
-      calc
-        Polynomial.map f (qp * C (cq : R) + qq * C (cp : R))
-            = Polynomial.map f qp * C (f cq) + Polynomial.map f qq * C (f cp) := by
-                simp [Polynomial.map_add, Polynomial.map_mul]
-        _ = p * C (f cp) * C (f cq) + q * C (f cq) * C (f cp) := by
-              simp [hqp, hqq, mul_left_comm, mul_comm]
-        _ = (p + q) * C (f (cp * cq)) := by
-              simp [map_mul, add_mul, mul_left_comm, mul_comm]
-    · intro n a
-      rcases IsLocalization.surj S a with ⟨⟨r, c⟩, hc⟩
-      refine ⟨c, Polynomial.monomial n r, ?_⟩
-      calc
-        Polynomial.map f (Polynomial.monomial n r)
-            = Polynomial.monomial n (f r) := by simp
-        _ = Polynomial.monomial n (a * f c) := by rw [hc]
-        _ = Polynomial.monomial n a * C (f c) := by simp [mul_comm]
+    simpa [numR, denL] using clearDenominators_poly f numR denL (fun _ => rfl) clearCoeff
+  let numRX : S →* R[X] := {
+    toFun := fun c : S => C (c : R)
+    map_one' := by simp
+    map_mul' := fun _ _ => by simp
+  }
+  let denLX : S →* L[X] := {
+    toFun := fun c : S => C (f c)
+    map_one' := by simp
+    map_mul' := fun _ _ => by simp
+  }
+  have clearCoeffX : ∀ a : L[X], ∃ c : S, ∃ q : R[X], fX q = a * denLX c := by
+    intro a
+    simpa [fX, denLX] using clearX a
   have clearXY : ∀ p : L[X][Y], ∃ c : S, ∃ q : R[X][Y], Polynomial.map fX q = p * ccL c := by
-    intro p
-    refine Polynomial.induction_on' p ?_ ?_
-    · intro p q hp hq
-      rcases hp with ⟨cp, qp, hqp⟩
-      rcases hq with ⟨cq, qq, hqq⟩
-      have hmapc0 : fX (C (cp : R)) = C (f cp) := by simp [fX]
-      have hmapc1 : fX (C (cq : R)) = C (f cq) := by simp [fX]
-      refine ⟨cp * cq, qp * C (C (cq : R)) + qq * C (C (cp : R)), ?_⟩
-      calc
-        Polynomial.map fX (qp * C (C (cq : R)) + qq * C (C (cp : R)))
-            = Polynomial.map fX qp * C (C (f cq)) + Polynomial.map fX qq * C (C (f cp)) := by
-                simp [Polynomial.map_add, Polynomial.map_mul, hmapc0, hmapc1]
-        _ = p * ccL cp * ccL cq + q * ccL cq * ccL cp := by
-              simp [hqp, hqq, ccL, mul_left_comm, mul_comm]
-        _ = (p + q) * ccL (cp * cq) := by
-              simp [ccL, map_mul, add_mul, mul_left_comm, mul_comm]
-    · intro n a
-      rcases clearX a with ⟨c, q, hq⟩
-      refine ⟨c, Polynomial.monomial n q, ?_⟩
-      calc
-        Polynomial.map fX (Polynomial.monomial n q)
-            = Polynomial.monomial n (Polynomial.map f q) := by simp [fX]
-        _ = Polynomial.monomial n (a * C (f c)) := by rw [hq]
-        _ = Polynomial.monomial n a * ccL c := by simp [ccL, mul_comm]
+    simpa [numRX, denLX, ccL] using
+      clearDenominators_poly fX numRX denLX (fun c => by simp [numRX, denLX, fX]) clearCoeffX
   rcases h with ⟨M, hM⟩
   let lift : L[X] →+* L[X][Y] := C
   let shift1 : L[X] →+* L[X][Y] := Polynomial.eval₂RingHom ιL (C X + Y)
   let MC : Matrix.GeneralLinearGroup s L[X][Y] := Matrix.GeneralLinearGroup.map lift M
   let Mshift : Matrix.GeneralLinearGroup s L[X][Y] := Matrix.GeneralLinearGroup.map shift1 M
   let P : Matrix.GeneralLinearGroup s L[X][Y] := Mshift⁻¹ * MC
-  have hM' : M.1.mulVec vL = constL := by simpa [vL, constL, f] using hM
+  have hmapM (g : L[X] →+* L[X][Y]) :
+      (Matrix.GeneralLinearGroup.map g M).1.mulVec (fun i => g (vL i)) = fun i => g (constL i) := by
+    funext i
+    exact (RingHom.map_mulVec g M.1 vL i).symm.trans (congrArg g (congrFun hM i))
   have hMC : MC.1.mulVec vxL = const2L := by
-    funext i
-    have hi : lift ((M.1.mulVec vL) i) = lift (constL i) := by
-      exact congrArg lift (congrArg (fun u : s → (Localization S)[X] => u i) hM')
-    have hmap :
-        MC.1.mulVec (fun j => lift (vL j)) i = lift ((M.1.mulVec vL) i) := by
-      simpa [MC, lift, Matrix.GeneralLinearGroup.map_apply, RingHom.mapMatrix_apply] using
-        (RingHom.map_mulVec lift M.1 vL i).symm
-    simpa [vxL, const2L] using hmap.trans hi
+    simpa [MC, lift, vxL, const2L] using hmapM lift
+  have hMshift' : Mshift.1.mulVec vxy1L = fun i => shift1 (constL i) := by
+    simpa [Mshift, shift1, vxy1L] using hmapM shift1
   have hMshift : Mshift.1.mulVec vxy1L = const2L := by
-    funext i
-    have hi : shift1 ((M.1.mulVec vL) i) = shift1 (constL i) := by
-      exact congrArg shift1 (congrArg (fun u : s → (Localization S)[X] => u i) hM')
-    have hmap :
-        Mshift.1.mulVec (fun j => shift1 (vL j)) i = shift1 ((M.1.mulVec vL) i) := by
-      simpa [Mshift, shift1, Matrix.GeneralLinearGroup.map_apply, RingHom.mapMatrix_apply] using
-        (RingHom.map_mulVec shift1 M.1 vL i).symm
-    have hconst : shift1 (constL i) = const2L i := by
-      simp [shift1, constL, const2L, ιL]
-    simpa [vxy1L, hconst] using hmap.trans hi
+    calc
+      Mshift.1.mulVec vxy1L = fun i => shift1 (constL i) := hMshift'
+      _ = const2L := by
+            funext i
+            simp [shift1, constL, const2L, ιL]
   have hPvxL : P.1.mulVec vxL = vxy1L := by
     change
       ((Mshift⁻¹ * MC : Matrix.GeneralLinearGroup s (Localization S)[X][Y]).1).mulVec vxL = vxy1L
@@ -995,14 +1003,11 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
     change Matrix.GeneralLinearGroup.map ev0Y
       (Mshift⁻¹ * MC : Matrix.GeneralLinearGroup s (Localization S)[X][Y]) = 1
     simp [MonoidHom.map_mul, MonoidHom.map_inv, hMshift0, hMC0, L]
-  have hP0 : ev0Y.mapMatrix P.1 = 1 := by
-    simpa [RingHom.mapMatrix_apply] using
-      congrArg (fun g : Matrix.GeneralLinearGroup s L[X] => (g : Matrix s s L[X])) hP0_gl
+  have hP0 : ev0Y.mapMatrix P.1 = 1 :=
+    congrArg (fun g : Matrix.GeneralLinearGroup s L[X] => (g : Matrix s s L[X])) hP0_gl
   have hdiv (i j : s) :
       ∃ w : L[X][Y], P.1 i j - (if i = j then (1 : L[X][Y]) else 0) = Y * w := by
-    have hentry : ev0Y (P.1 i j) = if i = j then (1 : L[X]) else 0 := by
-      have := congrArg (fun A : Matrix s s L[X] => A i j) hP0
-      simpa [RingHom.mapMatrix_apply] using this
+    have hentry : ev0Y (P.1 i j) = if i = j then (1 : L[X]) else 0 := congrFun (congrFun hP0 i) j
     have hcoeff0 : (P.1 i j - (if i = j then (1 : L[X][Y]) else 0)).coeff 0 = 0 := by
       by_cases hij : i = j
       · subst hij
@@ -1062,19 +1067,16 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
             Polynomial.hom_eval₂ (W0 i j) (C : R[X] →+* R[X][Y]) fXY (ccR c * Y)
       _ = Polynomial.eval₂ ((C : L[X] →+* L[X][Y]).comp fX) (ccL c * Y) (W0 i j) := by
             rw [hcompC, hmap_cc]
-      _ = (Polynomial.map fX (W0 i j)).eval₂ (C : L[X] →+* L[X][Y]) (ccL c * Y) := by
-            simpa using (Polynomial.eval₂_map fX (C : L[X] →+* L[X][Y]) (ccL c * Y)).symm
+      _ = (Polynomial.map fX (W0 i j)).eval₂ (C : L[X] →+* L[X][Y]) (ccL c * Y) :=
+        (Polynomial.eval₂_map fX (C : L[X] →+* L[X][Y]) (ccL c * Y)).symm
       _ = substL (W i j * ccL c) := by
             rw [hW0fun i j]
             rfl
   have hYW (i j : s) : Y * substL (W i j * ccL c) = substL Y * substL (W i j) := by
     calc
-      Y * substL (W i j * ccL c) = Y * (substL (W i j) * ccL c) := by
-        simp [substL, ccL, map_mul]
-      _ = (ccL c * Y) * substL (W i j) := by
-        simp [mul_assoc, mul_comm]
-      _ = substL Y * substL (W i j) := by
-        simp [substL, ccL]
+      Y * substL (W i j * ccL c) = Y * (substL (W i j) * ccL c) := by simp [substL, ccL, map_mul]
+      _ = (ccL c * Y) * substL (W i j) := by simp [mul_assoc, mul_comm]
+      _ = substL Y * substL (W i j) := by simp [substL, ccL]
   have hBij (i j : s) : fXY (B i j) = substL (P.1 i j) := by
     calc
       fXY (B i j) = (if i = j then 1 else 0) + Y * substL (W i j * ccL c) := by
@@ -1118,7 +1120,7 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
   let PsubGL : Matrix.GeneralLinearGroup s L[X][Y] := Matrix.GeneralLinearGroup.map substL P
   have hdet_sub_unit : IsUnit ((substL.mapMatrix P.1).det) := by
     let u : (Matrix s s L[X][Y])ˣ := ⟨PsubGL.1, (PsubGL⁻¹).1, by simp, by simp⟩
-    simpa [PsubGL, u] using Units.isUnit (Units.map Matrix.detMonoidHom u)
+    exact Units.isUnit (Units.map Matrix.detMonoidHom u)
   have hdet_sub : (substL.mapMatrix P.1).det = 1 := by
     rcases Polynomial.isUnit_iff.1 hdet_sub_unit with ⟨r, hr, hdet⟩
     have hdet0 : ev0Y ((substL.mapMatrix P.1).det) = 1 := by
@@ -1154,21 +1156,18 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
   have hvxL_fixed : (fun i => substL (vxL i)) = vxL := by
     funext i
     simp [vxL, substL]
-  have hPsubvxL : (substL.mapMatrix P.1).mulVec vxL = vxyL := by
+  have hPsubvxL_map :
+      (substL.mapMatrix P.1).mulVec (fun i => substL (vxL i)) = fun i => substL (vxy1L i) := by
     funext i
-    have hi : substL ((P.1.mulVec vxL) i) = substL (vxy1L i) :=
-      congrArg substL (congrArg (fun u : s → L[X][Y] => u i) hPvxL)
-    have hmap : (substL.mapMatrix P.1).mulVec vxL i = substL ((P.1.mulVec vxL) i) := by
-          calc
-            (substL.mapMatrix P.1).mulVec vxL i
-                = (substL.mapMatrix P.1).mulVec (fun j ↦ substL (vxL j)) i := by
-                    rw [hvxL_fixed]
-            _ = substL ((P.1.mulVec vxL) i) := (RingHom.map_mulVec substL P.1 vxL i).symm
+    exact (RingHom.map_mulVec substL P.1 vxL i).symm.trans (congrArg substL (congrFun hPvxL i))
+  have hPsubvxL : (substL.mapMatrix P.1).mulVec vxL = vxyL := by
     calc
-      (substL.mapMatrix P.1).mulVec vxL i = substL ((P.1.mulVec vxL) i) := hmap
-      _ = substL (vxy1L i) := hi
-      _ = vxyL i := by
-        simpa using congrArg (fun u : s → L[X][Y] => u i) hvxy1_subst
+      (substL.mapMatrix P.1).mulVec vxL = (substL.mapMatrix P.1).mulVec (fun i => substL (vxL i)) := by
+        rw [hvxL_fixed]
+      _ = fun i => substL (vxy1L i) := hPsubvxL_map
+      _ = vxyL := by
+            funext i
+            exact congrFun hvxy1_subst i
   have hvx_map (i : s) : fXY (vx i) = vxL i := by
     simp [vx, vxL, vL, fXY, fX]
   have hvxy_map (i : s) : fXY (vxy i) = vxyL i := by
@@ -1182,28 +1181,27 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
           = Polynomial.eval₂ (fXY.comp ιR) (fXY (C X + ccR c * Y)) (v i) := by
               exact Polynomial.hom_eval₂ (v i) ιR fXY (C X + ccR c * Y)
       _ = Polynomial.eval₂ (ιL.comp f) (C X + ccL c * Y) (v i) := by rw [hcomp, hX]
-      _ = vxyL i := by
-            simpa [vxyL, vL] using
-              (Polynomial.eval₂_map f ιL (C X + ccL c * Y)).symm
+      _ = vxyL i := (Polynomial.eval₂_map f ιL (C X + ccL c * Y)).symm
+  have hBvx_map : (fun i => fXY (B.mulVec vx i)) = fun i => fXY (vxy i) := by
+    funext i
+    calc
+      fXY (B.mulVec vx i) = (fXY.mapMatrix B).mulVec (fun j => fXY (vx j)) i :=
+        RingHom.map_mulVec fXY B vx i
+      _ = (substL.mapMatrix P.1).mulVec vxL i := by
+            simp [hBmap, hvx_map]
+      _ = vxyL i := congrFun hPsubvxL i
+      _ = fXY (vxy i) := (hvxy_map i).symm
   have hBvx : B.mulVec vx = vxy := by
     funext i
     apply hfXY_inj
-    calc
-      fXY (B.mulVec vx i) = (fXY.mapMatrix B).mulVec (fun j => fXY (vx j)) i := by
-          have hmap_mulVec :
-              fXY (B.mulVec vx i) = (B.map fXY).mulVec (fun j => fXY (vx j)) i := by
-            simpa [Function.comp] using RingHom.map_mulVec fXY B vx i
-          simpa [RingHom.mapMatrix_apply] using hmap_mulVec
-      _ = (substL.mapMatrix P.1).mulVec vxL i := by
-          simp [hBmap, hvx_map]
-      _ = vxyL i := by
-          simpa using congrArg (fun u : s → L[X][Y] => u i) hPsubvxL
-      _ = fXY (vxy i) := (hvxy_map i).symm
+    exact congrFun hBvx_map i
   refine ⟨c, ?_⟩
   refine ⟨Matrix.GeneralLinearGroup.mk'' B ?_, ?_⟩
   · simp [hdetB]
   · funext i
-    simpa [vx, vxy, ιR, ccR, Algebra.smul_def] using congrArg (fun u : s → R[X][Y] => u i) hBvx
+    simpa [vx, vxy, ιR, ccR, Algebra.smul_def] using congrFun hBvx i
+
+end lem10
 
 noncomputable section cor11
 

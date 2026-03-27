@@ -75,7 +75,7 @@ theorem hasFiniteFreeResolutionOfLength_of_semilinearEquiv {S : Type u'} [CommRi
             right_inv _ := rfl
             map_add' _ _ := rfl
             map_smul' := fun a x => by
-              change a • x = (σ' (σ a) : R) • x
+              change a • x = (σ' (σ a)) • x
               simp }
       let fS : K →ₗ[S] F :=
         { toFun := f
@@ -86,11 +86,10 @@ theorem hasFiniteFreeResolutionOfLength_of_semilinearEquiv {S : Type u'} [CommRi
           map_add' := fun x y => by simp
           map_smul' := fun b x => by
             change e (g (σ' b • x)) = b • e (g x)
-            rw [g.map_smul]
             simp [LinearEquiv.map_smulₛₗ] }
-      have : Module.Finite S F := Module.Finite.of_surjective (ec F).toLinearMap (ec F).surjective
       have : Module.Free S F := Module.Free.of_equiv (ec F)
       have : Module.Finite R K := module_finite_of_hasFiniteFreeResolutionOfLength hk
+      have : Module.Finite S F := Module.Finite.of_surjective (ec F).toLinearMap (ec F).surjective
       have : Module.Finite S K := Module.Finite.of_surjective (ec K).toLinearMap (ec K).surjective
       have : Small.{v'} F := Module.Finite.small S F
       have : Small.{v'} K := Module.Finite.small S K
