@@ -63,15 +63,12 @@ lemma map_C_comp_of_leadingCoeff_eq_comap (I : Ideal R[X]) (hI : I.leadingCoeff 
     refine Nat.strongRecOn' m (fun m ih g hgI hgm ↦ ?_)
     by_cases hg0 : g = 0
     · simp [J, hg0]
-    · have hLCI : g.leadingCoeff ∈ I.leadingCoeff :=
-        (I.mem_leadingCoeff g.leadingCoeff).2 ⟨g, hgI, rfl⟩
-      have hLCJ : g.leadingCoeff ∈ J := by simpa [J, hI] using hLCI
-      have hmain : C g.leadingCoeff * X ^ g.natDegree ∈ Ideal.map C J :=
-        (Ideal.map C J).mul_mem_right (X ^ g.natDegree) (Ideal.mem_map_of_mem C hLCJ)
-      have heraseI : g.eraseLead ∈ I := by simpa using I.sub_mem hgI (Ideal.map_comap_le hmain)
-      have hcard : g.eraseLead.support.card < m := by
+    · have hmain : C g.leadingCoeff * X ^ g.natDegree ∈ Ideal.map C J := by
+        refine (Ideal.map C J).mul_mem_right (X ^ g.natDegree) <| Ideal.mem_map_of_mem C ?_
+        simpa [J, hI] using (I.mem_leadingCoeff g.leadingCoeff).2 ⟨g, hgI, rfl⟩
+      have heraseMap : g.eraseLead ∈ Ideal.map C J := by
+        refine ih _ ?_ _ (by simpa using I.sub_mem hgI (Ideal.map_comap_le hmain)) rfl
         simpa [hgm] using Polynomial.eraseLead_support_card_lt hg0
-      have heraseMap : g.eraseLead ∈ Ideal.map C J := ih _ hcard _ heraseI rfl
       simpa [Polynomial.eraseLead_add_C_mul_X_pow] using (Ideal.map C J).add_mem heraseMap hmain
   exact hmem f.support.card f hfI rfl
 
@@ -126,8 +123,7 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal R[X]) [P.IsPrime] :
     have hker : RingHom.ker q ≤ P := by simpa [I0, q, Ideal.mk_ker] using Ideal.map_comap_le
     have : Q.IsPrime := P.map_isPrime_of_surjective Ideal.Quotient.mk_surjective hker
     have hQle : Q.height ≤ 1 := by
-      let e : (R ⧸ p)[X] ≃+* (R[X] ⧸ I0) :=
-        p.polynomialQuotientEquivQuotientPolynomial
+      let e := p.polynomialQuotientEquivQuotientPolynomial
       have hcomap_q : Ideal.comap q Q = P := by
         simpa [Q] using (Ideal.comap_map_of_surjective' q Ideal.Quotient.mk_surjective P).trans <|
           by rw [sup_eq_left.mpr hker]
@@ -150,10 +146,8 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal R[X]) [P.IsPrime] :
       exact (e.height_comap Q).symm.le.trans <|
         height_le_one_of_isPrime_comap_C_eq_bot (Ideal.comap e.toRingHom Q) hcomap
     have hP_le : P.height ≤ p.height + 1 := by simpa [hheight] using add_le_add_right hQle p.height
-    have hp_lt : p < P.leadingCoeff := by
-      refine lt_of_le_of_ne hp_le ?_
-      intro hp_eq
-      exact hPeq (map_C_comp_of_leadingCoeff_eq_comap P hp_eq.symm).symm
+    have hp_lt : p < P.leadingCoeff := lt_of_le_of_ne hp_le fun hp_eq ↦
+      hPeq (map_C_comp_of_leadingCoeff_eq_comap P hp_eq.symm).symm
     exact hP_le.trans (Order.add_one_le_of_lt <| Ideal.height_strict_mono_of_is_prime hp_lt)
 
 theorem height_le_height_leadingCoeff [NoZeroDivisors R] (I : Ideal R[X]) :
@@ -276,46 +270,40 @@ theorem suslin_monic_polynomial_thm {R : Type*} [CommRing R] [IsDomain R] [IsNoe
       (MvPolynomial.finSuccEquiv R 0).trans (Polynomial.mapAlgEquiv eEmpty)
     let J : Ideal (Polynomial R) := Ideal.map e0.toRingHom I
     have hheight : J.height = I.height := e0.toRingEquiv.height_map I
-    have hLC : ringKrullDim R < (J.leadingCoeff.height : WithBot ℕ∞) :=
-      lt_of_lt_of_le (by simpa [hheight] using hI)
-        ((WithBot.coe_le_coe).2 J.height_le_height_leadingCoeff)
+    have hLC := lt_of_lt_of_le (by simpa [hheight] using hI)
+      ((WithBot.coe_le_coe).2 J.height_le_height_leadingCoeff)
     have hLC_top : (J.leadingCoeff : Ideal R) = ⊤ := by
       by_contra hne
       exact (not_lt_of_ge (J.leadingCoeff.height_le_ringKrullDim_of_ne_top hne)) hLC
     rcases (J.mem_leadingCoeff 1).1 (by simp [hLC_top]) with ⟨g, hgJ, hgLC⟩
     have hgMonic : g.Monic := by simp [Polynomial.Monic, hgLC]
-    rcases (Ideal.mem_map_iff_of_surjective e0.toRingHom e0.toRingEquiv.surjective).1 hgJ with
-      ⟨f, hfI, rfl⟩
+    obtain ⟨f, hfI, rfl⟩ := (Ideal.mem_map_iff_of_surjective e0.toRingHom e0.surjective).1 hgJ
     exact ⟨AlgEquiv.refl, f, hfI, by simpa [e0, Polynomial.mapAlgEquiv, Polynomial.mapAlgHom] using
         Polynomial.monic_of_injective eEmpty.toRingEquiv.injective hgMonic⟩
   | succ n ih =>
     let A := MvPolynomial (Fin (n + 2)) R
     let B := MvPolynomial (Fin (n + 1)) R
     let S := MvPolynomial (Fin n) R
-    let eFirst : A ≃ₐ[R] Polynomial B :=
-      MvPolynomial.finSuccEquiv R (n + 1)
-    let J : Ideal (Polynomial B) := Ideal.map eFirst.toRingHom I
+    let eFirst : A ≃ₐ[R] Polynomial B := MvPolynomial.finSuccEquiv R (n + 1)
+    let J := Ideal.map eFirst.toRingHom I
     have hJheight : J.height = I.height := eFirst.toRingEquiv.height_map I
-    have hLC : ringKrullDim R < (J.leadingCoeff.height : WithBot ℕ∞) :=
-      lt_of_lt_of_le (by simpa [hJheight] using hI)
-        ((WithBot.coe_le_coe).2 (Ideal.height_le_height_leadingCoeff J))
+    have hLC := lt_of_lt_of_le (by simpa [hJheight] using hI)
+      ((WithBot.coe_le_coe).2 (Ideal.height_le_height_leadingCoeff J))
     rcases ih J.leadingCoeff hLC with ⟨eB, g, hgLC, hgMonic⟩
     rcases (J.mem_leadingCoeff g).1 hgLC with ⟨q, hqJ, hqLC⟩
-    obtain ⟨f0, hf0I, hq⟩ :=
-      (Ideal.mem_map_iff_of_surjective eFirst.toRingHom eFirst.toRingEquiv.surjective).1 hqJ
-    have hq : eFirst f0 = q := hq
+    obtain ⟨f0, hf0I, rfl⟩ :=
+      (Ideal.mem_map_iff_of_surjective eFirst.toRingHom eFirst.surjective).1 hqJ
     let eExt : A ≃ₐ[R] A := (eFirst.trans (Polynomial.mapAlgEquiv eB)).trans eFirst.symm
     let eX : B ≃ₐ[R] Polynomial S := MvPolynomial.finSuccEquiv R n
     let H : A ≃ₐ[R] Polynomial (Polynomial S) := eFirst.trans (Polynomial.mapAlgEquiv eX)
-    let p : Polynomial (Polynomial S) := H (eExt f0)
-    have hp_lc : p.leadingCoeff = eX (eB g) := by
+    have hp_lc : (H (eExt f0)).leadingCoeff = eX (eB g) := by
       have hLC_q1 : (eFirst (eExt f0)).leadingCoeff = eB g := by
-        simpa [eExt, hq, hqLC] using
-          Polynomial.leadingCoeff_map_of_injective eB.toRingEquiv.injective (eFirst f0)
-      simpa [p, H, Polynomial.mapAlgEquiv, Polynomial.mapAlgHom, hLC_q1] using
+        simpa [eExt] using Polynomial.leadingCoeff_map_of_injective
+          eB.toRingEquiv.injective (eFirst f0) |>.trans (congrArg eB hqLC)
+      simpa [H, Polynomial.mapAlgEquiv, Polynomial.mapAlgHom, hLC_q1] using
         Polynomial.leadingCoeff_map_of_injective eX.toRingEquiv.injective (eFirst (eExt f0))
-    have hp_lc_monic : p.leadingCoeff.Monic := by simpa [hp_lc, eX] using hgMonic
-    rcases exists_K_monic_swap_algEquivAevalXAddC p hp_lc_monic with ⟨K, hmonic_swap⟩
+    have hp_lc_monic : (H (eExt f0)).leadingCoeff.Monic := by simpa [hp_lc, eX] using hgMonic
+    rcases exists_K_monic_swap_algEquivAevalXAddC (H (eExt f0)) hp_lc_monic with ⟨K, hmonic_swap⟩
     let τ : (Polynomial (Polynomial S)) ≃ₐ[Polynomial S] (Polynomial (Polynomial S)) :=
       Polynomial.algEquivAevalXAddC ((Polynomial.X : Polynomial S) ^ K)
     let swapR : Polynomial (Polynomial S) ≃ₐ[R] Polynomial (Polynomial S) :=
@@ -323,8 +311,7 @@ theorem suslin_monic_polynomial_thm {R : Type*} [CommRing R] [IsDomain R] [IsNoe
     let eTau : A ≃ₐ[R] A :=
       (H.trans ((τ.restrictScalars R).trans swapR)).trans H.symm
     let eTotal : A ≃ₐ[R] A := eExt.trans eTau
-    have hmo : (H (eTotal f0)).Monic := by
-      simpa [eTotal, eTau, p, H, swapR, τ] using hmonic_swap
+    have hmo : (H (eTotal f0)).Monic := by simpa [eTotal, eTau, H, swapR, τ] using hmonic_swap
     set q0 := MvPolynomial.finSuccEquiv R (n + 1) (eTotal f0) with hq0
     have hq0_monic : q0.Monic := by
       simpa [hq0, H, eFirst, eX, Polynomial.mapAlgEquiv, Polynomial.mapAlgHom] using
