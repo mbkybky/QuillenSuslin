@@ -1020,9 +1020,11 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
         intro ij hij
         by_cases hEq : ij = a
         · subst hEq
-          simp [hqa, ccR, ccL, hmapc0, map_mul, mul_assoc, mul_comm]
+          simp only [Prod.mk.eta, ↓reduceIte, Polynomial.map_mul, hqa, mul_comm, map_C, hmapc0,
+            Submonoid.coe_mul, map_mul, mul_assoc, ccR, ccL]
         · have hijt : ij ∈ t := by simpa [Finset.mem_insert, hEq] using hij
-          simp [hEq, hW0 ij hijt, ccR, ccL, hmapc1, map_mul, mul_assoc, mul_left_comm, mul_comm]
+          simp only [Prod.mk.eta, hEq, ↓reduceIte, Polynomial.map_mul, hW0 ij hijt, mul_comm, map_C,
+            hmapc1, mul_left_comm, Submonoid.coe_mul, map_mul, mul_assoc, ccR, ccL]
     rcases hPidx Finset.univ with ⟨c, W0, hW0⟩
     refine ⟨c, W0, ?_⟩
     intro i j
@@ -1052,6 +1054,9 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
       _ = substL (W i j * ccL c) := by
             rw [hW0fun i j]
             rfl
+  have hfXY_Y : fXY Y = Y := by simp [fXY, fX]
+  have hfXY_diag (i j : s) : fXY (if i = j then (1 : R[X][Y]) else 0) = if i = j then 1 else 0 := by
+    by_cases hij : i = j <;> simp [hij, fXY, fX]
   have hYW (i j : s) : Y * substL (W i j * ccL c) = substL Y * substL (W i j) := by
     calc
       Y * substL (W i j * ccL c) = Y * (substL (W i j) * ccL c) := by simp [substL, ccL, map_mul]
@@ -1063,13 +1068,11 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
         calc
           fXY (B i j) = fXY ((if i = j then 1 else 0) + Y * substR (W0 i j)) := by rfl
           _ = (if i = j then 1 else 0) + fXY (Y * substR (W0 i j)) := by
-                rw [map_add]
-                simp
+                rw [map_add, hfXY_diag i j]
           _ = (if i = j then 1 else 0) + fXY Y * fXY (substR (W0 i j)) := by
                 rw [map_mul]
           _ = (if i = j then 1 else 0) + Y * substL (W i j * ccL c) := by
-                rw [hsubst_W0 i j]
-                simp [fXY, fX]
+                rw [hsubst_W0 i j, hfXY_Y]
       _ = (if i = j then 1 else 0) + substL Y * substL (W i j) := by
         rw [hYW i j]
       _ = substL (P.1 i j) := by
@@ -1078,7 +1081,7 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
         calc
           (if i = j then 1 else 0) + substL Y * substL (W i j)
           _ = substL ((if i = j then (1 : L[X][Y]) else 0) + Y * W i j) := by
-                simp [map_add, map_mul, hconst]
+                rw [map_add, map_mul, hconst]
           _ = substL (P.1 i j) := by
                 rw [hW i j]
   have hBmap : fXY.mapMatrix B = substL.mapMatrix P.1 := by
@@ -1126,9 +1129,7 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
     funext i
     exact (RingHom.map_mulVec substL P.1 vxL i).symm.trans (congrArg substL (congrFun hPvxL i))
   have hPsubvxL : (substL.mapMatrix P.1).mulVec vxL = vxyL := by
-    calc
-      (substL.mapMatrix P.1).mulVec vxL = (substL.mapMatrix P.1).mulVec (fun i => substL (vxL i)) := by
-        rw [hvxL_fixed]
+    calc _ = (substL.mapMatrix P.1).mulVec (fun i => substL (vxL i)) := by rw [hvxL_fixed]
       _ = fun i => substL (vxy1L i) := hPsubvxL_map
       _ = vxyL := by
             funext i
@@ -1160,8 +1161,7 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
     funext i
     apply hfXY_inj
     exact congrFun hBvx_map i
-  refine ⟨c, ?_⟩
-  refine ⟨Matrix.GeneralLinearGroup.mk'' B ?_, ?_⟩
+  refine ⟨c, ⟨Matrix.GeneralLinearGroup.mk'' B ?_, ?_⟩⟩
   · simp [hdetB]
   · funext i
     simpa [vx, vxy, ιR, ccR, Algebra.smul_def] using congrFun hBvx i

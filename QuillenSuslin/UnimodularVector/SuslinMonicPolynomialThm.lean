@@ -124,10 +124,9 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal R[X]) [P.IsPrime] :
   by_cases hPeq : P = Ideal.map C p
   · have hQ : Ideal.map (Ideal.Quotient.mk (Ideal.map (algebraMap R R[X]) p)) P = ⊥ := by
       simpa [hPeq] using Ideal.map_quotient_self (Ideal.map (algebraMap R R[X]) p)
-    have hI0_ne_top : Ideal.map (algebraMap R R[X]) p ≠ (⊤ : Ideal R[X]) := by
-      simpa [hPeq] using Ideal.IsPrime.ne_top inferInstance
     letI : Nontrivial (R[X] ⧸ Ideal.map (algebraMap R R[X]) p) :=
-      (Ideal.Quotient.nontrivial_iff).2 hI0_ne_top
+      (Ideal.Quotient.nontrivial_iff).2 <| by
+        simpa [hPeq] using Ideal.IsPrime.ne_top inferInstance
     have hp' : P.height = p.height := by
       rw [hheight, hQ, Ideal.height_bot]
       simp
@@ -138,10 +137,7 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal R[X]) [P.IsPrime] :
     have hI0_le : I0 ≤ P := by simpa [I0] using Ideal.map_comap_le
     have hker : RingHom.ker q ≤ P := by
       simpa [q, Ideal.mk_ker] using hI0_le
-    have : Q.IsPrime := by
-      have hQprime : (Ideal.map q P).IsPrime :=
-        P.map_isPrime_of_surjective Ideal.Quotient.mk_surjective hker
-      simpa [Q] using hQprime
+    have : Q.IsPrime := P.map_isPrime_of_surjective Ideal.Quotient.mk_surjective hker
     have hQle : Q.height ≤ 1 := by
       let e : (R ⧸ p)[X] ≃+* (R[X] ⧸ I0) :=
         p.polynomialQuotientEquivQuotientPolynomial
@@ -183,11 +179,8 @@ theorem height_le_height_leadingCoeff [NoZeroDivisors R] (I : Ideal R[X]) :
   let Pset : Finset (Ideal R[X]) := hfin.toFinset
   let J : Ideal R[X] := Pset.prod id
   have hJ_le_rad : J ≤ I.radical := by
-    have hprod : J ≤ Pset.inf id := Ideal.prod_le_inf
-    have hinf : (Pset.inf id : Ideal R[X]) = sInf I.minimalPrimes := by
-      have : Pset = I.minimalPrimes := by simp [Pset]
-      simp [Finset.inf_id_eq_sInf, this]
-    simpa [J, hinf, Ideal.sInf_minimalPrimes] using hprod
+    simpa [J, Pset, Finset.inf_id_eq_sInf, Ideal.sInf_minimalPrimes] using
+      (Ideal.prod_le_inf : J ≤ Pset.inf id)
   rcases Ideal.exists_pow_le_of_le_radical_of_fg hJ_le_rad J.fg_of_isNoetherianRing with ⟨N, hJN⟩
   refine le_iInf fun q => le_iInf fun hq => ?_
   have : q.IsPrime := Ideal.minimalPrimes_isPrime hq
@@ -196,9 +189,8 @@ theorem height_le_height_leadingCoeff [NoZeroDivisors R] (I : Ideal R[X]) :
       simpa [J] using leadingCoeff_finset_prod_le Pset id
     exact le_trans (le_trans (pow_right_mono h₁ N) (leadingCoeff_pow_le J N))
       (leadingCoeff_mono hJN)
-  have hLCq' : (Pset.prod fun P => P.leadingCoeff) ≤ q :=
-    Ideal.IsPrime.le_of_pow_le (le_trans hLC hq.1.2)
-  rcases (Ideal.IsPrime.prod_le inferInstance).1 (by simpa using hLCq') with ⟨P, hP, hPq⟩
+  rcases (Ideal.IsPrime.prod_le inferInstance).1
+      (Ideal.IsPrime.le_of_pow_le (le_trans hLC hq.1.2)) with ⟨P, hP, hPq⟩
   have hPmin : P ∈ I.minimalPrimes := (Set.Finite.mem_toFinset hfin).1 hP
   have : P.IsPrime := Ideal.minimalPrimes_isPrime hPmin
   exact le_trans (by simpa [Ideal.height] using (iInf₂_le P hPmin))
@@ -238,11 +230,10 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {R : Type*} [CommRing R] [Nontriv
     simpa [K, base, add_comm] using Polynomial.monic_X_pow_add_C X (Nat.succ_ne_zero M)
   have hbase_natDegree : base.natDegree = K := by
     simp only [add_comm, natDegree_add_C, natDegree_X_pow, base]
-  have hcoeffN : p.coeff N = p.leadingCoeff := by simp [N]
   have hswapLC_monic : (swapR (C p.leadingCoeff)).Monic := by
     simpa [hswapC] using (hp.map (C : R →+* R[X]))
   have hmain_monic : (term N).Monic := by
-    simpa [term, hcoeffN] using hswapLC_monic.mul (hbase_monic.pow N)
+    simpa [term, N] using hswapLC_monic.mul (hbase_monic.pow N)
   let bound : ℕ := M + (N - 1) * K
   have hnat_term : ∀ i, i < N → (term i).natDegree ≤ bound := by
     intro i hi
@@ -277,7 +268,7 @@ theorem exists_K_monic_swap_algEquivAevalXAddC {R : Type*} [CommRing R] [Nontriv
     have hnat_baseN : (base ^ N).natDegree = N * K := by
       simpa [hbase_natDegree] using (hbase_monic.natDegree_pow N)
     have hnat_main : main.natDegree = p.leadingCoeff.natDegree + N * K := by
-      simpa [main, term, hcoeffN, hnat_swapC p.leadingCoeff, hnat_baseN, add_comm] using
+      simpa [main, term, N, hnat_swapC p.leadingCoeff, hnat_baseN, add_comm] using
         hswapLC_monic.natDegree_mul (hbase_monic.pow N)
     have hNK : N * K = (N - 1) * K + K := by
       have hpos : 0 < N := Nat.pos_of_ne_zero hN0
@@ -309,15 +300,12 @@ theorem suslin_monic_polynomial_thm {R : Type*} [CommRing R] [IsDomain R] [IsNoe
       (MvPolynomial.finSuccEquiv R 0).trans (Polynomial.mapAlgEquiv eEmpty)
     let J : Ideal (Polynomial R) := Ideal.map e0.toRingHom I
     have hheight : J.height = I.height := e0.toRingEquiv.height_map I
-    have hJ : ringKrullDim R < J.height := by simpa [hheight] using hI
-    have hJ_le : (J.height : WithBot ℕ∞) ≤ (J.leadingCoeff.height : WithBot ℕ∞) :=
-      (WithBot.coe_le_coe).2 J.height_le_height_leadingCoeff
-    have hLC : ringKrullDim R < (J.leadingCoeff.height : WithBot ℕ∞) := lt_of_lt_of_le hJ hJ_le
+    have hLC : ringKrullDim R < (J.leadingCoeff.height : WithBot ℕ∞) :=
+      lt_of_lt_of_le (by simpa [hheight] using hI)
+        ((WithBot.coe_le_coe).2 J.height_le_height_leadingCoeff)
     have hLC_top : (J.leadingCoeff : Ideal R) = ⊤ := by
       by_contra hne
-      have hbound : (J.leadingCoeff.height : WithBot ℕ∞) ≤ ringKrullDim R :=
-        J.leadingCoeff.height_le_ringKrullDim_of_ne_top hne
-      exact (not_lt_of_ge hbound) hLC
+      exact (not_lt_of_ge (J.leadingCoeff.height_le_ringKrullDim_of_ne_top hne)) hLC
     rcases (J.mem_leadingCoeff 1).1 (by simp [hLC_top]) with ⟨g, hgJ, hgLC⟩
     have hgMonic : g.Monic := by simp [Polynomial.Monic, hgLC]
     rcases (Ideal.mem_map_iff_of_surjective e0.toRingHom e0.toRingEquiv.surjective).1 hgJ with
@@ -332,10 +320,9 @@ theorem suslin_monic_polynomial_thm {R : Type*} [CommRing R] [IsDomain R] [IsNoe
       MvPolynomial.finSuccEquiv R (n + 1)
     let J : Ideal (Polynomial B) := Ideal.map eFirst.toRingHom I
     have hJheight : J.height = I.height := eFirst.toRingEquiv.height_map I
-    have hJ : ringKrullDim R < J.height := by simpa [hJheight] using hI
-    have hJ_le : (J.height : WithBot ℕ∞) ≤ (J.leadingCoeff.height : WithBot ℕ∞) :=
-      (WithBot.coe_le_coe).2 (Ideal.height_le_height_leadingCoeff J)
-    have hLC : ringKrullDim R < (J.leadingCoeff.height : WithBot ℕ∞) := lt_of_lt_of_le hJ hJ_le
+    have hLC : ringKrullDim R < (J.leadingCoeff.height : WithBot ℕ∞) :=
+      lt_of_lt_of_le (by simpa [hJheight] using hI)
+        ((WithBot.coe_le_coe).2 (Ideal.height_le_height_leadingCoeff J))
     rcases ih J.leadingCoeff hLC with ⟨eB, g, hgLC, hgMonic⟩
     rcases (J.mem_leadingCoeff g).1 hgLC with ⟨q, hqJ, hqLC⟩
     obtain ⟨f0, hf0I, hq⟩ :=

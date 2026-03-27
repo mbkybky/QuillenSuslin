@@ -47,7 +47,7 @@ private theorem surjective_coprod_of_exact_of_lift (h : Function.Exact f g)
   rcases hu x₁ with ⟨x, hx⟩
   exact ⟨(x, y), by simp [hx, hx₁]⟩
 
-private theorem coprod_snd_eq_zero_of_eq_zero (h : Function.Exact f g)
+private theorem snd_mem_ker_of_mem_ker_coprod (h : Function.Exact f g)
     (hl : g.comp l = v) (y : A × B) (hy : ((f.comp u).coprod l) y = 0) : v y.2 = 0 := by
   simpa [← hl, Function.Exact.apply_apply_eq_zero h (u y.1)] using congrArg g hy
 
@@ -82,7 +82,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
           · intro y
             constructor
             · intro hy
-              have hy0 : g₃ y.2 = 0 := coprod_snd_eq_zero_of_eq_zero f g LinearMap.id g₃ l h hl y hy
+              have hy0 : g₃ y.2 = 0 := snd_mem_ker_of_mem_ker_coprod f g LinearMap.id g₃ l h hl y hy
               rcases (he₃ y.2).1 hy0 with ⟨k, hk⟩
               have hxy0 : y.1 + t k = 0 := hf <| by
                 rw [LinearMap.map_add, leftLiftOfRightLift_apply]
@@ -105,7 +105,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
           · intro y
             constructor
             · intro hy
-              have hy0 : y.2 = 0 := coprod_snd_eq_zero_of_eq_zero f g g₁ LinearMap.id l h hl y hy
+              have hy0 : y.2 = 0 := snd_mem_ker_of_mem_ker_coprod f g g₁ LinearMap.id l h hl y hy
               rcases (he₁ y.1).1 (hf <| by simpa [s, hy0] using hy) with ⟨x, hx⟩
               exact ⟨x, Prod.ext hx (by simp [hy0, i])⟩
             · rintro ⟨x, rfl⟩
@@ -120,7 +120,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_left_of_right
             simp [K, s, i₁, Function.Exact.apply_apply_eq_zero he₁ k]
           let p : F₁ × F₃ →ₗ[R] F₃ := LinearMap.snd R F₁ F₃
           let β : K →ₗ[R] g₃.ker := LinearMap.codRestrict g₃.ker (p.comp K.subtype) <|
-            fun x ↦ coprod_snd_eq_zero_of_eq_zero f g g₁ g₃ l h hl x.1 x.2
+            fun x ↦ snd_mem_ker_of_mem_ker_coprod f g g₁ g₃ l h hl x.1 x.2
           have hα : Function.Injective α := fun _ _ hxy =>
             hf₁ <| congrArg Prod.fst (congrArg Subtype.val hxy)
           have hβ : Function.Surjective β := by
