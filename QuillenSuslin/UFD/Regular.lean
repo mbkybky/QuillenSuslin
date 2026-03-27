@@ -20,22 +20,21 @@ theorem Ideal.isPrincipal_of_free [IsDomain R] {I : Ideal R} [Module.Free R I] :
 variable (R) in
 lemma IsLocalRing.exists_mem_maximalIdeal_not_mem_sq [IsLocalRing R] [IsNoetherianRing R]
     [NeZero (ringKrullDim R)] : ∃ x ∈ maximalIdeal R, x ∉ (maximalIdeal R) ^ 2 := by
-  have : Nontrivial (IsLocalRing.CotangentSpace R) := by
-    simpa only [← not_subsingleton_iff_nontrivial, subsingleton_cotangentSpace_iff] using fun hf ↦
-      NeZero.ne (ringKrullDim R) (ringKrullDim_eq_zero_of_isField hf)
-  rcases exists_ne (0 : CotangentSpace R) with ⟨u, hu⟩
-  rcases Ideal.toCotangent_surjective (maximalIdeal R) u with ⟨x, rfl⟩
-  exact ⟨x, x.2, by simpa [Ideal.toCotangent_eq_zero] using hu⟩
+  by_contra! h
+  refine NeZero.ne (ringKrullDim R) <| ringKrullDim_eq_zero_of_isField <|
+    subsingleton_cotangentSpace_iff.mp (subsingleton_of_forall_eq 0 ?_)
+  rintro ⟨x⟩
+  exact (Ideal.toCotangent_eq_zero (maximalIdeal R) x).mpr (h x.1 x.2)
 
-lemma ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal [IsLocalRing R] [IsNoetherianRing R]
-    {P : Ideal R} [P.IsPrime] (hP_lt_max : P < IsLocalRing.maximalIdeal R) :
+lemma ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal [IsLocalRing R]
+    {P : Ideal R} [P.IsPrime] [P.FiniteHeight] (hP_lt_max : P < IsLocalRing.maximalIdeal R) :
     ringKrullDim (Localization.AtPrime P) < ringKrullDim R := by
   rw [IsLocalization.AtPrime.ringKrullDim_eq_height P _]
   exact lt_of_lt_of_eq (by exact_mod_cast Ideal.height_strict_mono_of_is_prime hP_lt_max)
     IsLocalRing.maximalIdeal_height_eq_ringKrullDim
 
-private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd
-    [IsRegularLocalRing R] {x : R} (hxmem : x ∈ IsLocalRing.maximalIdeal R) (hxp : Prime x)
+private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [IsRegularLocalRing R]
+    {x : R} (hxmem : x ∈ IsLocalRing.maximalIdeal R) (hxp : Prime x)
     (hP : ∀ (P : Ideal R) [P.IsPrime] (_ : P < IsLocalRing.maximalIdeal R),
       UniqueFactorizationMonoid (Localization.AtPrime P)) :
     UniqueFactorizationMonoid (Localization.Away x) := by
