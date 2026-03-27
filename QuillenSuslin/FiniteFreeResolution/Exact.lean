@@ -27,7 +27,7 @@ private theorem leftLiftOfRightLift_apply (hf : Function.Injective f) (h : Funct
     f (leftLiftOfRightLift f g f₃ g₃ hf h he₃ l hl k) = l (f₃ k) := by
   simp [leftLiftOfRightLift]
 
-section
+section Function.Exact
 
 omit [Small.{α} R] [Small.{β} R] [Small.{γ} R]
 
@@ -51,7 +51,7 @@ private theorem coprod_snd_eq_zero_of_eq_zero (h : Function.Exact f g)
     (hl : g.comp l = v) (y : A × B) (hy : ((f.comp u).coprod l) y = 0) : v y.2 = 0 := by
   simpa [← hl, Function.Exact.apply_apply_eq_zero h (u y.1)] using congrArg g hy
 
-end
+end Function.Exact
 
 /-- In a short exact sequence `0 → P₁ → P₂ → P₃ → 0`, if `P₁` and `P₃` have finite free
 resolutions, then so does `P₂`. -/

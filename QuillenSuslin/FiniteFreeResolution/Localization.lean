@@ -29,6 +29,5 @@ theorem hasFiniteFreeResolutionLength_localizedModule
           (LocalizedModule.map_exact S f g he) ih
 
 theorem hasFiniteFreeResolution_localizedModule (h : HasFiniteFreeResolution R M) :
-    HasFiniteFreeResolution (Localization S) (LocalizedModule S M) := by
-  rcases h with ⟨n, hn⟩
-  exact ⟨n, hasFiniteFreeResolutionLength_localizedModule S hn⟩
+    HasFiniteFreeResolution (Localization S) (LocalizedModule S M) :=
+  h.imp fun _ hn => hasFiniteFreeResolutionLength_localizedModule S hn

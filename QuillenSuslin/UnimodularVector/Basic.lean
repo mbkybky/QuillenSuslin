@@ -72,6 +72,10 @@ theorem isUnimodular_map_ringEquiv (e : A ≃+* B) (v : s → A) (hv : IsUnimodu
 
 variable [Fintype s] [DecidableEq s]
 
+theorem generalLinearGroup_map_mulVec_eq (f : A →+* B) (M : GL s A) {v w : s → A}
+    (hM : M.1.mulVec v = w) : (M.map f).1.mulVec (fun i => f (v i)) = fun i => f (w i) :=
+  funext fun i ↦ (RingHom.map_mulVec f M.1 v i).symm.trans (congrArg f (congrFun hM i))
+
 /-- Push a unimodular-vector equivalence along a ring homomorphism. -/
 theorem unimodularVectorEquiv_map (f : A →+* B) {v w : s → A} (hvw : UnimodularVectorEquiv v w) :
     UnimodularVectorEquiv (fun i => f (v i)) (fun i => f (w i)) := by
@@ -867,36 +871,30 @@ variable {R : Type*} [CommRing R] [IsDomain R] {s : Type*} [Fintype s] [Decidabl
 
 section lem10
 
-lemma clearDenominators_poly {T A B : Type*} [CommRing T] [CommRing A] [CommRing B]
-    {S : Submonoid T} (g : A →+* B) (num : S →* A) (den : S →* B)
-    (hnum : ∀ c : S, g (num c) = den c)
-    (hclear : ∀ b : B, ∃ c : S, ∃ a : A, g a = b * den c) :
-    ∀ p : B[X], ∃ c : S, ∃ q : A[X], Polynomial.map g q = p * C (den c) := by
-  intro p
+lemma clearDenominators_poly_map {T A B : Type*} [CommRing T] [CommRing A] [CommRing B]
+    {S : Submonoid T} (g : A →+* B) (num : S →* A)
+    (hclear : ∀ b : B, ∃ c : S, ∃ a : A, g a = b * g (num c)) (p : B[X]) :
+    ∃ c : S, ∃ q : A[X], Polynomial.map g q = p * C (g (num c)) := by
   refine Polynomial.induction_on' p ?_ ?_
   · intro p q hp hq
     rcases hp with ⟨cp, qp, hqp⟩
     rcases hq with ⟨cq, qq, hqq⟩
     refine ⟨cp * cq, qp * C (num cq) + qq * C (num cp), ?_⟩
-    calc
-      Polynomial.map g (qp * C (num cq) + qq * C (num cp))
-          = Polynomial.map g qp * C (g (num cq)) + Polynomial.map g qq * C (g (num cp)) := by
-              simp [Polynomial.map_add, Polynomial.map_mul]
-      _ = Polynomial.map g qp * C (den cq) + Polynomial.map g qq * C (den cp) := by
-            rw [hnum, hnum]
-      _ = p * C (den cp) * C (den cq) + q * C (den cq) * C (den cp) := by
-            simp [hqp, hqq, mul_left_comm, mul_comm]
-      _ = (p + q) * C (den (cp * cq)) := by
-            simp [map_mul, add_mul, mul_left_comm, mul_comm]
+    simp [hqp, hqq, add_mul, mul_left_comm, mul_comm]
   · intro n b
     rcases hclear b with ⟨c, a, ha⟩
-    refine ⟨c, Polynomial.monomial n a, ?_⟩
-    calc
-      Polynomial.map g (Polynomial.monomial n a) = Polynomial.monomial n (g a) := by simp
-      _ = Polynomial.monomial n (b * den c) := by rw [ha]
-      _ = Polynomial.monomial n b * C (den c) := by simp
+    exact ⟨c, Polynomial.monomial n a, by simp [ha]⟩
 
-set_option maxHeartbeats 250000 in
+lemma generalLinearGroup_det_eq_one_of_eval_zero_eq_one (G : GL s (Polynomial R))
+    (hG0 : (Polynomial.eval₂RingHom (RingHom.id R) 0).mapMatrix G.1 = 1) : G.1.det = 1 := by
+  rcases Polynomial.isUnit_iff.1 (Matrix.isUnits_det_units G) with ⟨r, _, hdet⟩
+  have hdet0 : (Polynomial.eval₂RingHom (RingHom.id R) 0) G.1.det = 1 := by
+    simpa [RingHom.map_det] using congrArg Matrix.det hG0
+  have hr1 : r = 1 := by
+    calc r = (Polynomial.eval₂RingHom (RingHom.id R) 0) (C r) := by simp
+      _ = _ := by rw [hdet, hdet0]
+  rw [← hdet, hr1, map_one]
+
 /-- Suppose $v(x) \sim v(0)$ over the localization $R_S[x]$. Then there exists a $c \in S$ such
   that $v(x) \sim v(x + cy)$ over $R[x, y]$. -/
 theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
@@ -926,53 +924,35 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
     map_one' := rfl
     map_mul' := fun _ _ => rfl
   }
-  let denL : S →* L := {
-    toFun := fun c : S => f c
-    map_one' := by simp
-    map_mul' := fun _ _ => by simp
-  }
-  have clearCoeff : ∀ a : L, ∃ c : S, ∃ r : R, f r = a * denL c := by
-    intro a
+  have clearCoeff (a : L) : ∃ c : S, ∃ r : R, f r = a * f c := by
     rcases IsLocalization.surj S a with ⟨⟨r, c⟩, hc⟩
-    exact ⟨c, r, by simpa [denL] using hc.symm⟩
-  have clearX : ∀ p : L[X], ∃ c : S, ∃ q : R[X], Polynomial.map f q = p * C (f c) := by
-    simpa [numR, denL] using clearDenominators_poly f numR denL (fun _ => rfl) clearCoeff
+    exact ⟨c, r, hc.symm⟩
+  have clearX : ∀ p : L[X], ∃ c : S, ∃ q : R[X], Polynomial.map f q = p * C (f c) :=
+    clearDenominators_poly_map f numR clearCoeff
   let numRX : S →* R[X] := {
     toFun := fun c : S => C (c : R)
     map_one' := by simp
     map_mul' := fun _ _ => by simp
   }
-  let denLX : S →* L[X] := {
-    toFun := fun c : S => C (f c)
-    map_one' := by simp
-    map_mul' := fun _ _ => by simp
-  }
-  have clearCoeffX : ∀ a : L[X], ∃ c : S, ∃ q : R[X], fX q = a * denLX c := by
-    intro a
-    simpa [fX, denLX] using clearX a
+  have clearCoeffX (a : L[X]) : ∃ c : S, ∃ q : R[X], fX q = a * fX (numRX c) := by
+    simpa [fX, numRX] using clearX a
   have clearXY : ∀ p : L[X][Y], ∃ c : S, ∃ q : R[X][Y], Polynomial.map fX q = p * ccL c := by
-    simpa [numRX, denLX, ccL] using
-      clearDenominators_poly fX numRX denLX (fun c => by simp [numRX, denLX, fX]) clearCoeffX
+    intro p
+    simpa [fX, numRX, ccL] using clearDenominators_poly_map fX numRX clearCoeffX p
   rcases h with ⟨M, hM⟩
   let lift : L[X] →+* L[X][Y] := C
   let shift1 : L[X] →+* L[X][Y] := Polynomial.eval₂RingHom ιL (C X + Y)
   let MC : Matrix.GeneralLinearGroup s L[X][Y] := Matrix.GeneralLinearGroup.map lift M
   let Mshift : Matrix.GeneralLinearGroup s L[X][Y] := Matrix.GeneralLinearGroup.map shift1 M
   let P : Matrix.GeneralLinearGroup s L[X][Y] := Mshift⁻¹ * MC
-  have hmapM (g : L[X] →+* L[X][Y]) :
-      (Matrix.GeneralLinearGroup.map g M).1.mulVec (fun i => g (vL i)) = fun i => g (constL i) := by
-    funext i
-    exact (RingHom.map_mulVec g M.1 vL i).symm.trans (congrArg g (congrFun hM i))
-  have hMC : MC.1.mulVec vxL = const2L := by
-    simpa [MC, lift, vxL, const2L] using hmapM lift
-  have hMshift' : Mshift.1.mulVec vxy1L = fun i => shift1 (constL i) := by
-    simpa [Mshift, shift1, vxy1L] using hmapM shift1
+  have hMC : MC.1.mulVec vxL = const2L := generalLinearGroup_map_mulVec_eq lift M hM
   have hMshift : Mshift.1.mulVec vxy1L = const2L := by
     calc
-      Mshift.1.mulVec vxy1L = fun i => shift1 (constL i) := hMshift'
+      Mshift.1.mulVec vxy1L = fun i => ιL (f ((v i).eval 0)) := by
+        simpa [Mshift, shift1, vxy1L, constL] using generalLinearGroup_map_mulVec_eq shift1 M hM
       _ = const2L := by
             funext i
-            simp [shift1, constL, const2L, ιL]
+            simp [const2L, constL, ιL]
   have hPvxL : P.1.mulVec vxL = vxy1L := by
     change
       ((Mshift⁻¹ * MC : Matrix.GeneralLinearGroup s (Localization S)[X][Y]).1).mulVec vxL = vxy1L
@@ -1118,26 +1098,11 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
       _ = ev0Y.mapMatrix P.1 := by rw [hev0_subst]
       _ = 1 := hP0
   let PsubGL : Matrix.GeneralLinearGroup s L[X][Y] := Matrix.GeneralLinearGroup.map substL P
-  have hdet_sub_unit : IsUnit ((substL.mapMatrix P.1).det) := by
-    let u : (Matrix s s L[X][Y])ˣ := ⟨PsubGL.1, (PsubGL⁻¹).1, by simp, by simp⟩
-    exact Units.isUnit (Units.map Matrix.detMonoidHom u)
-  have hdet_sub : (substL.mapMatrix P.1).det = 1 := by
-    rcases Polynomial.isUnit_iff.1 hdet_sub_unit with ⟨r, hr, hdet⟩
-    have hdet0 : ev0Y ((substL.mapMatrix P.1).det) = 1 := by
-      simpa [RingHom.map_det, RingHom.mapMatrix_apply] using congrArg Matrix.det hPsub0
-    have hr1 : r = 1 := by
-      calc
-        r = ev0Y (C r) := by simp [ev0Y]
-        _ = ev0Y ((substL.mapMatrix ↑P).det) := by rw [hdet]
-        _ = 1 := hdet0
-    calc
-      (substL.mapMatrix P.1).det = C r := by simp [hdet]
-      _ = 1 := by simp [hr1]
   have hdetB_map : fXY B.det = 1 := by
     calc
       fXY B.det = (fXY.mapMatrix B).det := by simpa using (RingHom.map_det fXY B)
       _ = (substL.mapMatrix P.1).det := by rw [hBmap]
-      _ = 1 := hdet_sub
+      _ = 1 := generalLinearGroup_det_eq_one_of_eval_zero_eq_one PsubGL hPsub0
   have hdetB : B.det = 1 := by
     apply hfXY_inj
     simpa using hdetB_map
