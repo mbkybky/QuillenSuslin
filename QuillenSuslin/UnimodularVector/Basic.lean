@@ -102,11 +102,6 @@ lemma ne_one_of_natDegree_pos {p : R[X]} (hp : 0 < p.natDegree) : p ≠ 1 := by
   rintro rfl
   simp at hp
 
-/-- If `a` is monic and `n < a.natDegree`, then the remainder of `X^n` modulo `a` is `X^n`. -/
-lemma X_pow_modByMonic_eq_self [Nontrivial R] {a : R[X]} (ha : a.Monic) {n : ℕ}
-    (hn : n < a.natDegree) : (X ^ n %ₘ a) = X ^ n :=
-  (Polynomial.modByMonic_eq_self_iff ha).2 (by simpa using WithBot.coe_lt_coe.mpr hn)
-
 /-- If we have two polynomials $a(x), b(x) \in R[x]$, with $\deg a = d$ and $a$ monic,
   and $b$ of degree $\leq d-1$ containing at least one coefficient which is a unit, there is a
   polynomial $a(x) e(x) + b(x) f(x) \in (a(x), b(x))$ of degree $\leq d-1$ whose leading coefficient
@@ -114,129 +109,97 @@ lemma X_pow_modByMonic_eq_self [Nontrivial R] {a : R[X]} (ha : a.Monic) {n : ℕ
 theorem degree_lowering (a b : R[X]) (ha : a.Monic) (hb : b.natDegree < a.natDegree)
     (h : ∃ i : ℕ, IsUnit (b.coeff i)) :
     ∃ e f : R[X], (a * e + b * f).Monic ∧ (a * e + b * f).natDegree = a.natDegree - 1 := by
-  rcases subsingleton_or_nontrivial R with hR | hR
-  · have hab : a = b := Subsingleton.elim _ _
-    have : ¬ b.natDegree < a.natDegree := by simp [hab]
-    exact (this hb).elim
-  · set d : ℕ := a.natDegree
-    have hdpos : 0 < d := by simpa [d] using lt_of_le_of_lt (Nat.zero_le _) hb
-    have ha_ne_one : a ≠ 1 := by
-      apply ne_one_of_natDegree_pos
-      simpa [d] using hdpos
-    let I : Ideal R[X] := Ideal.span ({a, b} : Set R[X])
-    let L : R[X] →ₗ[R] R := (Polynomial.lcoeff R (d - 1)).comp (Polynomial.modByMonicHom a)
-    let J : Submodule R R := Submodule.map L (I.restrictScalars R)
-    have ha_mem_I : a ∈ I := Ideal.subset_span (by simp)
-    have hb_mem_I : b ∈ I := Ideal.subset_span (by simp)
-    have hL_X_pow_lt : ∀ {n : ℕ}, n < d - 1 → L (X ^ n) = 0 := by
-      intro n hn
-      have hn' : n < d := lt_of_lt_of_le hn (Nat.sub_le d 1)
-      have hx : X ^ n %ₘ a = X ^ n := by
-        simpa [d] using X_pow_modByMonic_eq_self ha (by simpa [d] using hn')
-      have hne : (d - 1 : ℕ) ≠ n := ne_of_gt hn
-      simp [L, Polynomial.lcoeff_apply, hx, Polynomial.coeff_X_pow, hne]
-    have hL_X_pow_eq : L (X ^ (d - 1)) = 1 := by
-      have hlt : d - 1 < d := Nat.sub_lt hdpos Nat.one_pos
-      have hx : X ^ (d - 1) %ₘ a = X ^ (d - 1) := by
-        simpa [d] using X_pow_modByMonic_eq_self ha (by simpa [d] using hlt)
-      simp [L, Polynomial.lcoeff_apply, hx, Polynomial.coeff_X_pow]
-    have hbCoeff_mem_J (i : ℕ) : i < d → b.coeff i ∈ J := by
-      let P (k : ℕ) : Prop := ∀ j : ℕ, k ≤ j → j < d → b.coeff j ∈ J
-      have hP_top : P d := by
-        intro j hj hlt
-        exact (not_lt_of_ge hj hlt).elim
-      have hStep : ∀ k : ℕ, k < d → 0 ≤ k → P (k + 1) → P k := by
-        intro k hk _ ih j hjk hjd
-        by_cases hkj : j = k
-        · subst j
-          let s : ℕ := d - 1 - k
-          have hsI : X ^ s * b ∈ I := I.mul_mem_left _ hb_mem_I
-          have hsJ : L (X ^ s * b) ∈ J := by
-            refine (Submodule.mem_map).2 ?_
-            refine ⟨X ^ s * b, ?_, rfl⟩
-            exact hsI
-          have hb_sum : b = ∑ i ∈ range d, C (b.coeff i) * X ^ i := by
-            simpa using b.as_sum_range_C_mul_X_pow' (by simpa [d] using hb)
-          have hs_sum : X ^ s * b = ∑ i ∈ range d, b.coeff i • X ^ (s + i) := by
-            conv_lhs => rw [hb_sum]
-            simp only [mul_sum]
-            refine sum_congr rfl ?_
-            intro i hi
-            calc _ = C (b.coeff i) * (X ^ s * X ^ i) := by grind
-              _ = b.coeff i • X ^ (s + i) := by simp [pow_add, Polynomial.smul_eq_C_mul]
-          have hs_L : L (X ^ s * b) = ∑ i ∈ range d, b.coeff i * L (X ^ (s + i)) := by
-            simp [hs_sum, L, map_sum, map_smul, smul_eq_mul]
-          let f : ℕ → R := fun i => b.coeff i * L (X ^ (s + i))
-          have hk1 : k + 1 ≤ d := Nat.succ_le_of_lt hk
-          have hsplit : (∑ i ∈ range (k + 1), f i) + (∑ i ∈ Ico (k + 1) d, f i) =
-              ∑ i ∈ range d, f i := by
-            simpa using (Finset.sum_range_add_sum_Ico f hk1)
-          have hprefix_zero : (∑ i ∈ range k, f i) = 0 := by
-            refine Finset.sum_eq_zero ?_
-            intro i hi
-            have hik : i < k := mem_range.mp hi
-            have hni : s + i < d - 1 := by
-              have hk_le : k ≤ d - 1 := Nat.le_pred_of_lt hk
-              simpa [s, Nat.sub_add_cancel (hk_le)] using Nat.add_lt_add_left hik s
-            simp [f, hL_X_pow_lt hni]
-          have hprefix : (∑ i ∈ range (k + 1), f i) = b.coeff k := by
-            have hs_add : s + k = d - 1 := by
-              simpa [s] using (Nat.sub_add_cancel (Nat.le_pred_of_lt hk))
-            have hfk : f k = b.coeff k := by
-              simp [f, hs_add, hL_X_pow_eq]
-            simp [Finset.sum_range_succ, hprefix_zero, hfk]
-          have hs_eq_total : L (X ^ s * b) =
-              b.coeff k + ∑ i ∈ Ico (k + 1) d, f i := by
-            calc _ = ∑ i ∈ range d, f i := by simp [hs_L, f]
-              _ = (∑ i ∈ range (k + 1), f i) + (∑ i ∈ Ico (k + 1) d, f i) := by
-                simpa [add_comm, add_left_comm, add_assoc] using hsplit.symm
-              _ = b.coeff k + (∑ i ∈ Ico (k + 1) d, f i) := by simp [hprefix]
-          have htail_mem : (∑ i ∈ Ico (k + 1) d, f i) ∈ J := by
-            refine Submodule.sum_mem J ?_
-            intro i hi
-            simpa [f, smul_eq_mul, mul_comm, mul_left_comm, mul_assoc] using
-              J.smul_mem (L (X ^ (s + i))) (ih i (mem_Ico.mp hi).1 (mem_Ico.mp hi).2)
-          have : L (X ^ s * b) - (∑ i ∈ Ico (k + 1) d, f i) = b.coeff k :=
-            (sub_eq_iff_eq_add).2 <| by
-              simpa [add_assoc, add_comm, add_left_comm] using hs_eq_total
-          simpa [this] using J.sub_mem hsJ htail_mem
-        · have hjk' : k < j := lt_of_le_of_ne hjk (Ne.symm hkj)
-          have hjk1 : k + 1 ≤ j := Nat.succ_le_of_lt hjk'
-          exact ih j hjk1 hjd
-      have hP0 : P 0 := Nat.decreasingInduction' hStep (Nat.zero_le _) hP_top
-      exact hP0 i (Nat.zero_le _)
-    rcases h with ⟨i, hi_unit⟩
-    have hi_le : i ≤ b.natDegree := le_natDegree_of_ne_zero (IsUnit.ne_zero hi_unit)
-    have hi_lt : i < d := lt_of_le_of_lt hi_le (by simpa [d] using hb)
-    have hbi_mem : b.coeff i ∈ J := hbCoeff_mem_J i hi_lt
-    rcases hi_unit with ⟨u, hu⟩
-    have hone_mem : (1 : R) ∈ J := by
-      have : (↑u⁻¹ : R) • (b.coeff i) ∈ J := J.smul_mem (↑u⁻¹ : R) hbi_mem
-      simpa [hu.symm, smul_eq_mul] using this
-    rcases (Submodule.mem_map).1 hone_mem with ⟨p, hpI, hpL⟩
-    let g : R[X] := p %ₘ a
-    have hg_coeff : g.coeff (d - 1) = 1 := by simpa [g, L, Polynomial.lcoeff_apply] using hpL
-    have hg_deg : g.natDegree < d := by
-      simpa [d, g] using Polynomial.natDegree_modByMonic_lt p ha ha_ne_one
-    have hg_mem_I : g ∈ I := by
-      have hmul : a * (p /ₘ a) ∈ I := I.mul_mem_right _ ha_mem_I
-      have hmod : p %ₘ a = p - a * (p /ₘ a) := Polynomial.modByMonic_eq_sub_mul_div p a
-      simpa [g, hmod] using I.sub_mem hpI hmul
-    have hg_monic : g.Monic := by
-      have hg_le : g.natDegree ≤ d - 1 := Nat.le_pred_of_lt (by simpa [d] using hg_deg)
-      exact monic_of_natDegree_le_of_coeff_eq_one (d - 1) hg_le (by simpa using hg_coeff)
-    rcases (Ideal.mem_span_pair).1 hg_mem_I with ⟨e, f, hef⟩
-    have hcomb : a * e + b * f = g := by
-      simpa [mul_comm, add_comm, add_left_comm, add_assoc] using hef
-    have hg_natDegree : g.natDegree = d - 1 := by
-      have hge : d - 1 ≤ g.natDegree := by
-        refine le_natDegree_of_ne_zero ?_
-        simp [hg_coeff]
-      have hle : g.natDegree ≤ d - 1 := Nat.le_pred_of_lt hg_deg
-      exact le_antisymm hle hge
-    refine ⟨e, f, ?_, ?_⟩
-    · simpa [hcomb] using hg_monic
-    · simpa [hcomb, d] using hg_natDegree
+  have : Nontrivial R := by
+    by_contra! htriv
+    have ha0 : a = 0 := Subsingleton.elim _ _
+    have hb0 : b = 0 := Subsingleton.elim _ _
+    have : ¬ b.natDegree < a.natDegree := by simp [ha0, hb0]
+    exact this hb
+  let d := a.natDegree
+  have hd_pos : 0 < d := Nat.zero_lt_of_lt (by simpa [d] using hb)
+  let Φ : R[X] →ₗ[R] R :=
+    (Polynomial.lcoeff R (d - 1)).comp <| (Polynomial.modByMonicHom a).comp <| LinearMap.mulLeft R b
+  by_contra hno
+  have hrange_ne_top : (Φ.range : Ideal R) ≠ ⊤ := by
+    intro htop
+    have h1 : (1 : R) ∈ (Φ.range : Ideal R) := by simp [htop]
+    rcases h1 with ⟨f, hf1⟩
+    let e : R[X] := -(b * f /ₘ a)
+    have hrepr : a * e + b * f = (b * f) %ₘ a := by
+      dsimp [e]
+      simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc]
+        using (Polynomial.modByMonic_eq_sub_mul_div (b * f) a).symm
+    have hne1 : a ≠ 1 := ne_one_of_natDegree_pos (by simpa [d] using hd_pos)
+    have hdeg_lt : ((b * f) %ₘ a).natDegree < d := by
+      simpa [d] using Polynomial.natDegree_modByMonic_lt (b * f) ha hne1
+    have hdeg_le : ((b * f) %ₘ a).natDegree ≤ d - 1 := by omega
+    have hcoeff1 : (((b * f) %ₘ a).coeff (d - 1)) = 1 := by
+      simpa [Φ, d] using hf1
+    have hmonic : ((b * f) %ₘ a).Monic := by
+      apply Polynomial.monic_of_natDegree_le_of_coeff_eq_one (d - 1) hdeg_le
+      exact hcoeff1
+    have hnatDegree : ((b * f) %ₘ a).natDegree = d - 1 := by
+      apply le_antisymm hdeg_le
+      apply Polynomial.le_natDegree_of_ne_zero
+      simp [hcoeff1]
+    exact hno ⟨e, f, by simpa [hrepr] using hmonic, by simpa [hrepr, d] using hnatDegree⟩
+  obtain ⟨M, hMmax, hrange_le⟩ := Ideal.exists_le_maximal (Φ.range : Ideal R) hrange_ne_top
+  let : Field (R ⧸ M) := Ideal.Quotient.field (R := R) M
+  let π : R →+* R ⧸ M := Ideal.Quotient.mk M
+  have hphi_mem (f : R[X]) : Φ f ∈ M := hrange_le (show Φ f ∈ (Φ.range : Ideal R) from ⟨f, rfl⟩)
+  let bbar : (R ⧸ M)[X] := Polynomial.map π b
+  have hbbar_ne_zero : bbar ≠ 0 := by
+    rcases h with ⟨i, hi⟩
+    intro hbbar0
+    have himg_ne_zero : π (b.coeff i) ≠ 0 := (IsUnit.map π hi).ne_zero
+    have hmap0 : Polynomial.map π b = 0 := by
+      simpa [bbar] using hbbar0
+    have hcoeff0 : (Polynomial.map π b).coeff i = 0 := by
+      rw [hmap0]
+      rfl
+    have himg_zero : π (b.coeff i) = 0 := by simpa [Polynomial.coeff_map] using hcoeff0
+    exact himg_ne_zero himg_zero
+  have hmap_monic : (Polynomial.map π a).Monic := ha.map π
+  have hdmap : (Polynomial.map π a).natDegree = d := by
+    simpa [d] using Polynomial.Monic.natDegree_map ha π
+  let n := bbar.natDegree
+  have hn_lt : n < d := by
+    exact lt_of_le_of_lt (Polynomial.natDegree_map_le (f := π) (p := b)) (by simpa [d] using hb)
+  let qbar : (R ⧸ M)[X] := Polynomial.C bbar.leadingCoeff⁻¹ * Polynomial.X ^ (d - 1 - n)
+  have hlead_ne_zero : bbar.leadingCoeff ≠ 0 := by
+    intro hzero
+    exact hbbar_ne_zero (Polynomial.leadingCoeff_eq_zero.mp hzero)
+  have hqbar_ne_zero : qbar ≠ 0 := by
+    have hC_ne_zero : Polynomial.C bbar.leadingCoeff⁻¹ ≠ 0 := by
+      exact Polynomial.C_ne_zero.mpr (inv_ne_zero hlead_ne_zero)
+    have hX_ne_zero : (Polynomial.X ^ (d - 1 - n) : (R ⧸ M)[X]) ≠ 0 := by
+      exact pow_ne_zero _ Polynomial.X_ne_zero
+    exact mul_ne_zero hC_ne_zero hX_ne_zero
+  have hqbar_natDegree : qbar.natDegree = d - 1 - n := by
+    apply Polynomial.natDegree_C_mul_X_pow
+    simpa [hlead_ne_zero]
+  have hprod_natDegree : (bbar * qbar).natDegree = d - 1 := by
+    rw [Polynomial.natDegree_mul hbbar_ne_zero hqbar_ne_zero, hqbar_natDegree]
+    omega
+  have hcoeff_top : (bbar * qbar).coeff (d - 1) = 1 := by
+    rw [← hprod_natDegree, Polynomial.coeff_natDegree, Polynomial.leadingCoeff_mul]
+    simp [qbar, mul_inv_cancel₀ hlead_ne_zero]
+  have hmod_self : (bbar * qbar) %ₘ Polynomial.map π a = bbar * qbar := by
+    rw [Polynomial.modByMonic_eq_self_iff hmap_monic]
+    have hprod_ne_zero : bbar * qbar ≠ 0 := mul_ne_zero hbbar_ne_zero hqbar_ne_zero
+    rw [Polynomial.degree_eq_natDegree hprod_ne_zero, Polynomial.degree_eq_natDegree hmap_monic.ne_zero]
+    exact_mod_cast hprod_natDegree.trans_lt (by simpa [hdmap])
+  have hcoeff_one : (((bbar * qbar) %ₘ Polynomial.map π a).coeff (d - 1)) = 1 := by
+    simpa [hmod_self] using hcoeff_top
+  obtain ⟨f, hf⟩ := Polynomial.map_surjective π Ideal.Quotient.mk_surjective qbar
+  have hpi : π (Φ f) = 1 := by
+    dsimp [Φ]
+    rw [← Polynomial.coeff_map, Polynomial.map_modByMonic π ha, Polynomial.map_mul, hf]
+    simpa [bbar, qbar] using hcoeff_one
+  have hzero : π (Φ f) = 0 := Ideal.Quotient.eq_zero_iff_mem.mpr (hphi_mem f)
+  have hπ1 : π (1 : R) = 0 := hpi.symm.trans hzero
+  have h1_mem : (1 : R) ∈ M := Ideal.Quotient.eq_zero_iff_mem.mp hπ1
+  exact hMmax.ne_top (Ideal.eq_top_of_isUnit_mem M h1_mem (isUnit_one : IsUnit (1 : R)))
 
 end degree
 
@@ -247,8 +210,7 @@ theorem unimodularVectorEquiv_update_add (i j : s) (hij : i ≠ j) (c : R[X]) (v
     UnimodularVectorEquiv v (Function.update v i (v i + c * v j)) := by
   let A : Matrix s s R[X] := Matrix.transvection i j c
   have hdet : IsUnit (Matrix.det A) := by
-    have : Matrix.det A = 1 := by
-      simpa [A] using Matrix.det_transvection_of_ne i j hij c
+    have : Matrix.det A = 1 := by simpa [A] using Matrix.det_transvection_of_ne i j hij c
     simp [this]
   refine ⟨Matrix.GeneralLinearGroup.mk'' A hdet, ?_⟩
   ext k n
@@ -261,9 +223,7 @@ theorem unimodularVectorEquiv_update_add (i j : s) (hij : i ≠ j) (c : R[X]) (v
 
 /-- An elementary `GL` operation: replace component `j` by `v j %ₘ v i` when `v i` is monic. -/
 theorem unimodularVectorEquiv_update_modByMonic (i j : s) (hij : j ≠ i)
-    (v : s → R[X]) (hi : (v i).Monic) :
-    UnimodularVectorEquiv v (Function.update v j (v j %ₘ v i)) := by
-  have _ : (v i).Monic := hi
+    (v : s → R[X]) : UnimodularVectorEquiv v (Function.update v j (v j %ₘ v i)) := by
   have hmod : v j %ₘ v i = v j + (-(v j /ₘ v i)) * v i := by
     simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc]
       using Polynomial.modByMonic_eq_sub_mul_div (v j) (v i)
@@ -283,18 +243,12 @@ theorem unimodularVectorEquiv_swap (i j : s) (v : s → R[X]) :
 /-- If a polynomial is nonzero, then some coefficient is nonzero. -/
 theorem exists_coeff_ne_zero_of_ne_zero {S : Type*} [Semiring S] {p : S[X]} (hp : p ≠ 0) :
     ∃ n : ℕ, p.coeff n ≠ 0 := by
-  by_contra h
-  apply hp
-  ext n
-  have : ¬ p.coeff n ≠ 0 := by
-    intro hn
-    exact h ⟨n, hn⟩
-  simpa using Classical.not_not.mp this
+  by_contra! h
+  exact hp (leadingCoeff_eq_zero.mp (h p.natDegree))
 
 /-- An elementary `GL` operation: scale component `i` by a unit `u`. -/
 theorem unimodularVectorEquiv_update_mul_isUnit (i : s) (u : R[X]) (hu : IsUnit u)
-    (v : s → R[X]) :
-    UnimodularVectorEquiv v (Function.update v i (u * v i)) := by
+    (v : s → R[X]) : UnimodularVectorEquiv v (Function.update v i (u * v i)) := by
   let d : s → R[X] := fun j => if j = i then u else 1
   let D : Matrix s s R[X] := Matrix.diagonal d
   have hdet : IsUnit (Matrix.det D) := by
@@ -314,8 +268,8 @@ coordinates of `v` when `M ∈ GL`. -/
 theorem ideal_span_range_mulVec (M : Matrix.GeneralLinearGroup s R[X]) (v : s → R[X]) :
     Ideal.span (Set.range (M.1.mulVec v)) = Ideal.span (Set.range v) := by
   -- First show `span (range (M.mulVec v)) ≤ span (range v)` for all `M`.
-  have span_mulVec_le (N : Matrix.GeneralLinearGroup s R[X]) (v : s → R[X])
-      : Ideal.span (Set.range (N.1.mulVec v)) ≤ Ideal.span (Set.range v) := by
+  have span_mulVec_le (N : Matrix.GeneralLinearGroup s R[X]) (v : s → R[X]) :
+      Ideal.span (Set.range (N.1.mulVec v)) ≤ Ideal.span (Set.range v) := by
     let I : Ideal R[X] := Ideal.span (Set.range v)
     refine Ideal.span_le.2 ?_
     rintro _ ⟨i, rfl⟩
@@ -454,8 +408,7 @@ theorem unimodularVectorEquiv_modByMonic_all (o : s) (v : s → R[X]) (ho : (v o
             exact hi (Finset.mem_insert_of_mem hit)
           exact hu_keep i hit
       · let u' : s → R[X] := Function.update u a (u a %ₘ u o)
-        have hu' : UnimodularVectorEquiv u u' :=
-          unimodularVectorEquiv_update_modByMonic o a hao u (by simpa [huo] using ho)
+        have hu' : UnimodularVectorEquiv u u' := unimodularVectorEquiv_update_modByMonic o a hao u
         refine ⟨u', unimodularVectorEquiv_equivalence.trans hvu hu', ?_, ?_, ?_⟩
         · -- `u' o = v o`
           have hoa : o ≠ a := by simpa [eq_comm] using hao
@@ -705,8 +658,7 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
                 intro u huu huo hdeg
                 have hdpos : 0 < (u o).natDegree := by
                   simp [hdeg]
-                have huo_ne_one : u o ≠ 1 :=
-                  ne_one_of_natDegree_pos hdpos
+                have huo_ne_one : u o ≠ 1 := ne_one_of_natDegree_pos hdpos
                 -- First reduce all other coordinates modulo the monic entry `u o`.
                 rcases unimodularVectorEquiv_modByMonic_all o u huo with
                   ⟨w, huw, hwo, hwmod⟩
