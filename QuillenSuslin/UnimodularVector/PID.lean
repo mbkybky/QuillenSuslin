@@ -14,91 +14,82 @@ variable {R : Type*} [CommRing R] [IsDomain R] {s : Type*} [Fintype s] [Decidabl
 /-- Over a principal ideal domain, any two unimodular vectors are equivalent. -/
 theorem unimodularVectorEquiv_of_pid [IsPrincipalIdealRing R]
     {v w : s → R} (hv : IsUnimodular v) (hw : IsUnimodular w) : UnimodularVectorEquiv v w := by
-  have buildBasis {u : s → R} (hu : IsUnimodular u) : Σ n : ℕ,
-      { b : Basis (Sum (Fin 1) (Fin n)) R (s → R) // b (Sum.inl 0) = u } := by
-    have h1 : (1 : R) ∈ Ideal.span (Set.range u) := by
+  have hs : Nonempty s := by
+    by_contra!
+    have hrange : Set.range v = (∅ : Set R) := by
+      ext r
+      simp
+    have hbot : Ideal.span (Set.range v) = (⊥ : Ideal R) := by simp [hrange]
+    exact bot_ne_top (hbot.symm.trans hv)
+  let o : s := Classical.choice hs
+  have hstd {u : s → R} (hu : IsUnimodular u) :
+      UnimodularVectorEquiv u (fun i => if i = o then 1 else 0) := by
+    have h1u : (1 : R) ∈ Ideal.span (Set.range u) := by
       rw [hu]
       exact Submodule.mem_top
-    have hex : ∃ c : s → R, (∑ i, c i * u i) = 1 := Ideal.mem_span_range_iff_exists_fun.1 h1
-    let c : s → R := Classical.choose hex
-    have hc : (∑ i, c i * u i) = 1 := Classical.choose_spec hex
+    rcases (Ideal.mem_span_range_iff_exists_fun).1 h1u with ⟨c, hc⟩
     let φ : (s → R) →ₗ[R] R :=
       { toFun := fun x => ∑ i, c i * x i
-        map_add' _ _ := by
+        map_add' := by
+          intro x y
           simp [mul_add, Finset.sum_add_distrib]
-        map_smul' _ _ := by
-          simp [Pi.smul_apply, smul_eq_mul, Finset.mul_sum, mul_assoc, mul_comm] }
-    let f : R →ₗ[R] (s → R) :=
-      { toFun := fun r => r • u
-        map_add' _ _ := by
-          simp [add_smul]
-        map_smul' _ _ := by
-          simp [mul_smul] }
-    have hφf : ∀ r : R, φ (f r) = r := by
-      intro r
-      calc _ = r * (∑ i : s, c i * u i) := by simp [φ, f, smul_eq_mul, mul_comm, Finset.mul_sum]
-        _ = r := by simp [hc]
-    have hf_inj : Function.Injective f := by
-      intro a b hab
-      simpa [hφf a, hφf b] using congrArg φ hab
-    let p : Submodule R (s → R) := LinearMap.range f
-    let proj : (s → R) →ₗ[R] p :=
-      { toFun := fun x => ⟨f (φ x), ⟨φ x, rfl⟩⟩
-        map_add' _ _ := by
-          ext
-          simp
-        map_smul' _ _ := by
-          ext
-          simp [f, Pi.smul_apply, smul_eq_mul, mul_assoc] }
-    have hproj : ∀ x : p, proj x = x := by
-      rintro ⟨x, ⟨r, rfl⟩⟩
-      ext
-      simp [proj, hφf r]
-    have bqSigma : Σ n : ℕ, Basis (Fin n) R (LinearMap.ker proj) :=
-      Submodule.basisOfPid (Pi.basisFun R s) (LinearMap.ker proj)
-    refine ⟨bqSigma.1, ?_⟩
-    let eP : R ≃ₗ[R] p := LinearEquiv.ofInjective f hf_inj
-    let bp : Basis (Fin 1) R p := (Basis.singleton (Fin 1) R).map eP
-    let eSum : (p × LinearMap.ker proj) ≃ₗ[R] (s → R) :=
-      Submodule.prodEquivOfIsCompl p _ <| LinearMap.isCompl_of_proj hproj
-    let bM : Basis (Sum (Fin 1) (Fin bqSigma.1)) R (s → R) :=
-      (bp.prod bqSigma.2).map eSum
-    refine ⟨bM, ?_⟩
-    have : (bp (0 : Fin 1) : (s → R)) = u := by
-      -- `bp 0 = eP 1` and `eP 1` corresponds to `f 1 = u`.
-      ext i
-      -- First reduce `bp 0` to `eP 1`.
-      simp [bp, Basis.map_apply, Basis.singleton_apply]
-      -- Now unfold `eP` via `LinearEquiv.ofInjective_apply`.
-      have he : ((eP (1 : R)) : s → R) = f 1 := by
-        simpa [eP] using
-          (LinearEquiv.ofInjective_apply (f : R →ₗ[R] s → R) (1 : R))
-      -- Finally, compute `f 1`.
-      simp [he, f, Pi.smul_apply, smul_eq_mul]
-    simp [bM, eSum, this]
-  rcases buildBasis hv with ⟨nv, ⟨bv, hbv⟩⟩
-  rcases buildBasis hw with ⟨nw, ⟨bw, hbw⟩⟩
-  -- Change basis: send the basis containing `v` to the basis containing `w`.
-  let σ : (Sum (Fin 1) (Fin nv)) ≃ (Sum (Fin 1) (Fin nw)) := bv.indexEquiv bw
-  let j : Sum (Fin 1) (Fin nw) := σ (Sum.inl 0)
-  let τ : (Sum (Fin 1) (Fin nw)) ≃ (Sum (Fin 1) (Fin nw)) := Equiv.swap (Sum.inl 0) j
-  let bw' : Basis (Sum (Fin 1) (Fin nw)) R (s → R) := bw.reindex τ
-  let eLin : (s → R) ≃ₗ[R] (s → R) :=
-    (bv.repr.trans (Finsupp.domLCongr σ)).trans bw'.repr.symm
-  have heLin : eLin v = w := by
-    -- `eLin` sends `bv i` to `bw' (σ i)`, and `bw' (σ (Sum.inl 0)) = w` by construction.
-    have : bw' (σ (Sum.inl 0)) = w := by simpa [j] using (by simp [bw', τ, j, hbw])
-    rw [← hbv]
-    simp [eLin, this]
-  -- Convert the linear equivalence to a matrix in `GL` and conclude.
-  let g : LinearMap.GeneralLinearGroup R (s → R) := LinearMap.GeneralLinearGroup.ofLinearEquiv eLin
-  let A : Matrix.GeneralLinearGroup s R := (Matrix.GeneralLinearGroup.toLin).symm g
-  refine ⟨(Matrix.GeneralLinearGroup.toLin).symm g, ?_⟩
-  have htoLin : Matrix.GeneralLinearGroup.toLin A = g := by
-    simp [A]
-  have hlin : ((Matrix.GeneralLinearGroup.toLin A : (s → R) →ₗ[R] (s → R)) v) = w := by
-    simp [htoLin, g, heLin]
-  simpa [Matrix.mulVecLin_apply] using (by simpa [Matrix.GeneralLinearGroup.coe_toLin] using hlin)
+        map_smul' := by
+          intro a x
+          change ∑ i, c i * (a * x i) = a * ∑ i, c i * x i
+          rw [Finset.mul_sum]
+          refine Finset.sum_congr rfl ?_
+          intro i hi
+          ring }
+    have hφu : φ u = 1 := by simpa [φ] using hc
+    let K : Submodule R (s → R) := LinearMap.ker φ
+    let ⟨n, bK⟩ := K.basisOfPid (Pi.basisFun R s)
+    have hu_ortho : ∀ (a : R) (z : s → R), z ∈ K → a • u + z = 0 → a = 0 := by
+      intro a z hz hzero
+      have hphi := congrArg φ hzero
+      rwa [map_add, map_smul, LinearMap.mem_ker.mp hz, hφu, smul_eq_mul, mul_one, add_zero,
+        map_zero] at hphi
+    have hu_span : ∀ z : s → R, z ∈ (⊤ : Submodule R (s → R)) → ∃ a : R, z + a • u ∈ K := by
+      intro z hz
+      refine ⟨-φ z, ?_⟩
+      rw [LinearMap.mem_ker, map_add, map_smul, hφu, smul_eq_mul, mul_one]
+      ring
+    let bTop : Basis (Fin (n + 1)) R (⊤ : Submodule R (s → R)) :=
+      Basis.mkFinConsOfLE u Submodule.mem_top bK le_top hu_ortho hu_span
+    let b0 : Basis (Fin (n + 1)) R (s → R) := bTop.map (LinearEquiv.ofTop _ rfl)
+    let e : Fin (n + 1) ≃ s := b0.indexEquiv (Pi.basisFun R s)
+    let b : Basis s R (s → R) := b0.reindex (e.trans (Equiv.swap (e 0) o))
+    have hbo : b o = u := by simp [b, b0, bTop]
+    let A : Matrix s s R := fun i j => b.coord i (Pi.basisFun R s j)
+    let B : Matrix s s R := fun i j => b j i
+    have hleft : B * A = 1 := by
+      ext i k
+      change ∑ j, b j i * b.coord j (Pi.basisFun R s k) = if i = k then 1 else 0
+      calc
+        ∑ j, b j i * b.coord j (Pi.basisFun R s k)
+            = ∑ j, b.coord j (Pi.basisFun R s k) * b j i := by
+                refine Finset.sum_congr rfl ?_
+                intro j hj
+                rw [mul_comm]
+        _ = (Pi.basisFun R s k) i := by
+              simpa using congrArg (fun x : s → R => x i) (b.sum_repr (Pi.basisFun R s k))
+        _ = if i = k then 1 else 0 := by simp [Pi.basisFun, Pi.single_apply]
+    have hA_mulVec (x : s → R) (i : s) : A.mulVec x i = b.coord i x := by
+      change ∑ j, b.coord i (Pi.basisFun R s j) * x j = b.coord i x
+      calc
+        ∑ j, b.coord i (Pi.basisFun R s j) * x j
+            = ∑ j, x j * b.coord i (Pi.basisFun R s j) := by
+                refine Finset.sum_congr rfl ?_
+                intro j hj
+                rw [mul_comm]
+        _ = b.coord i x := by
+              simpa using (congrArg (b.coord i) ((Pi.basisFun R s).sum_repr x).symm).symm
+    have hAu : A.mulVec u = fun i => if i = o then 1 else 0 := by
+      funext i
+      rw [hA_mulVec]
+      simpa [Finsupp.single_apply, eq_comm] using (congrArg (b.coord i) hbo).symm
+    exact ⟨Matrix.GeneralLinearGroup.mk'' A (Matrix.isUnit_det_of_left_inverse hleft), hAu⟩
+  exact unimodularVectorEquiv_equivalence.trans (hstd hv)
+    (unimodularVectorEquiv_equivalence.symm (hstd hw))
 
 section thm12
 
