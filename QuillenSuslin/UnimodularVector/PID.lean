@@ -218,8 +218,7 @@ theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing
         exact hsub (Finset.mem_insert_of_mem hx)
       have hi_t : i ∈ t := hsub (Finset.mem_insert_self i S)
       rcases ih hsubS with ⟨w, hvw, hheight⟩
-      have hw_unimod : IsUnimodular w :=
-        (isUnimodular_iff_of_unimodularVectorEquiv_ring hvw).1 hv
+      have hw_unimod : IsUnimodular w := (isUnimodular_iff_of_unimodularVectorEquiv hvw).1 hv
       let I : Ideal A := Iof S w
       let J : Ideal A :=
         Ideal.span (Set.range fun j : s => if j ∈ insert i S then 0 else w j)
@@ -788,7 +787,7 @@ theorem thm12 {σ : Type*} [Fintype σ] (o : s) (v : s → MvPolynomial σ R) (h
       rcases exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv n v hv with ⟨e, w, hvw⟩
       rcases hvw with ⟨hvw, hmonic⟩
       have hv' : IsUnimodular fun i : s => e (v i) := isUnimodular_map_ringEquiv e.toRingEquiv v hv
-      have hw : IsUnimodular w := (isUnimodular_iff_of_unimodularVectorEquiv_ring hvw).1 hv'
+      have hw : IsUnimodular w := (isUnimodular_iff_of_unimodularVectorEquiv hvw).1 hv'
       let wpoly : s → Polynomial A := fun j => φr (w j)
       have hwpoly : IsUnimodular wpoly := by simpa [wpoly] using isUnimodular_map_ringEquiv φr w hw
       have hmonic' : ∃ j : s, (wpoly j).Monic := by

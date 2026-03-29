@@ -107,7 +107,7 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
   have hmain (n : ℕ) : ∀ {S : Type u} [CommRing S] [IsRegularLocalRing S],
       ringKrullDim S = n → UniqueFactorizationMonoid S := by
     induction n using Nat.strong_induction_on with
-    | h n ih =>
+    | _ n ih =>
       intro S _ _ hdim
       cases n with
       | zero =>
