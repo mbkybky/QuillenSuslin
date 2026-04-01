@@ -93,61 +93,6 @@ theorem unimodularVectorEquiv_of_pid [IsPrincipalIdealRing R]
 
 section thm12
 
-theorem unimodularVectorEquiv_update_add_ring {A : Type*} [CommRing A] (i j : s) (hij : i ≠ j)
-    (c : A) (v : s → A) : UnimodularVectorEquiv v (Function.update v i (v i + c * v j)) := by
-  let M : Matrix s s A := Matrix.transvection i j c
-  have hdet : IsUnit (Matrix.det M) := by
-    have : Matrix.det M = 1 := by simpa [M] using Matrix.det_transvection_of_ne i j hij c
-    simp [this]
-  refine ⟨Matrix.GeneralLinearGroup.mk'' M hdet, ?_⟩
-  ext k
-  by_cases hk : k = i
-  · subst hk
-    simp [M, Matrix.transvection, Matrix.mulVec, dotProduct, Matrix.one_apply, Matrix.single_apply,
-      Function.update, Finset.sum_add_distrib, add_mul]
-  · simp [M, Matrix.transvection, Matrix.mulVec, dotProduct, Function.update, hk, Ne.symm hk,
-      Matrix.one_apply]
-
-theorem unimodularVectorEquiv_update_add_sum {A : Type*} [CommRing A] (i : s) (t : Finset s)
-    (ht : i ∉ t) (c : s → A) (v : s → A) :
-    UnimodularVectorEquiv v (Function.update v i (v i + ∑ j ∈ t, c j * v j)) := by
-  let vOf : Finset s → s → A := fun t => Function.update v i (v i + ∑ j ∈ t, c j * v j)
-  have hvOf : ∀ t : Finset s, i ∉ t → UnimodularVectorEquiv v (vOf t) := by
-    intro t
-    refine Finset.induction_on t ?_ ?_
-    · intro _
-      have h0 : vOf (∅ : Finset s) = v := by
-        funext j
-        by_cases hj : j = i
-        · subst hj
-          simp [vOf]
-        · simp [vOf, hj]
-      simpa [h0] using unimodularVectorEquiv_equivalence.1 v
-    · intro j t hj_notmem ih ht
-      have ht' : i ∉ t := by
-        intro hi
-        exact ht (Finset.mem_insert_of_mem hi)
-      have hij : j ≠ i := by
-        intro hji
-        have : i ∈ insert j t := by
-          subst j
-          exact Finset.mem_insert_self i t
-        exact ht this
-      have ih' : UnimodularVectorEquiv v (vOf t) := ih ht'
-      have hadd : UnimodularVectorEquiv (vOf t)
-          (Function.update (vOf t) i ((vOf t) i + c j * (vOf t) j)) := by
-        simpa using unimodularVectorEquiv_update_add_ring i j (Ne.symm hij) (c j) (vOf t)
-      have hstep : Function.update (vOf t) i ((vOf t) i + c j * (vOf t) j) =
-          vOf (insert j t) := by
-        funext x
-        by_cases hx : x = i
-        · subst hx
-          have hvj : (vOf t) j = v j := by simp [vOf, hij]
-          simp [vOf, Function.update, hvj, Finset.sum_insert, hj_notmem, add_left_comm, add_comm]
-        · simp [vOf, Function.update, hx]
-      exact unimodularVectorEquiv_equivalence.trans ih' (by simpa [hstep] using hadd)
-  simpa [vOf] using hvOf t ht
-
 lemma Ideal.height_add_one_le_of_forall_notMem_minimalPrimes {A : Type*} [CommRing A] {I : Ideal A}
     (a : A) {k : ℕ∞} (hk : k ≤ I.height) (ha : ∀ p ∈ I.minimalPrimes, a ∉ p) :
     k + 1 ≤ (I ⊔ Ideal.span ({a} : Set A)).height := by
