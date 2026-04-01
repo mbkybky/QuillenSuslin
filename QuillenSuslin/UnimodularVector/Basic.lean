@@ -200,9 +200,8 @@ theorem degree_lowering (a b : R[X]) (ha : a.Monic) (hb : b.natDegree < a.natDeg
   have hlead_ne_zero : bbar.leadingCoeff ≠ 0 := mt Polynomial.leadingCoeff_eq_zero.mp hbbar_ne_zero
   have hqbar_ne_zero : qbar ≠ 0 := mul_ne_zero
     (Polynomial.C_ne_zero.mpr (inv_ne_zero hlead_ne_zero)) (pow_ne_zero _ Polynomial.X_ne_zero)
-  have hqbar_natDegree : qbar.natDegree = d - 1 - n := by
-    apply Polynomial.natDegree_C_mul_X_pow
-    simpa [hlead_ne_zero]
+  have hqbar_natDegree : qbar.natDegree = d - 1 - n :=
+    Polynomial.natDegree_C_mul_X_pow _ _ (by simp [hlead_ne_zero])
   have hprod_natDegree : (bbar * qbar).natDegree = d - 1 := by
     rw [Polynomial.natDegree_mul hbbar_ne_zero hqbar_ne_zero, hqbar_natDegree]
     omega
@@ -411,7 +410,7 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
         simpa [wred, ha, hjdeg] using hdeg
       have hunit_coeff : ∃ i : s, i ≠ j ∧ ∃ n : ℕ, IsUnit ((wred i).coeff n) := by
         by_contra hnone
-        push_neg at hnone
+        push Not at hnone
         let π : R →+* IsLocalRing.ResidueField R := IsLocalRing.residue R
         let wbar : s → (IsLocalRing.ResidueField R)[X] := fun a => Polynomial.map π (wred a)
         have hwbar_unimod : IsUnimodular wbar :=

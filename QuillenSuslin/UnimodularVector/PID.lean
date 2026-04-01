@@ -40,7 +40,7 @@ theorem unimodularVectorEquiv_of_pid [IsPrincipalIdealRing R]
           refine Finset.sum_congr rfl ?_
           intro i hi
           ring }
-    have hφu : φ u = 1 := by simpa [φ] using hc
+    have hφu : φ u = 1 := hc
     let K : Submodule R (s → R) := LinearMap.ker φ
     let ⟨n, bK⟩ := K.basisOfPid (Pi.basisFun R s)
     have hu_ortho : ∀ (a : R) (z : s → R), z ∈ K → a • u + z = 0 → a = 0 := by
@@ -164,7 +164,6 @@ theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing
       have hmemP (p : Ideal A) : p ∈ P ↔ p ∈ I.minimalPrimes := Set.Finite.mem_toFinset hfin
       -- First choose `y ∈ J` so that `w i + y` avoids all minimal primes of `I`.
       have havoidP : ∃ y : A, y ∈ J ∧ ∀ p ∈ P, w i + y ∉ p := by
-        classical
         let motive (Q : Finset (Ideal A)) : Prop :=
           Q ⊆ P → ∃ y : A, y ∈ J ∧ ∀ q ∈ Q, w i + y ∉ q
         have h0 : motive ∅ := by
@@ -172,9 +171,9 @@ theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing
           refine ⟨0, by simp, ?_⟩
           intro q hq
           cases hq
-        have hstep : ∀ (p : Ideal A) (Q : Finset (Ideal A)), p ∉ Q → motive Q →
+        have hstep (p : Ideal A) (Q : Finset (Ideal A)) (hpQ : p ∉ Q) (hQ : motive Q) :
             motive (insert p Q) := by
-          intro p Q hp_notmemQ hQ hsubPQ
+          intro hsubPQ
           have hpP : p ∈ P := hsubPQ (Finset.mem_insert_self p Q)
           have hQsub : Q ⊆ P := by
             intro q hq
@@ -221,7 +220,7 @@ theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing
               have hq_ne_p : q ≠ p := by
                 intro hqp
                 subst hqp
-                exact hp_notmemQ hqQ
+                exact hpQ hqQ
               have hq_notle : ¬ q ≤ p := by
                 intro hle
                 exact hq_ne_p (le_antisymm hle (hpI.2 hqI.1 hle))
@@ -518,27 +517,16 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
         rcases exists_equiv_exists_index_height_gt_krullDim n v hv hs with ⟨o, v', hvv', hheight⟩
         let I : Ideal (MvPolynomial (Fin (n + 1)) R) :=
           Ideal.span (Set.range (fun i : s => if i = o then 0 else v' i))
-        have hr : ringKrullDim R < (⊤ : WithBot ℕ∞) := by
-          have hle : ringKrullDim R ≤ (1 : WithBot ℕ∞) := by
-            simpa [Ring.krullDimLE_iff] using show Ring.KrullDimLE 1 R from inferInstance
-          have h1lt : (1 : WithBot ℕ∞) < ⊤ := by
-            refine (lt_top_iff_ne_top).2 ?_
-            intro h
-            have h' : (1 : ℕ∞) = (⊤ : ℕ∞) := WithBot.coe_eq_coe.mp (by simpa using h)
-            exact WithTop.coe_ne_top h'
-          exact lt_of_le_of_lt hle h1lt
         rcases suslin_monic_polynomial_thm n I (by simpa [I] using hheight) with
           ⟨α, f, hfI, hmonicf⟩
         -- Express `f` as a linear combination of the generators of `I`.
         rcases (Ideal.mem_span_range_iff_exists_fun).1 hfI with ⟨c, hc⟩
-        let A := MvPolynomial (Fin n) R
-        let instA : CommRing A := inferInstance
-        let : CommSemiring A := instA.toCommSemiring
-        let φ : MvPolynomial (Fin (n + 1)) R ≃ₐ[R] Polynomial A := MvPolynomial.finSuccEquiv R n
-        let φr : MvPolynomial (Fin (n + 1)) R ≃+* Polynomial A := φ.toRingEquiv
+        let P := Polynomial (MvPolynomial (Fin n) R)
+        let φ : MvPolynomial (Fin (n + 1)) R ≃ₐ[R] P := MvPolynomial.finSuccEquiv R n
+        let φr : MvPolynomial (Fin (n + 1)) R ≃+* P := φ.toRingEquiv
         let u : s → MvPolynomial (Fin (n + 1)) R := fun i => α (v' i)
-        let uPoly : s → Polynomial A := fun i => φ (u i)
-        let fPoly : Polynomial A := φ (α f)
+        let uPoly : s → P := fun i => φ (u i)
+        let fPoly : P := φ (α f)
         have hmonic_fPoly : fPoly.Monic := by simpa [fPoly, φ] using hmonicf
         have hcf : (∑ i : s, φ (α (c i)) * (if i = o then 0 else uPoly i)) = fPoly := by
           have hc' : (∑ i : s, c i * (if i = o then 0 else v' i)) = f := hc
@@ -557,9 +545,9 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
           exact hterm.symm.trans hsum
         let N : ℕ := (uPoly o).natDegree + 1
         let t : Finset s := Finset.univ.erase o
-        let wPolyOf (t : Finset s) : s → Polynomial A :=
+        let wPolyOf (t : Finset s) : s → P :=
           Function.update uPoly o (uPoly o + ∑ i ∈ t, (X ^ N * φ (α (c i))) * uPoly i)
-        let wPoly : s → Polynomial A := wPolyOf t
+        let wPoly : s → P := wPolyOf t
         have huwPoly : UnimodularVectorEquiv uPoly wPoly := by
           have hwPolyOf : ∀ t : Finset s, o ∉ t → UnimodularVectorEquiv uPoly (wPolyOf t) := by
             intro t
@@ -631,8 +619,8 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
             simp
           have hsum_cf : ∑ i : s, φ (α (c i)) * (if i = o then 0 else uPoly i) =
               ∑ i ∈ t, φ (α (c i)) * uPoly i := by
-            let h : s → Polynomial A := fun i => φ (α (c i)) * (if i = o then 0 else uPoly i)
-            let g : s → Polynomial A := fun i => φ (α (c i)) * uPoly i
+            let h : s → P := fun i => φ (α (c i)) * (if i = o then 0 else uPoly i)
+            let g : s → P := fun i => φ (α (c i)) * uPoly i
             have ho : o ∈ (Finset.univ : Finset s) := by simp
             have h_erase : (∑ i ∈ (Finset.univ.erase o : Finset s), h i) =
                 ∑ i ∈ (Finset.univ.erase o : Finset s), g i := by
@@ -718,29 +706,26 @@ theorem thm12 {σ : Type*} [Fintype σ] (o : s) (v : s → MvPolynomial σ R) (h
     | succ n ih =>
       intro v hv
       let A := MvPolynomial (Fin n) R
-      let φ : MvPolynomial (Fin (n + 1)) R ≃ₐ[R] Polynomial A := MvPolynomial.finSuccEquiv R n
-      let φr : MvPolynomial (Fin (n + 1)) R ≃+* Polynomial A := φ.toRingEquiv
+      let P := Polynomial (MvPolynomial (Fin n) R)
+      let φ : MvPolynomial (Fin (n + 1)) R ≃ₐ[R] P := MvPolynomial.finSuccEquiv R n
+      let φr : MvPolynomial (Fin (n + 1)) R ≃+* P := φ.toRingEquiv
       rcases exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv n v hv with ⟨e, w, hvw⟩
       rcases hvw with ⟨hvw, hmonic⟩
       have hv' : IsUnimodular fun i : s => e (v i) := isUnimodular_map_ringEquiv e.toRingEquiv v hv
       have hw : IsUnimodular w := (isUnimodular_iff_of_unimodularVectorEquiv hvw).1 hv'
-      let wpoly : s → Polynomial A := fun j => φr (w j)
+      let wpoly : s → P := fun j => φr (w j)
       have hwpoly : IsUnimodular wpoly := by simpa [wpoly] using isUnimodular_map_ringEquiv φr w hw
       have hmonic' : ∃ j : s, (wpoly j).Monic := by
         rcases hmonic with ⟨i, hi⟩
         exact ⟨i, by simpa [wpoly, φr, φ] using hi⟩
-      have hcor : UnimodularVectorEquiv wpoly (fun j => Polynomial.C ((wpoly j).eval 0)) :=
-        cor11 wpoly hwpoly hmonic'
-      let ev0 : Polynomial A →+* A := Polynomial.evalRingHom 0
+      let ev0 : P →+* A := Polynomial.evalRingHom 0
       let v0 : s → A := fun j => ev0 (wpoly j)
       have hv0 : IsUnimodular v0 := isUnimodular_map_ringHom ev0 wpoly hwpoly
       have hmap : UnimodularVectorEquiv
           (fun j => Polynomial.C (v0 j)) (fun j : s => if j = o then 1 else 0) := by
         simpa [v0] using unimodularVectorEquiv_map C (ih v0 hv0)
-      have hwstdPoly : UnimodularVectorEquiv wpoly (fun j : s => if j = o then 1 else 0) := by
-        have hcor0 : UnimodularVectorEquiv wpoly (fun j => Polynomial.C (v0 j)) := by
-          simpa [v0, ev0] using hcor
-        exact unimodularVectorEquiv_equivalence.trans hcor0 hmap
+      have hwstdPoly : UnimodularVectorEquiv wpoly (fun j : s => if j = o then 1 else 0) :=
+        unimodularVectorEquiv_equivalence.trans (cor11 wpoly hwpoly hmonic') hmap
       have hwstd : UnimodularVectorEquiv w (fun j : s => if j = o then 1 else 0) := by
         have hcomp : (fun j => φr.symm (wpoly j)) = w := by
           funext j
