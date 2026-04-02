@@ -17,6 +17,7 @@ variable {R : Type*} [CommRing R]
 
 section leadingCoeff
 
+@[gcongr]
 lemma leadingCoeff_mono {I J : Ideal R[X]} (hIJ : I ≤ J) : I.leadingCoeff ≤ J.leadingCoeff := by
   intro x hx
   rcases (I.mem_leadingCoeff x).1 hx with ⟨p, hpI, rfl⟩
@@ -104,13 +105,11 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal R[X]) [P.IsPrime] :
   by_cases hPeq : P = map C p
   · have hQ : map (Quotient.mk (map (algebraMap R R[X]) p)) P = ⊥ := by
       simpa [hPeq] using map_quotient_self (map (algebraMap R R[X]) p)
-    letI : Nontrivial (R[X] ⧸ map (algebraMap R R[X]) p) :=
-      (Quotient.nontrivial_iff).2 <| by
-        simpa [hPeq] using IsPrime.ne_top inferInstance
-    have hp' : P.height = p.height := by
-      rw [hheight, hQ, height_bot]
-      simp
-    simpa [hp'] using height_mono hp_le
+    have hQ' : map (Quotient.mk (map C p)) P = ⊥ := by simpa using hQ
+    have hP_le : P.height ≤ p.height := by
+      calc _ ≤ p.height + (map (Quotient.mk (map C p)) P).height := by simpa [hheight] using by rfl
+        _ = p.height := by simp [hQ', height_bot]
+    exact hP_le.trans (height_mono hp_le)
   · let I0 : Ideal R[X] := map C p
     let q : R[X] →+* (R[X] ⧸ I0) := Quotient.mk I0
     let Q : Ideal (R[X] ⧸ I0) := map q P
@@ -131,8 +130,7 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal R[X]) [P.IsPrime] :
         have hmem : q (C a0) ∈ Q ↔ C a0 ∈ P := by
           change C a0 ∈ comap q Q ↔ C a0 ∈ P
           simp [hcomap_q]
-        have hp0 : C a0 ∈ P ↔ a0 ∈ p := by
-          simp [p, mem_comap]
+        have hp0 : C a0 ∈ P ↔ a0 ∈ p := by simp [p, mem_comap]
         have hq0 : (Quotient.mk p a0 = (0 : R ⧸ p)) ↔ a0 ∈ p := by
           simpa using Quotient.eq_zero_iff_mem
         change e (C (Quotient.mk p a0)) ∈ Q ↔ Quotient.mk p a0 = (0 : R ⧸ p)
@@ -171,12 +169,12 @@ theorem height_le_height_leadingCoeff [NoZeroDivisors R] (I : Ideal R[X]) :
 
 end Ideal
 
-noncomputable def shearSwap {R S : Type*} [CommRing R] [CommRing S] [Algebra R S]
+noncomputable def shearSwap (R S : Type*) [CommRing R] [CommRing S] [Algebra R S]
     (K : ℕ) : Polynomial (Polynomial S) ≃ₐ[R] Polynomial (Polynomial S) :=
   ((algEquivAevalXAddC (X ^ K)).restrictScalars R).trans (Bivariate.swap.restrictScalars R)
 
 theorem exists_K_monic_shearSwap {R : Type*} [CommRing R] [Nontrivial R] (p : R[X][Y])
-    (hp : p.leadingCoeff.Monic) : ∃ K : ℕ, (shearSwap (R := R) (S := R) K p).Monic := by
+    (hp : p.leadingCoeff.Monic) : ∃ K : ℕ, (shearSwap R R K p).Monic := by
   let N : ℕ := p.natDegree
   let M : ℕ := (Finset.range N).sup fun i ↦ (p.coeff i).natDegree
   let K : ℕ := M + 1
@@ -293,7 +291,7 @@ theorem suslin_monic_polynomial_thm {R : Type*} [CommRing R] [IsDomain R] [IsNoe
         Polynomial.leadingCoeff_map_of_injective eX.toRingEquiv.injective (eFirst (eExt f0))
     have hp_lc_monic : (H (eExt f0)).leadingCoeff.Monic := by simpa [hp_lc, eX] using hgMonic
     rcases exists_K_monic_shearSwap (H (eExt f0)) hp_lc_monic with ⟨K, hmonic_swap⟩
-    let eTau : A ≃ₐ[R] A := (H.trans (shearSwap (R := R) (S := S) K)).trans H.symm
+    let eTau : A ≃ₐ[R] A := (H.trans (shearSwap R S K)).trans H.symm
     let eTotal : A ≃ₐ[R] A := eExt.trans eTau
     have hmo : (H (eTotal f0)).Monic := by simpa [eTotal, eTau, H, shearSwap] using hmonic_swap
     set q0 := MvPolynomial.finSuccEquiv R (n + 1) (eTotal f0) with hq0

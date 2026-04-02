@@ -105,12 +105,11 @@ variable {A B : Type*} [CommRing A] [CommRing B] {s : Type*}
 /-- Unimodularity is preserved under a ring homomorphism. -/
 theorem isUnimodular_map_ringHom (f : A →+* B) (v : s → A) (hv : IsUnimodular v) :
     IsUnimodular fun i => f (v i) := by
-  unfold IsUnimodular at hv ⊢
   have hmap : Ideal.map f (Ideal.span (Set.range v)) = ⊤ := by
-    simpa [hv] using (Ideal.map_top f : Ideal.map f (⊤ : Ideal A) = (⊤ : Ideal B))
+    rw [hv]
+    exact (Ideal.map_top f : Ideal.map f (⊤ : Ideal A) = (⊤ : Ideal B))
   change Ideal.span (Set.range (f ∘ v)) = ⊤
-  rw [Set.range_comp]
-  simpa [Ideal.map_span] using hmap
+  simpa [Set.range_comp, Ideal.map_span] using hmap
 
 /-- Unimodularity is preserved under an algebra equivalence. -/
 theorem isUnimodular_map_ringEquiv (e : A ≃+* B) (v : s → A) (hv : IsUnimodular v) :
@@ -127,7 +126,7 @@ theorem generalLinearGroup_map_mulVec_eq (f : A →+* B) (M : GL s A) {v w : s �
 theorem unimodularVectorEquiv_map (f : A →+* B) {v w : s → A} (hvw : UnimodularVectorEquiv v w) :
     UnimodularVectorEquiv (fun i => f (v i)) (fun i => f (w i)) := by
   rcases hvw with ⟨M, hM⟩
-  exact ⟨Matrix.GeneralLinearGroup.map f M, generalLinearGroup_map_mulVec_eq f M hM⟩
+  exact ⟨M.map f, generalLinearGroup_map_mulVec_eq f M hM⟩
 
 /-- Unimodular-vector equivalence is preserved under an algebra equivalence. -/
 theorem unimodularVectorEquiv_map_ringEquiv (e : A ≃+* B) (v w : s → A)
@@ -234,9 +233,8 @@ private noncomputable def permGL {A : Type*} [CommRing A] (σ : Equiv.Perm s) : 
     simpa using (Units.map (Int.castRingHom A).toMonoidHom (Equiv.Perm.sign σ)).isUnit
 
 private lemma permGL_mulVec {A : Type*} [CommRing A] (σ : Equiv.Perm s) (v : s → A) :
-    (permGL σ).1.mulVec v = v ∘ σ := by
-  change (Equiv.Perm.permMatrix A σ).mulVec v = _
-  rw [Matrix.permMatrix_mulVec]
+    (permGL σ).1.mulVec v = v ∘ σ :=
+  Matrix.permMatrix_mulVec σ
 
 private def twoByTwoMatrix {A : Type*} [CommRing A] (o i : s) (a b α β : A) : Matrix s s A :=
   fun r c =>
@@ -397,7 +395,7 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
           exact (unimodularVectorEquiv_equivalence.trans hu hstep)
       let wred : s → R[X] := fun a => if a = j then w j else w a %ₘ w j
       have hwred_eqv : UnimodularVectorEquiv w wred := by
-        convert hreduce (Finset.univ.erase j) (by intro x hx; exact hx) using 2
+        convert hreduce (Finset.univ.erase j) (by simp) using 2
         rename_i a
         by_cases ha : a = j
         · simp [wred, ha]
@@ -586,8 +584,8 @@ lemma generalLinearGroup_det_eq_one_of_eval_zero_eq_one (G : GL s (Polynomial R)
   rcases Polynomial.isUnit_iff.1 (Matrix.isUnits_det_units G) with ⟨r, _, hdet⟩
   have hdet0 : (Polynomial.eval₂RingHom (RingHom.id R) 0) G.1.det = 1 := by
     simpa [RingHom.map_det] using congrArg Matrix.det hG0
-  have hr : r = (Polynomial.eval₂RingHom (RingHom.id R) 0) (C r) := by simp
-  rw [← hdet, hr, hdet, hdet0, map_one]
+  have hr : r = 1 := by simpa [← hdet] using hdet0
+  simp [← hdet, hr]
 
 /-- Suppose $v(x) \sim v(0)$ over the localization $R_S[x]$. Then there exists a $c \in S$ such
   that $v(x) \sim v(x + cy)$ over $R[x, y]$. -/
