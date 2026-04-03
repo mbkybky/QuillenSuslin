@@ -19,8 +19,7 @@ theorem hasFiniteFreeResolutionOfLength_tensorProduct_of_flat {n : ℕ}
     (hP : HasFiniteFreeResolutionOfLength R P n) :
     HasFiniteFreeResolutionOfLength A (A ⊗[R] P) n := by
   induction hP with
-  | zero P =>
-      exact HasFiniteFreeResolutionOfLength.zero (A ⊗[R] P)
+  | zero P => exact HasFiniteFreeResolutionOfLength.zero (A ⊗[R] P)
   | succ P n F K f g hf hg he hk ih =>
       refine HasFiniteFreeResolutionOfLength.succ (A ⊗[R] P) n
         (A ⊗[R] F) (A ⊗[R] K)
@@ -31,7 +30,7 @@ theorem hasFiniteFreeResolutionOfLength_tensorProduct_of_flat {n : ℕ}
       · exact Module.Flat.lTensor_exact (M := A) he
 
 /-- Extending scalars along a flat `R`-algebra preserves finite free resolutions. -/
-theorem hasFiniteFreeResolution_tensorProduct_of_flat (hP : HasFiniteFreeResolution R P) :
-    HasFiniteFreeResolution A (A ⊗[R] P) := by
-  rcases hP with ⟨n, hn⟩
-  exact ⟨n, hasFiniteFreeResolutionOfLength_tensorProduct_of_flat hn⟩
+instance hasFiniteFreeResolution_tensorProduct_of_flat [HasFiniteFreeResolution R P] :
+    HasFiniteFreeResolution A (A ⊗[R] P) :=
+  let ⟨n, hn⟩ := HasFiniteFreeResolution.out R P
+  ⟨n, hasFiniteFreeResolutionOfLength_tensorProduct_of_flat hn⟩

@@ -7,6 +7,10 @@ import Mathlib.RingTheory.Finiteness.Small
 
 universe u u' v v' w
 
+variable (R : Type u) [CommRing R] [Small.{v} R]
+
+section HasFiniteFreeResolutionOfLength
+
 /-- `HasFiniteFreeResolutionOfLength R P n` means `P` admits a free resolution of length `n`
 by finitely generated free modules. We use the convention that length `0` means `P` itself is
 finitely generated and free, and the successor step is given by a surjection from a finitely
@@ -22,33 +26,13 @@ inductive HasFiniteFreeResolutionOfLength (R : Type u) [CommRing R] [Small.{v} R
       (he : Function.Exact f g) (hk : HasFiniteFreeResolutionOfLength R K n) :
       HasFiniteFreeResolutionOfLength R P (n + 1)
 
-/-- A module `P` over a commutative ring `R` has a finite free resolution if it has a resolution
-of some finite length by finitely generated free `R`-modules. -/
-def HasFiniteFreeResolution (R : Type u) [CommRing R] [Small.{v} R]
-    (P : Type v) [AddCommGroup P] [Module R P] : Prop :=
-  ∃ (n : ℕ),  HasFiniteFreeResolutionOfLength R P n
-
-variable {R : Type u} [CommRing R] [Small.{v} R]
-
-/-- A finitely generated free module has a finite free resolution of length `0`. -/
-theorem hasFiniteFreeResolution_of_finite_of_free (M : Type v) [AddCommGroup M] [Module R M]
-    [Module.Finite R M] [Module.Free R M] : HasFiniteFreeResolution R M :=
-  ⟨0, HasFiniteFreeResolutionOfLength.zero M⟩
-
-/-- A subsingleton module has a finite free resolution. -/
-theorem hasFiniteFreeResolution_of_subsingleton (M : Type v)
-    [AddCommGroup M] [Module R M] [Subsingleton M] : HasFiniteFreeResolution R M :=
-  hasFiniteFreeResolution_of_finite_of_free M
+variable {R}
 
 theorem module_finite_of_hasFiniteFreeResolutionOfLength {P : Type v} [AddCommGroup P] [Module R P]
     {n : ℕ} (hP : HasFiniteFreeResolutionOfLength R P n) : Module.Finite R P := by
   induction hP with
   | zero => infer_instance
   | succ _ _ _ _ _ g _ hg _ _ _ => exact Module.Finite.of_surjective g hg
-
-theorem module_finite_of_hasFiniteFreeResolution {P : Type v} [AddCommGroup P] [Module R P]
-    (hP : HasFiniteFreeResolution R P) : Module.Finite R P :=
-  module_finite_of_hasFiniteFreeResolutionOfLength hP.choose_spec
 
 /-- A semilinear equivalence over mutually inverse ring homomorphisms preserves finite free
 resolutions. -/
@@ -103,27 +87,12 @@ theorem hasFiniteFreeResolutionOfLength_of_semilinearEquiv {S : Type u'} [CommRi
           (Function.Surjective.comp_exact_iff_exact eK'.surjective).2 <|
             fun y ↦ e.map_eq_zero_iff.trans (he y)
 
-/-- A semilinear equivalence over mutually inverse ring homomorphisms preserves finite free
-resolutions. -/
-theorem hasFiniteFreeResolution_of_semilinearEquiv
-    {S : Type u'} [CommRing S] [Small.{v'} S] {σ : R →+* S} {σ' : S →+* R}
-    [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
-    {P : Type v} [AddCommGroup P] [Module R P] (hP : HasFiniteFreeResolution R P)
-    {Q : Type v'} [AddCommGroup Q] [Module S Q] (e : P ≃ₛₗ[σ] Q) :
-    HasFiniteFreeResolution S Q :=
-  hP.imp fun _ hn => hasFiniteFreeResolutionOfLength_of_semilinearEquiv hn e
-
 variable [Small.{w} R]
 
 theorem hasFiniteFreeResolutionOfLength_of_linearEquiv {P : Type v} {Q : Type w}
     [AddCommGroup P] [Module R P] [AddCommGroup Q] [Module R Q] (e : P ≃ₗ[R] Q) {n : ℕ}
     (hn : HasFiniteFreeResolutionOfLength R P n) : HasFiniteFreeResolutionOfLength R Q n :=
   hasFiniteFreeResolutionOfLength_of_semilinearEquiv hn e
-
-theorem hasFiniteFreeResolution_of_linearEquiv {P : Type v} {Q : Type w}
-    [AddCommGroup P] [Module R P] [AddCommGroup Q] [Module R Q] (e : P ≃ₗ[R] Q)
-    (hn : HasFiniteFreeResolution R P) : HasFiniteFreeResolution R Q :=
-  hasFiniteFreeResolution_of_semilinearEquiv hn e
 
 theorem hasFiniteFreeResolutionOfLength_of_ker_hasFiniteFreeResolutionOfLength
     {P : Type v} {F : Type*} {K : Type w} [AddCommGroup P] [Module R P] [AddCommGroup F]
@@ -143,10 +112,49 @@ theorem hasFiniteFreeResolutionOfLength_of_ker_hasFiniteFreeResolutionOfLength
   exact (LinearEquiv.conj_exact_iff_exact (i.comp eK.toLinearMap) s eF.symm).2 <|
     (Function.Surjective.comp_exact_iff_exact eK.surjective).2 he
 
+end HasFiniteFreeResolutionOfLength
+
+section HasFiniteFreeResolution
+
+/-- A module `P` over a commutative ring `R` has a finite free resolution if it has a resolution
+of some finite length by finitely generated free `R`-modules. -/
+class HasFiniteFreeResolution (R : Type u) [CommRing R] [Small.{v} R]
+    (P : Type v) [AddCommGroup P] [Module R P] : Prop where
+  out (R P) : ∃ (n : ℕ),  HasFiniteFreeResolutionOfLength R P n
+
+/-- A finitely generated free module has a finite free resolution of length `0`. -/
+instance hasFiniteFreeResolution_of_finite_of_free (M : Type v) [AddCommGroup M] [Module R M]
+    [Module.Finite R M] [Module.Free R M] : HasFiniteFreeResolution R M :=
+  ⟨0, HasFiniteFreeResolutionOfLength.zero M⟩
+
+instance (priority := low) module_finite_of_hasFiniteFreeResolution
+    (P : Type v) [AddCommGroup P] [Module R P] [HasFiniteFreeResolution R P] : Module.Finite R P :=
+  module_finite_of_hasFiniteFreeResolutionOfLength (HasFiniteFreeResolution.out R P).choose_spec
+
+/-- A semilinear equivalence over mutually inverse ring homomorphisms preserves finite free
+resolutions. -/
+theorem hasFiniteFreeResolution_of_semilinearEquiv
+    (S : Type u') [CommRing S] [Small.{v'} S] {σ : R →+* S} {σ' : S →+* R}
+    [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
+    (P : Type v) [AddCommGroup P] [Module R P] [HasFiniteFreeResolution R P]
+    (Q : Type v') [AddCommGroup Q] [Module S Q] (e : P ≃ₛₗ[σ] Q) :
+    HasFiniteFreeResolution S Q := by
+  let ⟨n, hn⟩ := HasFiniteFreeResolution.out R P
+  exact ⟨n, hasFiniteFreeResolutionOfLength_of_semilinearEquiv hn e⟩
+
+variable {R} [Small.{w} R]
+
+theorem hasFiniteFreeResolution_of_linearEquiv {P : Type v} {Q : Type w}
+    [AddCommGroup P] [Module R P] [AddCommGroup Q] [Module R Q] (e : P ≃ₗ[R] Q)
+    [HasFiniteFreeResolution R P] : HasFiniteFreeResolution R Q :=
+  hasFiniteFreeResolution_of_semilinearEquiv R R P Q e
+
 theorem hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution {P : Type v} {F : Type*} {K : Type w}
     [AddCommGroup P] [Module R P] [AddCommGroup F] [Module R F] [Module.Finite R F]
     [Module.Free R F] [AddCommGroup K] [Module R K] (i : K →ₗ[R] F) (s : F →ₗ[R] P)
     (hi : Function.Injective i) (hs : Function.Surjective s) (he : Function.Exact i s)
-    (hk : HasFiniteFreeResolution R K) : HasFiniteFreeResolution R P :=
-  let ⟨n, hk⟩ := hk
+    [HasFiniteFreeResolution R K] : HasFiniteFreeResolution R P :=
+  let ⟨n, hk⟩ := HasFiniteFreeResolution.out R K
   ⟨n + 1, hasFiniteFreeResolutionOfLength_of_ker_hasFiniteFreeResolutionOfLength i s hi hs he hk⟩
+
+end HasFiniteFreeResolution

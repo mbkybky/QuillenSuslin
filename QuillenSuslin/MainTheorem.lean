@@ -251,20 +251,19 @@ theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrinci
     IsStablyFree (MvPolynomial σ R) P := by
   have e : (ULift.{max u v} P) ≃ₗ[MvPolynomial σ R] P := ULift.moduleEquiv
   have : Module.Projective (MvPolynomial σ R) (ULift P) := Module.Projective.of_equiv' e.symm
-  refine IsStablyFree.equiv e <|
-    (isStablyFree_iff_hasFiniteFreeResolution (MvPolynomial σ R) (ULift P)).2 <|
-      mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing σ (fun Q _ _ hQ ↦ ?_) (ULift P)
-  rcases Module.Finite.exists_fin' R Q with ⟨n, f, hf⟩
-  obtain ⟨m, bK⟩ := Submodule.basisOfPid (Pi.basisFun R (Fin n)) (LinearMap.ker f)
-  have : Module.Free R (LinearMap.ker f) := Module.Free.of_basis bK
-  have : Module.Finite R (LinearMap.ker f) := Module.Finite.of_basis bK
-  exact hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution (LinearMap.ker f).subtype f
-    Subtype.val_injective hf (LinearMap.exact_subtype_ker_map f)
-      (hasFiniteFreeResolution_of_finite_of_free (LinearMap.ker f))
+  have : HasFiniteFreeResolution (MvPolynomial σ R) (ULift.{max u v, u_1} P):= by
+    refine mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing σ (fun Q _ _ hQ ↦ ?_) (ULift P)
+    rcases Module.Finite.exists_fin' R Q with ⟨n, f, hf⟩
+    obtain ⟨m, bK⟩ := Submodule.basisOfPid (Pi.basisFun R (Fin n)) (LinearMap.ker f)
+    have : Module.Free R (LinearMap.ker f) := Module.Free.of_basis bK
+    have : Module.Finite R (LinearMap.ker f) := Module.Finite.of_basis bK
+    exact hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution (LinearMap.ker f).subtype f
+      Subtype.val_injective hf (LinearMap.exact_subtype_ker_map f)
+  exact IsStablyFree.equiv e
 
 /-- **Quillen-Suslin Theorem**: Any finitely generated projective module over $k[x_1, \dots, x_n]$
   is free, where $k$ is a principal ideal domain. -/
-theorem quillenSuslin [IsDomain R] [IsPrincipalIdealRing R] (σ : Type*) [Finite σ]
+instance quillenSuslin [IsDomain R] [IsPrincipalIdealRing R] (σ : Type*) [Finite σ]
     (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ R) P] [Module.Finite (MvPolynomial σ R) P]
     [Projective (MvPolynomial σ R) P] : Module.Free (MvPolynomial σ R) P := by
   refine module_free_of_isStablyFree_of_unimodularVectorEquiv (MvPolynomial σ R) ?_ P <|

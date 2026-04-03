@@ -10,9 +10,9 @@ universe u v
 
 variable {R : Type u} [CommRing R] [Small.{v, u} R]
 
-theorem isStablyFree_of_projective_of_hasFiniteFreeResolutionLength
-    {P : Type v} [AddCommGroup P] [Module R P] {n : ℕ}
-    (hn : HasFiniteFreeResolutionOfLength R P n) : Module.Projective R P → IsStablyFree R P := by
+theorem isStablyFree_of_projective_of_hasFiniteFreeResolutionLength  {P : Type v} [AddCommGroup P]
+    [Module R P] {n : ℕ} (hn : HasFiniteFreeResolutionOfLength R P n) :
+    Module.Projective R P → Module.IsStablyFree R P := by
   induction hn with
   | zero P =>
       intro _
@@ -30,19 +30,22 @@ theorem isStablyFree_of_projective_of_hasFiniteFreeResolutionLength
         (LinearEquiv.prodComm R K P).prodCongr (LinearEquiv.refl R N) ≪≫ₗ
           LinearEquiv.prodAssoc R P K N
       have : Module.Finite R K := module_finite_of_hasFiniteFreeResolutionOfLength hk
-      exact IsStablyFree.of_free_prod R P (K × N)
+      exact Module.IsStablyFree.of_free_prod R P (K × N)
 
-variable (R) in
-/-- Let `M` be a finite projective module. Then `M` is stably free if and only if `M` admits a
+variable (R)
+
+/-- Let `M` be a finite projective module. Then `M` is stably free if `M` admits a
   finite free resolution. -/
+instance isStablyFree_of_hasFiniteFreeResolution (M : Type v) [AddCommGroup M] [Module R M]
+    [Module.Finite R M] [Module.Projective R M] [HasFiniteFreeResolution R M] :
+    Module.IsStablyFree R M := by
+  obtain ⟨_, hn⟩ := HasFiniteFreeResolution.out R M
+  exact isStablyFree_of_projective_of_hasFiniteFreeResolutionLength hn inferInstance
+
 theorem isStablyFree_iff_hasFiniteFreeResolution
     (M : Type v) [AddCommGroup M] [Module R M] [Module.Finite R M] [Module.Projective R M] :
-    IsStablyFree R M ↔ HasFiniteFreeResolution R M := by
-  constructor
-  · intro ⟨N, _, _, _, _, _⟩
-    exact hasFiniteFreeResolution_of_shortExact_of_left_of_middle (LinearMap.inr R M N)
-      (LinearMap.fst R M N) LinearMap.inr_injective LinearMap.fst_surjective Function.Exact.inr_fst
-        (hasFiniteFreeResolution_of_finite_of_free N)
-          (hasFiniteFreeResolution_of_finite_of_free (M × N))
-  · intro ⟨_, hn⟩
-    exact isStablyFree_of_projective_of_hasFiniteFreeResolutionLength hn inferInstance
+    Module.IsStablyFree R M ↔ HasFiniteFreeResolution R M := by
+  refine ⟨fun _ ↦ ?_, fun _ ↦ isStablyFree_of_hasFiniteFreeResolution R M⟩
+  obtain ⟨N, _, _, _, _, _⟩ := Module.IsStablyFree.out R M
+  exact hasFiniteFreeResolution_of_shortExact_of_left_of_middle (LinearMap.inr R M N)
+    (LinearMap.fst R M N) LinearMap.inr_injective LinearMap.fst_surjective Function.Exact.inr_fst

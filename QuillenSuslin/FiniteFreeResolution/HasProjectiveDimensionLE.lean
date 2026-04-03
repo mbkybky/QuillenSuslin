@@ -33,6 +33,8 @@ theorem hasFiniteFreeResolutionOfLength_of_hasProjectiveDimensionLE (n : ℕ)
         (LinearMap.ker f).subtype f (Submodule.subtype_injective _) surjf
           (LinearMap.exact_subtype_ker_map f) (ih (LinearMap.ker f))
 
-theorem hasFiniteFreeResolution_of_hasProjectiveDimensionLE (n : ℕ)
-    [HasProjectiveDimensionLE (ModuleCat.of R M) n] : HasFiniteFreeResolution R M :=
+variable {R M} in
+theorem hasFiniteFreeResolution_of_projectiveDimension_ne_top
+    (h : projectiveDimension (ModuleCat.of R M) ≠ ⊤) : HasFiniteFreeResolution R M :=
+  let ⟨n, _⟩ := (CategoryTheory.projectiveDimension_ne_top_iff (ModuleCat.of R M)).1 h
   ⟨n, hasFiniteFreeResolutionOfLength_of_hasProjectiveDimensionLE R M n⟩
