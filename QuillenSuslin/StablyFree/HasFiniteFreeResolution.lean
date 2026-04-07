@@ -8,6 +8,8 @@ import QuillenSuslin.FiniteFreeResolution.Exact
 
 universe u v
 
+namespace Module
+
 variable {R : Type u} [CommRing R] [Small.{v, u} R]
 
 theorem isStablyFree_of_projective_of_hasFiniteFreeResolutionLength  {P : Type v} [AddCommGroup P]
@@ -49,3 +51,5 @@ theorem isStablyFree_iff_hasFiniteFreeResolution
   obtain ⟨N, _, _, _, _, _⟩ := Module.IsStablyFree.out R M
   exact hasFiniteFreeResolution_of_shortExact_of_left_of_middle (LinearMap.inr R M N)
     (LinearMap.fst R M N) LinearMap.inr_injective LinearMap.fst_surjective Function.Exact.inr_fst
+
+end Module

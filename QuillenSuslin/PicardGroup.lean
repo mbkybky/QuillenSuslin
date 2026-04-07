@@ -10,4 +10,4 @@ theorem subsingleton_pic_of_pid  (R : Type*) [CommRing R] [IsDomain R] [IsPrinci
   CommRing.Pic.subsingleton_iff.2 <| by
     intro M _ _ hM
     have : Module.Invertible (MvPolynomial σ R) M := hM
-    exact quillenSuslin R σ M
+    exact Module.quillenSuslin R σ M

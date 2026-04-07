@@ -29,7 +29,7 @@ private theorem mem_ideal_of_smul_eq_zero_of_equiv_quotient
   have hmk : (Ideal.Quotient.mk I a : A ⧸ I) = 0 := by simpa [Algebra.smul_def] using h0
   exact (Ideal.Quotient.eq_zero_iff_mem).1 hmk
 
-instance hasFiniteFreeResolution_of_quotient_of_submodule
+instance Module.hasFiniteFreeResolution_of_quotient_of_submodule
     {A : Type u} [CommRing A] [Small.{u} A] {M : Type u} [AddCommGroup M] [Module A M]
     (K : Submodule A M) [HasFiniteFreeResolution A K] [HasFiniteFreeResolution A M] :
     HasFiniteFreeResolution A (M ⧸ K) :=
@@ -69,14 +69,14 @@ private noncomputable def polynomialModuleIdealMapCLinearEquiv (I : Ideal R) :
     (LinearEquiv.ofInjective φ hφi).trans <| LinearEquiv.ofEq _ _ <| by
       simp [hφ_eq, LinearMap.range_comp, Ideal.map]
 
-instance hasFiniteFreeResolution_polynomialModule
+instance Module.hasFiniteFreeResolution_polynomialModule
     {P : Type u} [AddCommGroup P] [Module R P] [HasFiniteFreeResolution R P] :
     HasFiniteFreeResolution R[X] (PolynomialModule R P) :=
   hasFiniteFreeResolution_of_linearEquiv
     (PolynomialModule.polynomialTensorProductLEquivPolynomialModule R P)
 
 /-- Push a finite free resolution of an `R`-ideal `I` to a resolution of `I · R[X]`. -/
-instance hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
+instance Module.hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
     (I : Ideal R) [HasFiniteFreeResolution R I] :
     HasFiniteFreeResolution R[X] (Ideal.map (C : R →+* R[X]) I) :=
   hasFiniteFreeResolution_of_linearEquiv (polynomialModuleIdealMapCLinearEquiv I)
@@ -197,7 +197,7 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] {P : Ideal (R[X])}
       have hmul : C (d * d) * (a * x) = a * (C (d * d) * x) := by group
       exact hmul ▸ hy) hgspan
 
-private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
+private theorem Module.hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P) : ∀ I : Ideal R, ∀ q : PrimeSpectrum R[X],
     Ideal.comap (C : R →+* R[X]) q.1 = I → HasFiniteFreeResolution (R[X]) (R[X] ⧸ q.1) := by
@@ -393,7 +393,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
 
 variable (R)
 
-theorem hasFiniteFreeResolution_quotient_prime [IsNoetherianRing R]
+theorem Module.hasFiniteFreeResolution_quotient_prime [IsNoetherianRing R]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P)
     (p : PrimeSpectrum (R[X])) : HasFiniteFreeResolution (R[X]) (R[X] ⧸ p.1) :=
@@ -401,7 +401,7 @@ theorem hasFiniteFreeResolution_quotient_prime [IsNoetherianRing R]
 
 /-- Let `R` be a noetherian ring such that every finitely generated `R`-module admits a finite
 free resolution. Then the same property holds for finitely generated `R[X]`-modules. -/
-theorem polynomial_hasFiniteFreeResolution_of_isNoetherianRing [IsNoetherianRing R]
+theorem Module.polynomial_hasFiniteFreeResolution_of_isNoetherianRing [IsNoetherianRing R]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P)
     (P : Type v) [AddCommGroup P] [Module R[X] P] [Module.Finite R[X] P] [Small.{v} R[X]] :
@@ -418,7 +418,7 @@ end polynomial
 
 section MvPolynomial
 
-theorem mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing
+theorem Module.mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing
     [IsNoetherianRing R] [Small.{v, u} R] (σ : Type w) [Finite σ]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P)

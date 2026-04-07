@@ -9,7 +9,9 @@ import QuillenSuslin.FiniteFreeResolution.Basic
 
 universe u v w z
 
-variable {R : Type u} [CommRing R] {A : Type u} [CommRing A] [Algebra R A] [Module.Flat R A]
+namespace Module
+
+variable {R : Type u} [CommRing R] {A : Type u} [CommRing A] [Algebra R A] [Flat R A]
   {P : Type u} [AddCommGroup P] [Module R P]
 
 open TensorProduct
@@ -21,16 +23,15 @@ theorem hasFiniteFreeResolutionOfLength_tensorProduct_of_flat {n : ℕ}
   induction hP with
   | zero P => exact HasFiniteFreeResolutionOfLength.zero (A ⊗[R] P)
   | succ P n F K f g hf hg he hk ih =>
-      refine HasFiniteFreeResolutionOfLength.succ (A ⊗[R] P) n
-        (A ⊗[R] F) (A ⊗[R] K)
-        (AlgebraTensorModule.lTensor A A f)
-        (AlgebraTensorModule.lTensor A A g) ?_ ?_ ?_ ih
-      · exact Module.Flat.lTensor_preserves_injective_linearMap (M := A) f hf
-      · exact (LinearMap.lTensor_surjective (Q := A) (g := g) hg)
-      · exact Module.Flat.lTensor_exact (M := A) he
+      exact HasFiniteFreeResolutionOfLength.succ (A ⊗[R] P) n (A ⊗[R] F) (A ⊗[R] K)
+        (AlgebraTensorModule.lTensor A A f) (AlgebraTensorModule.lTensor A A g)
+          (Flat.lTensor_preserves_injective_linearMap f hf)
+            (LinearMap.lTensor_surjective A hg) (Flat.lTensor_exact A he) ih
 
 /-- Extending scalars along a flat `R`-algebra preserves finite free resolutions. -/
-instance hasFiniteFreeResolution_tensorProduct_of_flat [HasFiniteFreeResolution R P] :
+instance hasFiniteFreeResolution_of_flat_baseChange [HasFiniteFreeResolution R P] :
     HasFiniteFreeResolution A (A ⊗[R] P) :=
   let ⟨n, hn⟩ := HasFiniteFreeResolution.out R P
   ⟨n, hasFiniteFreeResolutionOfLength_tensorProduct_of_flat hn⟩
+
+end Module

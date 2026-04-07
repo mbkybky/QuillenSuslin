@@ -12,18 +12,18 @@ universe u v
 
 variable (R : Type u) [CommRing R]
 
-open Module
+namespace Module
 
-private lemma module_free_of_prod_free_of_unimodularVectorEquiv
+private lemma free_of_prod_free_of_unimodularVectorEquiv
     (hR : ∀ {σ : Type} [Fintype σ] [DecidableEq σ] (o : σ) {v : σ → R} (_ : IsUnimodular v),
       UnimodularVectorEquiv v (fun i => if i = o then 1 else 0))
-    (Q : Type*) [AddCommGroup Q] [Module R Q] [Module.Free R (Q × R)] : Module.Free R Q := by
+    (Q : Type*) [AddCommGroup Q] [Module R Q] [Free R (Q × R)] : Free R Q := by
   rcases subsingleton_or_nontrivial R with hsub | hnontriv
   · have : Subsingleton Q := Module.subsingleton R Q
-    exact Module.Free.of_subsingleton R Q
+    exact Free.of_subsingleton R Q
   · let F := Q × R
-    let I := Module.Free.ChooseBasisIndex R F
-    let b : Basis I R F := Module.Free.chooseBasis R F
+    let I := Free.ChooseBasisIndex R F
+    let b : Basis I R F := Free.chooseBasis R F
     let x : F := (0, 1)
     have hx : x ≠ 0 := by
       intro hx
@@ -183,10 +183,10 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
       Submodule.Quotient.equiv _ _ φ hgφ
     let eQuot : (U ⧸ LinearMap.range gstd) ≃ₗ[R] (t' → R) × (I₂ →₀ R) :=
       (Submodule.quotEquivOfEq _ _ hkerU.symm) ≪≫ₗ projU.quotKerEquivOfSurjective hprojU_surj
-    have hTarget : Module.Free R ((t' → R) × (I₂ →₀ R)) :=
-      Module.Free.of_basis <| (Pi.basisFun R t').prod Finsupp.basisSingleOne
-    have hFp : Module.Free R (F ⧸ p) :=
-      Module.Free.of_equiv (eFquot ≪≫ₗ eφquot ≪≫ₗ eQuot).symm
+    have hTarget : Free R ((t' → R) × (I₂ →₀ R)) :=
+      Free.of_basis <| (Pi.basisFun R t').prod Finsupp.basisSingleOne
+    have hFp : Free R (F ⧸ p) :=
+      Free.of_equiv (eFquot ≪≫ₗ eφquot ≪≫ₗ eQuot).symm
     have hfst_surj : Function.Surjective (LinearMap.fst R Q R) := by
       intro q
       exact ⟨(q, 0), rfl⟩
@@ -195,21 +195,21 @@ private lemma module_free_of_prod_free_of_unimodularVectorEquiv
     let eQ : (F ⧸ p) ≃ₗ[R] Q :=
       (Submodule.quotEquivOfEq _ _ hker.symm) ≪≫ₗ
         (LinearMap.fst R Q R).quotKerEquivOfSurjective hfst_surj
-    exact Module.Free.of_equiv eQ
+    exact Free.of_equiv eQ
 
-theorem module_free_of_isStablyFree_of_unimodularVectorEquiv
+theorem free_of_isStablyFree_of_unimodularVectorEquiv
     (hR : ∀ {σ : Type} [Fintype σ] [DecidableEq σ] (o : σ) {v : σ → R} (_ : IsUnimodular v),
       UnimodularVectorEquiv v (fun i => if i = o then 1 else 0))
-    (P : Type*) [AddCommGroup P] [Module R P] (h : IsStablyFree R P) : Module.Free R P := by
+    (P : Type*) [AddCommGroup P] [Module R P] (h : IsStablyFree R P) : Free R P := by
   rcases h with ⟨N, _, _, _, _, _⟩
-  let ι := Module.Free.ChooseBasisIndex R N
+  let ι := Free.ChooseBasisIndex R N
   let n : ℕ := Fintype.card ι
   let eι : ι ≃ Fin n := Fintype.equivFin ι
-  let bN : Basis (Fin n) R N := (Module.Free.chooseBasis R N).reindex eι
+  let bN : Basis (Fin n) R N := (Free.chooseBasis R N).reindex eι
   let eN : N ≃ₗ[R] Fin n → R := bN.repr.trans (Finsupp.linearEquivFunOnFinite R R (Fin n))
-  have hPFin : Module.Free R (P × (Fin n → R)) :=
-    Module.Free.of_equiv (LinearEquiv.prodCongr (LinearEquiv.refl R P) eN)
-  have : ∀ n : ℕ, Module.Free R (P × (Fin n → R)) → Module.Free R P := by
+  have hPFin : Free R (P × (Fin n → R)) :=
+    Free.of_equiv (LinearEquiv.prodCongr (LinearEquiv.refl R P) eN)
+  have : ∀ n : ℕ, Free R (P × (Fin n → R)) → Free R P := by
     intro n
     induction n with
     | zero =>
@@ -225,7 +225,7 @@ theorem module_free_of_isStablyFree_of_unimodularVectorEquiv
             right_inv := fun _ => rfl
             map_add' := fun _ _ => rfl
             map_smul' := fun _ _ => rfl }
-        exact Module.Free.of_equiv e0
+        exact Free.of_equiv e0
     | succ n ih =>
         intro hsn
         let ePi : (Fin (n + 1) → R) ≃ₗ[R] (Fin n ⊕ Fin 1 → R) :=
@@ -235,27 +235,27 @@ theorem module_free_of_isStablyFree_of_unimodularVectorEquiv
         let e1 : (Fin 1 → R) ≃ₗ[R] R := LinearEquiv.funUnique (Fin 1) R R
         let eFin : (Fin (n + 1) → R) ≃ₗ[R] (Fin n → R) × R :=
           ePi.trans (eSum.trans (LinearEquiv.prodCongr (LinearEquiv.refl R _) e1))
-        have hQ : Module.Free R ((P × (Fin n → R)) × R) := by
+        have hQ : Free R ((P × (Fin n → R)) × R) := by
           have eAssoc : (P × (Fin (n + 1) → R)) ≃ₗ[R] ((P × (Fin n → R)) × R) :=
             (LinearEquiv.prodCongr (LinearEquiv.refl R P) eFin) ≪≫ₗ
               (LinearEquiv.prodAssoc R P (Fin n → R) R).symm
-          exact Module.Free.of_equiv eAssoc
-        have hQ' : Module.Free R (P × (Fin n → R)) :=
-          module_free_of_prod_free_of_unimodularVectorEquiv R hR (P × (Fin n → R))
+          exact Free.of_equiv eAssoc
+        have hQ' : Free R (P × (Fin n → R)) :=
+          free_of_prod_free_of_unimodularVectorEquiv R hR (P × (Fin n → R))
         exact ih hQ'
   exact this n hPFin
 
 theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrincipalIdealRing R]
     (σ : Type v) [Finite σ] (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ R) P]
-    [Module.Finite (MvPolynomial σ R) P] [Module.Projective (MvPolynomial σ R) P] :
+    [Module.Finite (MvPolynomial σ R) P] [Projective (MvPolynomial σ R) P] :
     IsStablyFree (MvPolynomial σ R) P := by
   have e : (ULift.{max u v} P) ≃ₗ[MvPolynomial σ R] P := ULift.moduleEquiv
-  have : Module.Projective (MvPolynomial σ R) (ULift P) := Module.Projective.of_equiv' e.symm
+  have : Projective (MvPolynomial σ R) (ULift P) := Projective.of_equiv' e.symm
   have : HasFiniteFreeResolution (MvPolynomial σ R) (ULift.{max u v, u_1} P):= by
     refine mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing σ (fun Q _ _ hQ ↦ ?_) (ULift P)
     rcases Module.Finite.exists_fin' R Q with ⟨n, f, hf⟩
     obtain ⟨m, bK⟩ := Submodule.basisOfPid (Pi.basisFun R (Fin n)) (LinearMap.ker f)
-    have : Module.Free R (LinearMap.ker f) := Module.Free.of_basis bK
+    have : Free R (LinearMap.ker f) := Free.of_basis bK
     have : Module.Finite R (LinearMap.ker f) := Module.Finite.of_basis bK
     exact hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution (LinearMap.ker f).subtype f
       Subtype.val_injective hf (LinearMap.exact_subtype_ker_map f)
@@ -265,9 +265,11 @@ theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrinci
   is free, where $k$ is a principal ideal domain. -/
 instance quillenSuslin [IsDomain R] [IsPrincipalIdealRing R] (σ : Type*) [Finite σ]
     (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ R) P] [Module.Finite (MvPolynomial σ R) P]
-    [Projective (MvPolynomial σ R) P] : Module.Free (MvPolynomial σ R) P := by
-  refine module_free_of_isStablyFree_of_unimodularVectorEquiv (MvPolynomial σ R) ?_ P <|
+    [Projective (MvPolynomial σ R) P] : Free (MvPolynomial σ R) P := by
+  refine free_of_isStablyFree_of_unimodularVectorEquiv (MvPolynomial σ R) ?_ P <|
     mvPolynomial_isStablyFree_of_isPrincipalIdealRing R σ P
   intro _ _ _
   have : Fintype σ := Fintype.ofFinite σ
   exact thm12
+
+end Module

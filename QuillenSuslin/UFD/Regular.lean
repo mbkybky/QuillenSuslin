@@ -14,6 +14,8 @@ universe u
 
 variable {R : Type u} [CommRing R]
 
+open Module Ideal
+
 theorem Ideal.isPrincipal_of_free [IsDomain R] {I : Ideal R} [Module.Free R I] : I.IsPrincipal :=
   (Submodule.rank_le_one_iff_isPrincipal I).1 ((Submodule.rank_le I).trans_eq (Module.rank_self R))
 
@@ -73,14 +75,14 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
         Ideal.primeHeight_eq_zero_iff_eq_bot.not.mp (by simp [hmap_height])
     · exact eIdeal.trans <| LinearEquiv.ofTop _ <|
         IsLocalization.AtPrime.map_eq_top_of_not_le (Localization.AtPrime P) hQP
-  have : Module.Projective (Localization.Away x) Q := by
-    have := Module.finitePresentation_of_finite (Localization.Away x) Q
-    apply Module.projective_of_localization_maximal
+  have : Projective (Localization.Away x) Q := by
+    have := finitePresentation_of_finite (Localization.Away x) Q
+    apply projective_of_localization_maximal
     intro P _
-    have : Module.Free (Localization.AtPrime P) (Localization.AtPrime P) := Module.Free.self _
-    have : Module.Free (Localization.AtPrime P) (LocalizedModule P.primeCompl Q) :=
-      Module.Free.of_equiv (hloc P).symm
-    exact Module.Projective.of_free
+    have : Free (Localization.AtPrime P) (Localization.AtPrime P) := Free.self _
+    have : Free (Localization.AtPrime P) (LocalizedModule P.primeCompl Q) :=
+      Free.of_equiv (hloc P).symm
+    exact Projective.of_free
   let q : Ideal R := Ideal.comap (algebraMap R (Localization.Away x)) Q
   have : HasFiniteFreeResolution R (R ⧸ q) := hasFiniteFreeResolution_of_projectiveDimension_ne_top
       (projectiveDimension_ne_top_of_isRegularLocalRing (ModuleCat.of R (R ⧸ q)))
@@ -89,10 +91,10 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
   have : HasFiniteFreeResolution (Localization.Away x) (Localization.Away x ⧸ Q) :=
     hasFiniteFreeResolution_of_linearEquiv <| AlgEquiv.toLinearEquiv <|
       Ideal.quotientEquivAlgOfEq (Localization.Away x) (IsLocalization.map_comap M _ Q)
-  have : Module.Free (Localization.Away x) Q :=
+  have : Free (Localization.Away x) Q :=
     have := hasFiniteFreeResolution_of_shortExact_of_middle_of_right _ _
       (Submodule.subtype_injective Q) (Submodule.mkQ_surjective Q) (LinearMap.exact_subtype_mkQ Q)
-    Module.free_of_isStablyFree_of_localized_eq_ring hloc
+    free_of_isStablyFree_of_localized_eq_ring hloc
   exact Q.isPrincipal_of_free
 
 variable (R) in
