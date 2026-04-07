@@ -13,7 +13,7 @@ universe u v
 variable {R : Type u} [CommRing R] {M : Type v} [AddCommGroup M] [Module R M] [Small.{v} R]
   (S : Submonoid R)
 
-theorem hasFiniteFreeResolutionLength_localizedModule
+theorem localizedModule_hasFiniteFreeResolutionLength
     {n : ℕ} (h : HasFiniteFreeResolutionOfLength R M n) :
     HasFiniteFreeResolutionOfLength (Localization S) (LocalizedModule S M) n := by
   induction h with
@@ -28,7 +28,7 @@ theorem hasFiniteFreeResolutionLength_localizedModule
         (LocalizedModule.map_injective S f hf) (LocalizedModule.map_surjective S g hg)
           (LocalizedModule.map_exact S f g he) ih
 
-instance hasFiniteFreeResolution_localizedModule [HasFiniteFreeResolution R M] :
+instance localizedModule_hasFiniteFreeResolution [HasFiniteFreeResolution R M] :
     HasFiniteFreeResolution (Localization S) (LocalizedModule S M) :=
   let ⟨n, hn⟩ := HasFiniteFreeResolution.out R M
-  ⟨n, hasFiniteFreeResolutionLength_localizedModule S hn⟩
+  ⟨n, localizedModule_hasFiniteFreeResolutionLength S hn⟩

@@ -30,9 +30,9 @@ variable {R}
 
 theorem module_finite_of_hasFiniteFreeResolutionOfLength {P : Type v} [AddCommGroup P] [Module R P]
     {n : ℕ} (hP : HasFiniteFreeResolutionOfLength R P n) : Module.Finite R P := by
-  induction hP with
+  cases hP with
   | zero => infer_instance
-  | succ _ _ _ _ _ g _ hg _ _ _ => exact Module.Finite.of_surjective g hg
+  | succ _ _ _ _ _ g _ hg _ _ => exact Module.Finite.of_surjective g hg
 
 /-- A semilinear equivalence over mutually inverse ring homomorphisms preserves finite free
 resolutions. -/
@@ -58,19 +58,14 @@ theorem hasFiniteFreeResolutionOfLength_of_semilinearEquiv {S : Type u'} [CommRi
             left_inv _ := rfl
             right_inv _ := rfl
             map_add' _ _ := rfl
-            map_smul' := fun a x => by
-              change a • x = (σ' (σ a)) • x
-              simp }
+            map_smul' := fun a x => show a • x = (σ' (σ a)) • x by simp }
       let fS : K →ₗ[S] F :=
-        { toFun := f
-          map_add' := f.map_add
+        { __ := f
           map_smul' := fun b x => f.map_smul (σ' b) x }
       let gS : F →ₗ[S] Q :=
         { toFun := fun x => e (g x)
           map_add' := fun x y => by simp
-          map_smul' := fun b x => by
-            change e (g (σ' b • x)) = b • e (g x)
-            simp [LinearEquiv.map_smulₛₗ] }
+          map_smul' := fun b x => show e (g (σ' b • x)) = _ by simp [LinearEquiv.map_smulₛₗ] }
       have : Module.Free S F := Module.Free.of_equiv (ec F)
       have : Module.Finite R K := module_finite_of_hasFiniteFreeResolutionOfLength hk
       have : Module.Finite S F := Module.Finite.of_surjective (ec F).toLinearMap (ec F).surjective

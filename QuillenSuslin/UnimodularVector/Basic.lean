@@ -48,27 +48,22 @@ private noncomputable def transvectionGL {A : Type*} [CommRing A] (i j : s) (hij
   Matrix.GeneralLinearGroup.mk'' (Matrix.transvection i j c) <| by
     simp [Matrix.det_transvection_of_ne i j hij c]
 
-private lemma transvectionGL_mulVec_same {A : Type*} [CommRing A] (i j : s) (hij : i ≠ j)
+private lemma transvectionGL_mulVec_update {A : Type*} [CommRing A] (i j : s) (hij : i ≠ j)
     (c : A) (v : s → A) :
-    (transvectionGL i j hij c).1.mulVec v i = v i + c * v j := by
-  change (Matrix.transvection i j c).mulVec v i = _
-  rw [Matrix.transvection, Matrix.add_mulVec, Matrix.one_mulVec, Matrix.single_mulVec]
-  simp
-
-private lemma transvectionGL_mulVec_of_ne {A : Type*} [CommRing A] (i j a : s) (hij : i ≠ j)
-    (ha : a ≠ i) (c : A) (v : s → A) :
-    (transvectionGL i j hij c).1.mulVec v a = v a := by
-  change (Matrix.transvection i j c).mulVec v a = _
-  rw [Matrix.transvection, Matrix.add_mulVec, Matrix.one_mulVec, Matrix.single_mulVec]
-  simp [ha]
+    (transvectionGL i j hij c).1.mulVec v = Function.update v i (v i + c * v j) := by
+  funext a
+  by_cases ha : a = i
+  · subst a
+    change (Matrix.transvection i j c).mulVec v i = _
+    rw [Matrix.transvection, Matrix.add_mulVec, Matrix.one_mulVec, Matrix.single_mulVec]
+    simp
+  · change (Matrix.transvection i j c).mulVec v a = _
+    rw [Matrix.transvection, Matrix.add_mulVec, Matrix.one_mulVec, Matrix.single_mulVec]
+    simp [Function.update, ha]
 
 theorem unimodularVectorEquiv_update_add (i j : s) (hij : i ≠ j) (c : R) (v : s → R) :
     UnimodularVectorEquiv v (Function.update v i (v i + c * v j)) := by
-  refine ⟨transvectionGL i j hij c, ?_⟩
-  funext k
-  by_cases hk : k = i
-  · simpa [Function.update, hk] using transvectionGL_mulVec_same i j hij c v
-  · simpa [Function.update, hk] using transvectionGL_mulVec_of_ne i j k hij hk c v
+  exact ⟨transvectionGL i j hij c, transvectionGL_mulVec_update i j hij c v⟩
 
 theorem unimodularVectorEquiv_update_add_sum (i : s) (t : Finset s) (ht : i ∉ t) (c : s → R)
     (v : s → R) : UnimodularVectorEquiv v (Function.update v i (v i + ∑ j ∈ t, c j * v j)) := by
@@ -78,7 +73,7 @@ theorem unimodularVectorEquiv_update_add_sum (i : s) (t : Finset s) (ht : i ∉ 
     · intro _
       refine ⟨1, ?_⟩
       ext j
-      by_cases hj : j = i <;> simp [vOf, hj]
+      simp [vOf]
     · intro j t hj_notmem ih ht
       have hij : j ≠ i := by
         intro hji
@@ -105,16 +100,13 @@ variable {A B : Type*} [CommRing A] [CommRing B] {s : Type*}
 /-- Unimodularity is preserved under a ring homomorphism. -/
 theorem isUnimodular_map_ringHom (f : A →+* B) (v : s → A) (hv : IsUnimodular v) :
     IsUnimodular fun i => f (v i) := by
-  have hmap : Ideal.map f (Ideal.span (Set.range v)) = ⊤ := by
-    rw [hv]
-    exact (Ideal.map_top f : Ideal.map f (⊤ : Ideal A) = (⊤ : Ideal B))
   change Ideal.span (Set.range (f ∘ v)) = ⊤
-  simpa [Set.range_comp, Ideal.map_span] using hmap
+  simpa [Set.range_comp, Ideal.map_span] using
+    (congrArg (Ideal.map f) hv).trans (Ideal.map_top f)
 
 /-- Unimodularity is preserved under an algebra equivalence. -/
 theorem isUnimodular_map_ringEquiv (e : A ≃+* B) (v : s → A) (hv : IsUnimodular v) :
-    IsUnimodular fun i => e (v i) :=
-  isUnimodular_map_ringHom e.toRingHom v hv
+    IsUnimodular fun i => e (v i) := isUnimodular_map_ringHom e.toRingHom v hv
 
 variable [Fintype s] [DecidableEq s]
 
@@ -228,7 +220,8 @@ section horrocks
 
 private def basisVec (A : Type*) [CommRing A] (o : s) : s → A := fun i => if i = o then 1 else 0
 
-private noncomputable def permGL {A : Type*} [CommRing A] (σ : Equiv.Perm s) : Matrix.GeneralLinearGroup s A :=
+private noncomputable def permGL {A : Type*} [CommRing A] (σ : Equiv.Perm s) :
+    Matrix.GeneralLinearGroup s A :=
   Matrix.GeneralLinearGroup.mk'' (Equiv.Perm.permMatrix A σ) <| by
     simpa using (Units.map (Int.castRingHom A).toMonoidHom (Equiv.Perm.sign σ)).isUnit
 
@@ -262,9 +255,7 @@ private theorem equiv_basis_of_eq_one {A : Type*} [CommRing A] (o j : s) (v : s 
       ext a
       by_cases ha : a = j <;> simp [ha, hj]
     · intro a t ha hrec ht
-      have hsub : t ⊆ Finset.univ.erase j := by
-        intro x hx
-        exact ht (by simp [hx])
+      have hsub : t ⊆ Finset.univ.erase j := fun x hx ↦ ht (by simp [hx])
       have hneq : a ≠ j := by
         have : a ∈ Finset.univ.erase j := ht (by simp [ha])
         simpa [Finset.mem_erase, Finset.mem_univ] using this
@@ -285,10 +276,9 @@ private theorem equiv_basis_of_eq_one {A : Type*} [CommRing A] (o j : s) (v : s 
       exact (unimodularVectorEquiv_equivalence.trans hw hstep)
   have hjbasis :
       UnimodularVectorEquiv v (basisVec A j) := by
-    have htmp := hclear (Finset.univ.erase j) (by intro x hx; exact hx)
+    have htmp := hclear (Finset.univ.erase j) fun _ hx ↦ hx
     change UnimodularVectorEquiv v (fun a => if a = j then 1 else 0)
-    convert htmp using 2
-    rename_i a
+    convert htmp using 2 with a
     by_cases ha : a = j
     · simp [ha]
     · simp [ha, Finset.mem_erase, Finset.mem_univ]
@@ -316,7 +306,7 @@ private theorem equiv_basis_of_two {A : Type*} [CommRing A] (o i : s) (hoi : o �
   rcases hbez with ⟨α, β, hbez⟩
   let M : Matrix s s A := twoByTwoMatrix o i (v o) (v i) α β
   let N : Matrix s s A := twoByTwoInv o i (v o) (v i) α β
-  have hio : i ≠ o := fun h => hoi h.symm
+  have hio : i ≠ o := hoi.symm
   have huniv : (Finset.univ : Finset s) = {o, i} := by
     ext x
     simp [hcover x]
@@ -371,9 +361,7 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
           ext a
           by_cases ha : a = j <;> simp [ha]
         · intro a t ha hrec ht
-          have hsub : t ⊆ Finset.univ.erase j := by
-            intro x hx
-            exact ht (by simp [hx])
+          have hsub : t ⊆ Finset.univ.erase j := fun x hx ↦ ht (by simp [hx])
           have hneq : a ≠ j := by
             have : a ∈ Finset.univ.erase j := ht (by simp [ha])
             simpa [Finset.mem_erase, Finset.mem_univ] using this
@@ -395,8 +383,7 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
           exact (unimodularVectorEquiv_equivalence.trans hu hstep)
       let wred : s → R[X] := fun a => if a = j then w j else w a %ₘ w j
       have hwred_eqv : UnimodularVectorEquiv w wred := by
-        convert hreduce (Finset.univ.erase j) (by simp) using 2
-        rename_i a
+        convert hreduce (Finset.univ.erase j) (by simp) using 2 with a
         by_cases ha : a = j
         · simp [wred, ha]
         · simp [wred, ha, Finset.mem_erase, Finset.mem_univ]
@@ -435,16 +422,10 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
           simpa [wbar, wred] using hjmonic.map π
         have hbar_not_unit : ¬ IsUnit (wbar j) := by
           intro hu
-          rcases Polynomial.isUnit_iff.1 hu with ⟨r, _, hr⟩
-          have hr1 : r = 1 := by
-            have : (Polynomial.C r : (IsLocalRing.ResidueField R)[X]).Monic := by
-              simpa [hr] using hbar_monic
-            simpa using this.coeff_natDegree
           have hdeg_bar : (wbar j).natDegree = d := by
             simpa [wbar, wred, hjdeg] using Polynomial.Monic.natDegree_map hjmonic π
-          rw [← hr, hr1] at hdeg_bar
-          simp at hdeg_bar
-          exact (Nat.ne_of_gt hd_pos) hdeg_bar.symm
+          exact (Nat.ne_of_gt hd_pos) <|
+            hdeg_bar.symm.trans (Polynomial.natDegree_eq_zero_of_isUnit hu)
         exact hbar_not_unit hunit_bar
       rcases hunit_coeff with ⟨i, hi_ne, n, hin⟩
       by_cases hthird : ∃ k : s, k ≠ j ∧ k ≠ i
@@ -458,20 +439,15 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
         let w1 : s → R[X] := fun a => if a = k then wred a + (γ * e) * wred j else wred a
         have hw1 : UnimodularVectorEquiv wred w1 := by
           refine ⟨transvectionGL k j hk_ne_j (γ * e), ?_⟩
+          refine (transvectionGL_mulVec_update k j hk_ne_j (γ * e) wred).trans ?_
           funext a
-          by_cases hak : a = k
-          · simpa [w1, hak] using transvectionGL_mulVec_same k j hk_ne_j (γ * e) wred
-          · rw [transvectionGL_mulVec_of_ne k j a hk_ne_j hak]
-            simp [w1, hak]
+          by_cases hak : a = k <;> simp [w1, Function.update, hak]
         let wnew : s → R[X] :=
           fun a => if a = k then w1 a + (γ * f) * w1 i else w1 a
         have hwnew1 : UnimodularVectorEquiv w1 wnew := by
           refine ⟨transvectionGL k i hk_ne_i (γ * f), ?_⟩
-          funext a
-          by_cases hak : a = k
-          · simpa [wnew, hak] using transvectionGL_mulVec_same k i hk_ne_i (γ * f) w1
-          · rw [transvectionGL_mulVec_of_ne k i a hk_ne_i hak]
-            simp [wnew, hak]
+          refine (transvectionGL_mulVec_update k i hk_ne_i (γ * f) w1).trans <| funext fun a ↦ ?_
+          by_cases hak : a = k <;> simp [wnew, Function.update, hak]
         have hwnew_eqv : UnimodularVectorEquiv w wnew :=
           (unimodularVectorEquiv_equivalence.trans hwred_eqv)
             (unimodularVectorEquiv_equivalence.trans hw1 hwnew1)
@@ -523,21 +499,13 @@ theorem horrocks [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
           rw [← hc, huniv2]
           simp [hi_ne.symm]
         by_cases hoj : o = j
-        · have hpair : UnimodularVectorEquiv wred (basisVec R[X] j) := by
-            exact equiv_basis_of_two j i hi_ne.symm wred hcover2
-              ⟨c j, c i, hbez2⟩
+        · have hpair : UnimodularVectorEquiv wred (basisVec R[X] j) :=
+            equiv_basis_of_two j i hi_ne.symm wred hcover2 ⟨c j, c i, hbez2⟩
           simpa [eo, basisVec, hoj] using
             (unimodularVectorEquiv_equivalence.trans hwred_eqv hpair)
-        · have hoi' : o = i := by
-            rcases hcover2 o with rfl | rfl
-            · exact (hoj rfl).elim
-            · rfl
-          have hcoverij (x : s) : x = i ∨ x = j := by
-            rcases hcover2 x with hxi | hxj
-            · exact Or.inr hxi
-            · exact Or.inl hxj
-          have hbez2' : c i * wred i + c j * wred j = 1 := by
-            simpa [add_comm] using hbez2
+        · have hoi' : o = i := by simpa [hoj, or_false] using hcover2 o
+          have hcoverij (x : s) : x = i ∨ x = j := by simpa [or_comm] using hcover2 x
+          have hbez2' : c i * wred i + c j * wred j = 1 := by simpa [add_comm] using hbez2
           have hpair : UnimodularVectorEquiv wred (basisVec R[X] i) :=
             equiv_basis_of_two i j hi_ne wred hcoverij ⟨c i, c j, hbez2'⟩
           simpa [eo, basisVec, hoi'] using unimodularVectorEquiv_equivalence.trans hwred_eqv hpair
@@ -677,8 +645,7 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
         simpa [Polynomial.coeff_zero_eq_eval_zero, ev0Y, sub_eq_zero] using hentry
       · simpa [Polynomial.coeff_zero_eq_eval_zero, ev0Y, hij] using hentry
     rcases (Polynomial.X_dvd_iff).2 hcoeff0 with ⟨w, hw⟩
-    refine ⟨w, ?_⟩
-    exact hw
+    exact ⟨w, hw⟩
   let W : Matrix s s L[X][Y] := fun i j => Classical.choose (hdiv i j)
   have hW (i j : s) : P.1 i j = (if i = j then 1 else 0) + Y * W i j := by
     simpa [W, add_comm] using (sub_eq_iff_eq_add).1 (Classical.choose_spec (hdiv i j))
@@ -706,9 +673,7 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
           simp only [Prod.mk.eta, hEq, ↓reduceIte, Polynomial.map_mul, hW0 ij hijt, mul_comm, map_C,
             hmapc1, mul_left_comm, Submonoid.coe_mul, map_mul, mul_assoc, ccR, ccL]
     rcases hPidx Finset.univ with ⟨c, W0, hW0⟩
-    refine ⟨c, W0, ?_⟩
-    intro i j
-    exact hW0 (i, j) (Finset.mem_univ _)
+    exact ⟨c, W0, fun i j ↦ hW0 (i, j) (Finset.mem_univ _)⟩
   rcases hclearW with ⟨c, W0, hW0fun⟩
   let substR : R[X][Y] →+* R[X][Y] := Polynomial.eval₂RingHom C (ccR c * Y)
   let substL : L[X][Y] →+* L[X][Y] := Polynomial.eval₂RingHom C (ccL c * Y)
@@ -741,8 +706,7 @@ theorem lem10 {S : Submonoid R} (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
     rw [map_add, hfXY_diag i j, map_mul, hsubst_W0 i j, hfXY_Y, hYW i j]
     rw [← hconst, ← map_mul, ← map_add, hW i j]
   have hBmap : fXY.mapMatrix B = substL.mapMatrix P.1 := by
-    funext i
-    funext j
+    funext i j
     exact hBij i j
   have hev0_subst : ev0Y.comp substL = ev0Y := by
     apply Polynomial.ringHom_ext
@@ -897,12 +861,8 @@ theorem cor11 (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic
         using hloc0
     have hs : m.primeCompl ≤ nonZeroDivisors R := Ideal.primeCompl_le_nonZeroDivisors m
     obtain ⟨c, hc⟩ := lem10 hs v hloc
-    have hcI : (c : R) ∈ I := by
-      simpa [I, base, shift] using hc
-    exact c.2 (hIm hcI)
-  have h1 : (1 : R) ∈ I := by
-    rw [hI_top]
-    simp
+    exact c.2 (hIm hc)
+  have h1 : (1 : R) ∈ I := by simp [hI_top]
   let φ : R[X][Y] →+* R[X] := Polynomial.eval₂RingHom (Polynomial.eval₂RingHom C 0) X
   have hφ : UnimodularVectorEquiv (fun i => φ (base i)) (fun i => φ (shift 1 i)) :=
     unimodularVectorEquiv_map φ h1
@@ -918,8 +878,7 @@ theorem cor11 (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic
     funext i
     rw [(v i).hom_eval₂ (C.comp C) φ (C X + (1 : R) • Y), hcomp, hX, Polynomial.eval₂_C_X]
   have hφ' : UnimodularVectorEquiv (fun i => C ((v i).eval 0)) v := by
-    rw [← hφ_left, ← hφ_right]
-    exact hφ
+    rwa [← hφ_left, ← hφ_right]
   exact unimodularVectorEquiv_equivalence.symm hφ'
 
 end cor11

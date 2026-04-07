@@ -55,30 +55,19 @@ private def compatSemilinearEquiv {A : Type*} {B : Type*} [CommRing A] [CommRing
 section polynomial
 
 private noncomputable def polynomialModuleIdealMapCLinearEquiv (I : Ideal R) :
-    PolynomialModule R I ≃ₗ[R[X]] Ideal.map (C : R →+* R[X]) I := by
-  let eI : PolynomialModule R I ≃ₗ[R[X]] R[X] ⊗[R] I :=
-    (PolynomialModule.polynomialTensorProductLEquivPolynomialModule R I).symm
-  let eR : R[X] ⊗[R] R ≃ₗ[R[X]] R[X] :=
-    (PolynomialModule.polynomialTensorProductLEquivPolynomialModule R R).trans
-      PolynomialModule.equivPolynomialSelf
+    PolynomialModule R I ≃ₗ[R[X]] I.map C :=
+  let eR : R[X] ⊗[R] R ≃ₗ[R[X]] R[X] := AlgebraTensorModule.rid R R[X] R[X]
   let φ : R[X] ⊗[R] I →ₗ[R[X]] R[X] :=
     eR.toLinearMap.comp (AlgebraTensorModule.lTensor R[X] R[X] (I.subtype.restrictScalars R))
-  have hφ_eq :
-      φ = LinearMap.liftBaseChange R[X] ((Algebra.linearMap R R[X]).comp I.subtype) := by
-    ext x y
-    simp [φ, eR, PolynomialModule.polynomialTensorProductLEquivPolynomialModule,
-      PolynomialModule.equivPolynomialSelf_apply_eq, LinearMap.liftBaseChange_tmul,
-      Algebra.linearMap_apply, smul_eq_mul]
-    rfl
-  have hφ_inj : Function.Injective φ := by
-    apply eR.injective.comp
-    simpa [φ] using Module.Flat.lTensor_preserves_injective_linearMap
-      (M := R[X]) (f := I.subtype.restrictScalars R) Subtype.coe_injective
-  have hφ_range : LinearMap.range φ = (Ideal.map (C : R →+* R[X]) I) := by
-    rw [hφ_eq, LinearMap.range_liftBaseChange, LinearMap.range_comp]
-    simp [Ideal.map, submodule_span_eq]
-  exact eI.trans <| (LinearEquiv.ofInjective φ hφ_inj).trans <|
-    LinearEquiv.ofEq _ _ hφ_range
+  have hφ_eq : φ = LinearMap.liftBaseChange R[X] ((Algebra.linearMap R R[X]).comp I.subtype) := by
+    ext
+    simp [coeff_one, coeff_C, φ, eR]
+  have hφi : Function.Injective φ :=
+    eR.injective.comp <| Module.Flat.lTensor_preserves_injective_linearMap
+      (I.subtype.restrictScalars R) Subtype.coe_injective
+  (PolynomialModule.polynomialTensorProductLEquivPolynomialModule R I).symm.trans <|
+    (LinearEquiv.ofInjective φ hφi).trans <| LinearEquiv.ofEq _ _ <| by
+      simp [hφ_eq, LinearMap.range_comp, Ideal.map]
 
 instance hasFiniteFreeResolution_polynomialModule
     {P : Type u} [AddCommGroup P] [Module R P] [HasFiniteFreeResolution R P] :
@@ -216,29 +205,27 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
   let A : Type u := R[X]
   refine IsNoetherian.induction ?_
   intro I ih q hqI
-  let P : Ideal A := q.1
-  have : P.IsPrime := q.2
-  have hcomap : Ideal.comap (C : R →+* A) P = I := hqI
-  have hIA_le_P : Ideal.map (C : R →+* A) I ≤ P :=
+  have hcomap : Ideal.comap (C : R →+* A) q.1 = I := hqI
+  have hIA_le_P : Ideal.map (C : R →+* A) I ≤ q.1 :=
     (Ideal.map_le_iff_le_comap).2 <| by simp [hcomap]
   let IA : Ideal A := Ideal.map (C : R →+* A) I
   let B : Type u := A ⧸ IA
   have hI_res : HasFiniteFreeResolution R I := hR I inferInstance
-  by_cases hPIA : P = IA
-  · exact hasFiniteFreeResolution_of_linearEquiv (Submodule.quotEquivOfEq IA P hPIA.symm)
+  by_cases hPIA : q.1 = IA
+  · exact hasFiniteFreeResolution_of_linearEquiv (Submodule.quotEquivOfEq IA q.1 hPIA.symm)
   · have hIprime : Ideal.IsPrime I := by
-      simpa [hcomap] using show (Ideal.comap (C : R →+* A) P).IsPrime from inferInstance
+      simpa [hcomap] using show (Ideal.comap (C : R →+* A) q.1).IsPrime from inferInstance
     let R₀ : Type u := R ⧸ I
     let A₀ : Type u := R₀[X]
     let π : A →+* B := Ideal.Quotient.mk IA
-    let Pbar : Ideal B := Ideal.map π P
+    let Pbar : Ideal B := Ideal.map π q.1
     let e : A₀ ≃+* B := Ideal.polynomialQuotientEquivQuotientPolynomial I
     let P₀ : Ideal A₀ := Ideal.comap e.toRingHom Pbar
     have hPbar_ne : Pbar ≠ ⊥ := by
       intro hbot
-      have hle : P ≤ RingHom.ker π := (P.map_eq_bot_iff_le_ker π).1 hbot
+      have hle : q.1 ≤ RingHom.ker π := (q.1.map_eq_bot_iff_le_ker π).1 hbot
       have hker : RingHom.ker π = IA := IA.mk_ker
-      have hP_le_IA : P ≤ IA := hker ▸ hle
+      have hP_le_IA : q.1 ≤ IA := hker ▸ hle
       exact hPIA (le_antisymm hP_le_IA hIA_le_P)
     have hP₀_ne : P₀ ≠ ⊥ := by
       intro hbot
@@ -365,8 +352,8 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
       hasFiniteFreeResolution_of_shortExact_of_left_of_right
         Kbar.subtype (Submodule.mkQ Kbar) Subtype.coe_injective
           (Submodule.mkQ_surjective Kbar) <| LinearMap.exact_subtype_mkQ Kbar
-    let fIP : IA →ₗ[A] P := Submodule.inclusion hIA_le_P
-    let gPP : P →ₗ[A] Pbar :=
+    let fIP : IA →ₗ[A] q.1 := Submodule.inclusion hIA_le_P
+    let gPP : q.1 →ₗ[A] Pbar :=
       { toFun := fun x => ⟨π x.1, Ideal.mem_map_of_mem π x.2⟩
         map_add' := fun _ _ => by congr
         map_smul' := by
@@ -382,7 +369,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
     have hfIP : Function.Injective fIP := by
       intro x y hxy
       apply Subtype.ext
-      simpa [fIP] using congrArg (fun z : P => (z : A)) hxy
+      simpa [fIP] using congrArg (fun z : q.1 => (z : A)) hxy
     have hgPP : Function.Surjective gPP := by
       intro y
       rcases (Ideal.mem_map_iff_of_surjective π Ideal.Quotient.mk_surjective).1 y.2 with
@@ -400,7 +387,7 @@ private theorem hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
       · rintro ⟨y, rfl⟩
         apply Subtype.ext
         simpa [gPP, fIP] using (Ideal.Quotient.eq_zero_iff_mem).2 y.2
-    have : HasFiniteFreeResolution A P :=
+    have : HasFiniteFreeResolution A q.1 :=
       hasFiniteFreeResolution_of_shortExact_of_left_of_right fIP gPP hfIP hgPP hexPP
     infer_instance
 
