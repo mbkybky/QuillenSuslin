@@ -28,12 +28,11 @@ theorem hasFiniteFreeResolutionOfLength_of_hasProjectiveDimensionLE (n : ℕ)
       exact HasFiniteFreeResolutionOfLength.zero M
   | succ n ih =>
       rcases exists_finite_presentation R M with ⟨P, _, _, _, _, f, surjf⟩
-      have : HasProjectiveDimensionLE (ModuleCat.of R (LinearMap.ker f)) n :=
+      have : HasProjectiveDimensionLE (ModuleCat.of R f.ker) n :=
         (LinearMap.shortExact_shortComplexKer surjf).hasProjectiveDimensionLT_X₁ (n + 1)
           inferInstance inferInstance
-      exact hasFiniteFreeResolutionOfLength_of_ker_hasFiniteFreeResolutionOfLength
-        (LinearMap.ker f).subtype f (Submodule.subtype_injective _) surjf
-          (LinearMap.exact_subtype_ker_map f) (ih (LinearMap.ker f))
+      exact HasFiniteFreeResolutionOfLength.succ _ _ _ _  (LinearMap.ker f).subtype f
+        f.ker.subtype_injective surjf (LinearMap.exact_subtype_ker_map f) (ih (LinearMap.ker f))
 
 variable {R M} in
 theorem hasFiniteFreeResolution_of_projectiveDimension_ne_top

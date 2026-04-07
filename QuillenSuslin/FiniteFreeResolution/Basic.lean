@@ -23,50 +23,33 @@ inductive HasFiniteFreeResolutionOfLength (R : Type u) [CommRing R] [Small.{v} R
       HasFiniteFreeResolutionOfLength R P 0
   | succ (P : Type v) [AddCommGroup P] [Module R P] (n : ℕ)
       (F : Type v) [AddCommGroup F] [Module R F] [Module.Finite R F] [Free R F]
-      (K : Type v) [AddCommGroup K] [Module R K]
+      (K : Type v) [AddCommGroup K] [Module R K] [Module.Finite R K]
       (f : K →ₗ[R] F) (g : F →ₗ[R] P) (hf : Function.Injective f) (hg : Function.Surjective g)
       (he : Function.Exact f g) (hk : HasFiniteFreeResolutionOfLength R K n) :
       HasFiniteFreeResolutionOfLength R P (n + 1)
 
-variable {R}
+variable {R} {P : Type v} [AddCommGroup P] [Module R P] {n : ℕ}
 
-theorem module_finite_of_hasFiniteFreeResolutionOfLength {P : Type v} [AddCommGroup P] [Module R P]
-    {n : ℕ} (hP : HasFiniteFreeResolutionOfLength R P n) : Module.Finite R P := by
+theorem module_finite_of_hasFiniteFreeResolutionOfLength
+    (hP : HasFiniteFreeResolutionOfLength R P n) : Module.Finite R P := by
   cases hP with
   | zero => infer_instance
   | succ _ _ _ _ _ g _ hg _ _ => exact Module.Finite.of_surjective g hg
 
-theorem hasFiniteFreeResolutionOfLength_of_ge {P : Type v} [AddCommGroup P] [Module R P] {m n : ℕ}
-    (hP : HasFiniteFreeResolutionOfLength R P m) (h : m ≤ n) :
-    HasFiniteFreeResolutionOfLength R P n := by
-  have hPUnit (n : ℕ) : HasFiniteFreeResolutionOfLength R PUnit n := by
-    induction n with
-    | zero => exact HasFiniteFreeResolutionOfLength.zero PUnit
-    | succ n ih =>
-        refine HasFiniteFreeResolutionOfLength.succ PUnit n PUnit PUnit 0 LinearMap.id ?_ ?_ ?_ ih
-        · intro x y hxy
-          exact Subsingleton.elim _ _
-        · intro y
-          exact ⟨y, rfl⟩
-        · exact (LinearMap.exact_zero_iff_injective PUnit LinearMap.id).2 fun _ _ hxy => hxy
-  induction hP generalizing n with
+theorem hasFiniteFreeResolutionOfLength_succ (hP : HasFiniteFreeResolutionOfLength R P n) :
+    HasFiniteFreeResolutionOfLength R P (n + 1) := by
+  induction hP with
   | zero P =>
-      induction n with
-      | zero => exact HasFiniteFreeResolutionOfLength.zero P
-      | succ n ih =>
-          refine HasFiniteFreeResolutionOfLength.succ P n P PUnit 0 LinearMap.id ?_ ?_ ?_ (hPUnit n)
-          · intro x y hxy
-            exact Subsingleton.elim _ _
-          · intro y
-            exact ⟨y, rfl⟩
-          · exact (LinearMap.exact_zero_iff_injective PUnit LinearMap.id).2 fun _ _ hxy => hxy
-  | succ P m F K f g hf hg he hk ih =>
-      cases n with
-      | zero =>
-          cases Nat.not_succ_le_zero m h
-      | succ n =>
-          refine HasFiniteFreeResolutionOfLength.succ P n F K f g hf hg he ?_
-          exact ih (Nat.le_of_succ_le_succ h)
+      exact HasFiniteFreeResolutionOfLength.succ P 0 P PUnit 0 LinearMap.id
+        (fun x y _ ↦ Subsingleton.elim x y) (fun x ↦ ⟨x, rfl⟩)
+          (Function.Exact.of_comp_of_mem_range rfl (fun _ hy ↦ ⟨0, hy.symm⟩))
+            (HasFiniteFreeResolutionOfLength.zero PUnit)
+  | succ P n F K f g hf hg he _ ih =>
+      exact HasFiniteFreeResolutionOfLength.succ P (n + 1) F K f g hf hg he ih
+
+theorem hasFiniteFreeResolutionOfLength_of_ge {m : ℕ} (hP : HasFiniteFreeResolutionOfLength R P n)
+    (h : n ≤ m) : HasFiniteFreeResolutionOfLength R P m :=
+  Nat.le.rec hP (fun _ ↦ hasFiniteFreeResolutionOfLength_succ) h
 
 section compHom
 
@@ -74,6 +57,8 @@ variable {R S M N : Type*} [CommRing R] [CommRing S] (σ : R →+* S) (σ' : S �
   [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
   [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N]
 
+/- Let `M` be a `R`-module. Viewing `M` as an `S`-module via `σ' : S →+* R`, then the identity map
+gives a semilinear equivalence over `σ: R →+* S`. -/
 variable (M) in
 def compHom.self_equiv : let : Module S M := compHom M σ'; M ≃ₛₗ[σ] M :=
   let : Module S M := compHom M σ'
@@ -83,15 +68,6 @@ def compHom.self_equiv : let : Module S M := compHom M σ'; M ≃ₛₗ[σ] M :=
     right_inv _ := rfl
     map_add' _ _ := rfl
     map_smul' := fun a x => show a • x = (σ' (σ a)) • x by simp }
-
-def compHom.mapLinearMap (f : M →ₗ[R] N) :
-  let : Module S M := compHom M σ'
-  let : Module S N := compHom N σ'
-  M →ₗ[S] N :=
-  let : Module S M := compHom M σ'
-  let : Module S N := compHom N σ'
-  { __ := f
-    map_smul' := fun a x => f.map_smul (σ' a) x }
 
 end compHom
 
@@ -120,7 +96,6 @@ theorem hasFiniteFreeResolutionOfLength_of_semilinearEquiv {S : Type u'} [CommRi
       have eF := compHom.self_equiv F σ σ'
       have eK := compHom.self_equiv K σ σ'
       have : Free S F := Free.of_equiv eF
-      have : Module.Finite R K := module_finite_of_hasFiniteFreeResolutionOfLength hk
       have : Module.Finite S F := Module.Finite.of_surjective eF.toLinearMap eF.surjective
       have : Module.Finite S K := Module.Finite.of_surjective eK.toLinearMap eK.surjective
       have : Small.{v'} F := Module.Finite.small S F
@@ -142,22 +117,22 @@ theorem hasFiniteFreeResolutionOfLength_of_linearEquiv {P : Type v} {Q : Type w}
     (hn : HasFiniteFreeResolutionOfLength R P n) : HasFiniteFreeResolutionOfLength R Q n :=
   hasFiniteFreeResolutionOfLength_of_semilinearEquiv hn e
 
-theorem hasFiniteFreeResolutionOfLength_of_ker_hasFiniteFreeResolutionOfLength
+theorem HasFiniteFreeResolutionOfLength.succ'
     {P : Type v} {F : Type*} {K : Type w} [AddCommGroup P] [Module R P] [AddCommGroup F]
     [Module R F] [Module.Finite R F] [Free R F] [AddCommGroup K] [Module R K]
-    (i : K →ₗ[R] F) (s : F →ₗ[R] P) (hi : Function.Injective i)
-    (hs : Function.Surjective s) (he : Function.Exact i s) {n : ℕ}
+    (f : K →ₗ[R] F) (g : F →ₗ[R] P) (hf : Function.Injective f)
+    (hg : Function.Surjective g) (he : Function.Exact f g) {n : ℕ}
     (hk : HasFiniteFreeResolutionOfLength R K n) : HasFiniteFreeResolutionOfLength R P (n + 1) := by
   have : Module.Finite R K := module_finite_of_hasFiniteFreeResolutionOfLength hk
   have : Small.{v} F := Module.Finite.small.{v} R F
   have : Small.{v} K := Module.Finite.small.{v} R K
   have eF : Shrink.{v} F ≃ₗ[R] F := Shrink.linearEquiv R F
   have eK : Shrink.{v} K ≃ₗ[R] K := Shrink.linearEquiv R K
-  let i' : Shrink.{v} K →ₗ[R] Shrink.{v} F := eF.symm ∘ₗ (i.comp eK.toLinearMap)
-  refine HasFiniteFreeResolutionOfLength.succ P n (Shrink.{v} F) (Shrink.{v} K) i'
-    (s.comp eF.toLinearMap) (eF.symm.injective.comp (hi.comp eK.injective))
-      (hs.comp eF.surjective) ?_ (hasFiniteFreeResolutionOfLength_of_linearEquiv eK.symm hk)
-  exact (LinearEquiv.conj_exact_iff_exact (i.comp eK.toLinearMap) s eF.symm).2 <|
+  let f' : Shrink.{v} K →ₗ[R] Shrink.{v} F := eF.symm ∘ₗ (f.comp eK.toLinearMap)
+  refine HasFiniteFreeResolutionOfLength.succ P n (Shrink.{v} F) (Shrink.{v} K) f'
+    (g.comp eF.toLinearMap) (eF.symm.injective.comp (hf.comp eK.injective))
+      (hg.comp eF.surjective) ?_ (hasFiniteFreeResolutionOfLength_of_linearEquiv eK.symm hk)
+  exact (LinearEquiv.conj_symm_exact_iff_exact (f.comp eK.toLinearMap) g eF).2 <|
     (Function.Surjective.comp_exact_iff_exact eK.surjective).2 he
 
 end HasFiniteFreeResolutionOfLength
@@ -199,11 +174,11 @@ theorem hasFiniteFreeResolution_of_linearEquiv {P : Type v} {Q : Type w}
 
 theorem hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution {P : Type v} {F : Type*} {K : Type w}
     [AddCommGroup P] [Module R P] [AddCommGroup F] [Module R F] [Module.Finite R F]
-    [Free R F] [AddCommGroup K] [Module R K] (i : K →ₗ[R] F) (s : F →ₗ[R] P)
-    (hi : Function.Injective i) (hs : Function.Surjective s) (he : Function.Exact i s)
+    [Free R F] [AddCommGroup K] [Module R K] (f : K →ₗ[R] F) (g : F →ₗ[R] P)
+    (hf : Function.Injective f) (hg : Function.Surjective g) (he : Function.Exact f g)
     [HasFiniteFreeResolution R K] : HasFiniteFreeResolution R P :=
   let ⟨n, hk⟩ := HasFiniteFreeResolution.out R K
-  ⟨n + 1, hasFiniteFreeResolutionOfLength_of_ker_hasFiniteFreeResolutionOfLength i s hi hs he hk⟩
+  ⟨n + 1, HasFiniteFreeResolutionOfLength.succ' f g hf hg he hk⟩
 
 end HasFiniteFreeResolution
 

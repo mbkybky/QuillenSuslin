@@ -20,13 +20,12 @@ theorem Ideal.isPrincipal_of_free [IsDomain R] {I : Ideal R} [Module.Free R I] :
   (Submodule.rank_le_one_iff_isPrincipal I).1 ((Submodule.rank_le I).trans_eq (Module.rank_self R))
 
 variable (R) in
-lemma IsLocalRing.exists_mem_maximalIdeal_not_mem_sq [IsLocalRing R] [IsNoetherianRing R]
-    [NeZero (ringKrullDim R)] : ∃ x ∈ maximalIdeal R, x ∉ (maximalIdeal R) ^ 2 := by
-  by_contra! h
-  refine NeZero.ne (ringKrullDim R) <| ringKrullDim_eq_zero_of_isField <|
-    subsingleton_cotangentSpace_iff.mp (subsingleton_of_forall_eq 0 ?_)
-  rintro ⟨x⟩
-  exact (Ideal.toCotangent_eq_zero (maximalIdeal R) x).mpr (h x.1 x.2)
+lemma IsLocalRing.maximalIdeal_sq_lt_maximalIdeal [IsLocalRing R] [IsNoetherianRing R] :
+    maximalIdeal R ^ 2 < maximalIdeal R ↔ ¬ IsField R := by
+  trans ¬ IsIdempotentElem (maximalIdeal R)
+  · simp [IsIdempotentElem, ← pow_two, lt_iff_le_and_ne, Ideal.pow_le_self]
+  · simp [Ideal.isIdempotentElem_iff_eq_bot_or_top_of_isLocalRing, Ideal.IsPrime.ne_top,
+      isField_iff_maximalIdeal_eq]
 
 lemma ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal [IsLocalRing R]
     {P : Ideal R} [P.IsPrime] [P.FiniteHeight] (hP_lt_max : P < IsLocalRing.maximalIdeal R) :
@@ -103,14 +102,16 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
       ringKrullDim S = n → UniqueFactorizationMonoid S := by
     induction n using Nat.strong_induction_on with
     | _ n ih =>
-      intro S _ _ hdim
+      intro S _ _ h
       cases n with
       | zero =>
-          have := (isField_of_isRegularLocalRing_of_dimension_zero hdim).isPrincipalIdealRing
+          have := (isField_of_isRegularLocalRing_of_dimension_zero h).isPrincipalIdealRing
           infer_instance
       | succ n =>
-          have : NeZero (ringKrullDim S) := ⟨by simpa [hdim] using not_eq_of_beq_eq_false rfl⟩
-          obtain ⟨x, hxm, hxnm⟩ := IsLocalRing.exists_mem_maximalIdeal_not_mem_sq S
+          obtain ⟨x, hxm, hxnm⟩ := by
+            apply Set.exists_of_ssubset ((IsLocalRing.maximalIdeal_sq_lt_maximalIdeal S).mpr ?_)
+            contrapose h
+            simpa only [ringKrullDim_eq_zero_of_isField h] using not_eq_of_beq_eq_false rfl
           have hx_ne_zero : x ≠ 0 := fun hx0 ↦ hxnm (by simp [hx0])
           have : IsRegularLocalRing (S ⧸ Ideal.span {x}) := (quotient_span_singleton S hxm hxnm).1
           have hxp : Prime x := (Ideal.span_singleton_prime hx_ne_zero).1 <|
@@ -120,7 +121,7 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
             have : IsRegularLocalRing _ := isRegularLocalRing_localization S P
             obtain ⟨k, hk⟩ := exist_nat_eq (Localization.AtPrime P)
             exact ih k (ENat.coe_lt_coe.mp <| WithBot.coe_lt_coe.mp <| hk.symm.trans_lt <|
-              (ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal hP_lt_max).trans_eq hdim) hk
+              (ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal hP_lt_max).trans_eq h) hk
           have := ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd hxm hxp hP
           exact ufd_of_ufd_localization_away_of_prime hxp
   obtain ⟨n, hn⟩ := exist_nat_eq R

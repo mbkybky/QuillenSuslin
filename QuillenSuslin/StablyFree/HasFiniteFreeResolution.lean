@@ -31,7 +31,6 @@ theorem isStablyFree_of_projective_of_hasFiniteFreeResolutionLength  {P : Type v
       have : Module.Free R (P × (K × N)) := Module.Free.of_equiv <|
         (LinearEquiv.prodComm R K P).prodCongr (LinearEquiv.refl R N) ≪≫ₗ
           LinearEquiv.prodAssoc R P K N
-      have : Module.Finite R K := module_finite_of_hasFiniteFreeResolutionOfLength hk
       exact Module.IsStablyFree.of_free_prod R P (K × N)
 
 variable (R)

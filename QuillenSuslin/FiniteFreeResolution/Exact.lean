@@ -14,7 +14,7 @@ variable {R : Type u} [CommRing R] [Small.{α} R] [Small.{β} R] [Small.{γ} R]
   {P₁ : Type α} {P₂ : Type β} {P₃ : Type γ} [AddCommGroup P₁] [Module R P₁]
   [AddCommGroup P₂] [Module R P₂] [AddCommGroup P₃] [Module R P₃]
   {F : Type γ} [AddCommGroup F] [Module R F] {K : Type γ} [AddCommGroup K] [Module R K]
-  (f : P₁ →ₗ[R] P₂) (g : P₂ →ₗ[R] P₃) (f₃ : K →ₗ[R] F) (g₃ : F →ₗ[R] P₃)
+  (f : P₁ →ₗ[R] P₂) (g : P₂ →ₗ[R] P₃)
 
 section Function.Exact
 
@@ -203,7 +203,7 @@ theorem hasFiniteFreeResolution_of_shortExact_of_middle_of_right
       have hβ₁ : Function.Surjective β₁ := by
         intro y
         rcases hg₃ (g y) with ⟨z, hz⟩
-        refine ⟨⟨(y, z), by simp [Q, s, hz]⟩, by simp [β₁]⟩
+        exact ⟨⟨(y, z), by simp [Q, s, hz]⟩, by simp [β₁]⟩
       have hExact₁ : Function.Exact α₁ β₁ := by
         refine LinearMap.exact_of_comp_eq_zero_of_ker_le_range ?_ ?_
         · exact LinearMap.ext fun x ↦ by simp [α₁, β₁, i₁]
@@ -213,8 +213,6 @@ theorem hasFiniteFreeResolution_of_shortExact_of_middle_of_right
             simpa [hy₁] using show g y.1.1 + (-g₃) y.1.2 = 0 from y.2
           rcases (he₃ y.1.2).1 hy₂ with ⟨x, hx⟩
           exact ⟨x, by ext <;> simp [α₁, i₁, hy₁, hx]⟩
-      have : Module.Finite R K₃ := module_finite_of_hasFiniteFreeResolutionOfLength hk₃
-      have : Module.Finite R Q := Module.Finite.of_exact hExact₁ hβ₁
       have : Small.{max β γ, u} R := small_lift R
       let i₂ : P₁ →ₗ[R] P₂ × F₃ := (LinearMap.inl R P₂ F₃).comp f
       let α₂ : P₁ →ₗ[R] Q := LinearMap.codRestrict Q i₂ <| fun x ↦ by
