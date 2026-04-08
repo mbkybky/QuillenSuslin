@@ -18,7 +18,7 @@ namespace Module
 variable (R : Type u) [CommRing R] [IsLocalRing R] [IsNoetherianRing R] [Small.{v} R]
   (M : Type v) [AddCommGroup M] [Module R M] [Module.Finite R M]
 
-theorem hasFiniteFreeResolutionOfLength_of_hasProjectiveDimensionLE (n : ℕ)
+theorem HasFiniteFreeResolutionOfLength.of_hasProjectiveDimensionLE (n : ℕ)
     [HasProjectiveDimensionLE (ModuleCat.of R M) n] : HasFiniteFreeResolutionOfLength R M n := by
   induction n generalizing M with
   | zero =>
@@ -27,17 +27,17 @@ theorem hasFiniteFreeResolutionOfLength_of_hasProjectiveDimensionLE (n : ℕ)
       have : Free R M := free_of_flat_of_isLocalRing
       exact HasFiniteFreeResolutionOfLength.zero M
   | succ n ih =>
-      rcases exists_finite_presentation R M with ⟨P, _, _, _, _, f, surjf⟩
+      rcases exists_finite_presentation R M with ⟨P, _, _, _, _, f, hfs⟩
       have : HasProjectiveDimensionLE (ModuleCat.of R f.ker) n :=
-        (LinearMap.shortExact_shortComplexKer surjf).hasProjectiveDimensionLT_X₁ (n + 1)
+        (LinearMap.shortExact_shortComplexKer hfs).hasProjectiveDimensionLT_X₁ (n + 1)
           inferInstance inferInstance
-      exact HasFiniteFreeResolutionOfLength.succ _ _ _ _  (LinearMap.ker f).subtype f
-        f.ker.subtype_injective surjf (LinearMap.exact_subtype_ker_map f) (ih (LinearMap.ker f))
+      exact (ih (LinearMap.ker f)).succ' (LinearMap.ker f).subtype f f.ker.subtype_injective hfs
+        (LinearMap.exact_subtype_ker_map f)
 
 variable {R M} in
-theorem hasFiniteFreeResolution_of_projectiveDimension_ne_top
+theorem HasFiniteFreeResolution.of_projectiveDimension_ne_top
     (h : projectiveDimension (ModuleCat.of R M) ≠ ⊤) : HasFiniteFreeResolution R M :=
   let ⟨n, _⟩ := (CategoryTheory.projectiveDimension_ne_top_iff (ModuleCat.of R M)).1 h
-  ⟨n, hasFiniteFreeResolutionOfLength_of_hasProjectiveDimensionLE R M n⟩
+  ⟨n, HasFiniteFreeResolutionOfLength.of_hasProjectiveDimensionLE R M n⟩
 
 end Module

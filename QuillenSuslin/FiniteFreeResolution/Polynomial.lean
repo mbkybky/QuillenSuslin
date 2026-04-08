@@ -29,11 +29,11 @@ private theorem mem_ideal_of_smul_eq_zero_of_equiv_quotient
   have hmk : (Ideal.Quotient.mk I a : A ⧸ I) = 0 := by simpa [Algebra.smul_def] using h0
   exact (Ideal.Quotient.eq_zero_iff_mem).1 hmk
 
-instance Module.hasFiniteFreeResolution_of_quotient_of_submodule
+instance Module.HasFiniteFreeResolution.of_quotient_of_submodule
     {A : Type u} [CommRing A] [Small.{u} A] {M : Type u} [AddCommGroup M] [Module A M]
     (K : Submodule A M) [HasFiniteFreeResolution A K] [HasFiniteFreeResolution A M] :
     HasFiniteFreeResolution A (M ⧸ K) :=
-  hasFiniteFreeResolution_of_shortExact_of_left_of_middle K.subtype (Submodule.mkQ K)
+  of_shortExact_of_left_of_middle K.subtype (Submodule.mkQ K)
     Subtype.coe_injective (Submodule.mkQ_surjective K) (LinearMap.exact_subtype_mkQ K)
 
 private def compatSemilinearEquiv {A : Type*} {B : Type*} [CommRing A] [CommRing B] (e : A ≃+* B)
@@ -69,17 +69,16 @@ private noncomputable def polynomialModuleIdealMapCLinearEquiv (I : Ideal R) :
     (LinearEquiv.ofInjective φ hφi).trans <| LinearEquiv.ofEq _ _ <| by
       simp [hφ_eq, LinearMap.range_comp, Ideal.map]
 
-instance Module.hasFiniteFreeResolution_polynomialModule
+instance Module.HasFiniteFreeResolution.polynomialModule
     {P : Type u} [AddCommGroup P] [Module R P] [HasFiniteFreeResolution R P] :
     HasFiniteFreeResolution R[X] (PolynomialModule R P) :=
-  hasFiniteFreeResolution_of_linearEquiv
-    (PolynomialModule.polynomialTensorProductLEquivPolynomialModule R P)
+  of_linearEquiv (PolynomialModule.polynomialTensorProductLEquivPolynomialModule R P)
 
 /-- Push a finite free resolution of an `R`-ideal `I` to a resolution of `I · R[X]`. -/
-instance Module.hasFiniteFreeResolution_map_C_of_hasFiniteFreeResolution
+instance Module.HasFiniteFreeResolution.map_C_of_hasFiniteFreeResolution
     (I : Ideal R) [HasFiniteFreeResolution R I] :
     HasFiniteFreeResolution R[X] (Ideal.map (C : R →+* R[X]) I) :=
-  hasFiniteFreeResolution_of_linearEquiv (polynomialModuleIdealMapCLinearEquiv I)
+  of_linearEquiv (polynomialModuleIdealMapCLinearEquiv I)
 
 /-- Over a domain, the principal ideal `(f)` is linearly equivalent to the ambient ring. -/
 noncomputable def linearEquiv_mul_spanSingleton [IsDomain R] {f : R}
@@ -197,7 +196,7 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] {P : Ideal (R[X])}
       have hmul : C (d * d) * (a * x) = a * (C (d * d) * x) := by group
       exact hmul ▸ hy) hgspan
 
-private theorem Module.hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianRing R]
+private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianRing R]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P) : ∀ I : Ideal R, ∀ q : PrimeSpectrum R[X],
     Ideal.comap (C : R →+* R[X]) q.1 = I → HasFiniteFreeResolution (R[X]) (R[X] ⧸ q.1) := by
@@ -212,7 +211,7 @@ private theorem Module.hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianR
   let B : Type u := A ⧸ IA
   have hI_res : HasFiniteFreeResolution R I := hR I inferInstance
   by_cases hPIA : q.1 = IA
-  · exact hasFiniteFreeResolution_of_linearEquiv (Submodule.quotEquivOfEq IA q.1 hPIA.symm)
+  · exact of_linearEquiv (Submodule.quotEquivOfEq IA q.1 hPIA.symm)
   · have hIprime : Ideal.IsPrime I := by
       simpa [hcomap] using show (Ideal.comap (C : R →+* A) q.1).IsPrime from inferInstance
     let R₀ : Type u := R ⧸ I
@@ -315,7 +314,7 @@ private theorem Module.hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianR
             exact hd_not_mem this
           have hquot : HasFiniteFreeResolution A (A ⧸ p'.1) :=
             ih (Ideal.comap (C : R →+* A) p'.1) hlt p' rfl
-          exact hasFiniteFreeResolution_of_linearEquiv eM.symm
+          exact of_linearEquiv eM.symm
         · intro M₁ _ _ _ M₂ _ _ _ M₃ _ _ _ f g hf hg hfg h₁ h₃ hAnn_d2 hAnn_I2
           have hAnn_d1 : ∀ x : M₁, (C d : A) • x = 0 := by
             intro x
@@ -337,21 +336,19 @@ private theorem Module.hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianR
             simpa only [map_smul, map_zero] using congrArg g (hAnn_I2 r hrI y)
           have : HasFiniteFreeResolution A M₁ := h₁ hAnn_d1 hAnn_I1
           have : HasFiniteFreeResolution A M₃ := h₃ hAnn_d3 hAnn_I3
-          exact hasFiniteFreeResolution_of_shortExact_of_left_of_right f g hf hg hfg
+          exact of_shortExact_of_left_of_right f g hf hg hfg
       exact hN' (smul_zero_of_smul_mem Kbar hsmul_d_mem_Kbar) <|
         fun r hrI => smul_zero_of_smul_mem Kbar (hsmul_I_mem_Kbar r hrI)
     have : IsDomain B := MulEquiv.isDomain A₀ e.symm.toMulEquiv
     have hFbar : HasFiniteFreeResolution A (Submodule.restrictScalars A Fbar) :=
-      hasFiniteFreeResolution_of_linearEquiv
-        ((linearEquiv_mul_spanSingleton hfbar_ne).restrictScalars A)
+      of_linearEquiv ((linearEquiv_mul_spanSingleton hfbar_ne).restrictScalars A)
     have hKbar : HasFiniteFreeResolution A Kbar :=
       have hFbar_leA : Fbar.restrictScalars A ≤ Pbar.restrictScalars A := hFbar_le
-      hasFiniteFreeResolution_of_linearEquiv (Submodule.comapSubtypeEquivOfLe hFbar_leA).symm
+      of_linearEquiv (Submodule.comapSubtypeEquivOfLe hFbar_leA).symm
     have hPbar : HasFiniteFreeResolution A Pbar :=
       -- Short exact sequence `0 → Kbar → Pbar → Pbar/Fbar → 0`.
-      hasFiniteFreeResolution_of_shortExact_of_left_of_right
-        Kbar.subtype (Submodule.mkQ Kbar) Subtype.coe_injective
-          (Submodule.mkQ_surjective Kbar) <| LinearMap.exact_subtype_mkQ Kbar
+      of_shortExact_of_left_of_right Kbar.subtype (Submodule.mkQ Kbar) Subtype.coe_injective
+        (Submodule.mkQ_surjective Kbar) <| LinearMap.exact_subtype_mkQ Kbar
     let fIP : IA →ₗ[A] q.1 := Submodule.inclusion hIA_le_P
     let gPP : q.1 →ₗ[A] Pbar :=
       { toFun := fun x => ⟨π x.1, Ideal.mem_map_of_mem π x.2⟩
@@ -387,38 +384,35 @@ private theorem Module.hasFiniteFreeResolution_quotient_prime_aux [IsNoetherianR
       · rintro ⟨y, rfl⟩
         apply Subtype.ext
         simpa [gPP, fIP] using (Ideal.Quotient.eq_zero_iff_mem).2 y.2
-    have : HasFiniteFreeResolution A q.1 :=
-      hasFiniteFreeResolution_of_shortExact_of_left_of_right fIP gPP hfIP hgPP hexPP
+    have : HasFiniteFreeResolution A q.1 := of_shortExact_of_left_of_right fIP gPP hfIP hgPP hexPP
     infer_instance
 
 variable (R)
 
-theorem Module.hasFiniteFreeResolution_quotient_prime [IsNoetherianRing R]
+theorem Module.HasFiniteFreeResolution.quotient_prime [IsNoetherianRing R]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P)
     (p : PrimeSpectrum (R[X])) : HasFiniteFreeResolution (R[X]) (R[X] ⧸ p.1) :=
-  hasFiniteFreeResolution_quotient_prime_aux hR (Ideal.comap (C : R →+* R[X]) p.1) p rfl
+  quotient_prime_aux hR (Ideal.comap (C : R →+* R[X]) p.1) p rfl
 
 /-- Let `R` be a noetherian ring such that every finitely generated `R`-module admits a finite
 free resolution. Then the same property holds for finitely generated `R[X]`-modules. -/
-theorem Module.polynomial_hasFiniteFreeResolution_of_isNoetherianRing [IsNoetherianRing R]
+theorem Module.HasFiniteFreeResolution.polynomial_of_isNoetherianRing [IsNoetherianRing R]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P)
     (P : Type v) [AddCommGroup P] [Module R[X] P] [Module.Finite R[X] P] [Small.{v} R[X]] :
-    HasFiniteFreeResolution R[X] P := by
-  refine IsNoetherianRing.induction_on_isQuotientEquivQuotientPrime R[X]
+    HasFiniteFreeResolution R[X] P :=
+  IsNoetherianRing.induction_on_isQuotientEquivQuotientPrime R[X]
     inferInstance (motive := fun N _ _ _ => HasFiniteFreeResolution R[X] N)
-      (fun N _ _ _ _ => inferInstance)
-      (fun _ _ _ _ p e => haveI := hasFiniteFreeResolution_quotient_prime R hR p
-        hasFiniteFreeResolution_of_linearEquiv e.symm)
-      (fun N₁ _ _ _ N₂ _ _ _ N₃ _ _ _ f g hf hg hfg h₁ h₃ =>
-        hasFiniteFreeResolution_of_shortExact_of_left_of_right f g hf hg hfg)
+      (fun _ _ _ _ _ => inferInstance)
+      (fun _ _ _ _ p e => have := quotient_prime R hR p; of_linearEquiv e.symm)
+      (fun _ _ _ _ _ _ _ _ _ _ _ _ f g hf hg he _ _ => of_shortExact_of_left_of_right f g hf hg he)
 
 end polynomial
 
 section MvPolynomial
 
-theorem Module.mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing
+theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
     [IsNoetherianRing R] [Small.{v, u} R] (σ : Type w) [Finite σ]
     (hR : ∀ (P : Type u), [AddCommGroup P] → [Module R P] → Module.Finite R P →
       HasFiniteFreeResolution R P)
@@ -438,10 +432,8 @@ theorem Module.mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing
       have : RingHomInvPair (eσ.symm : MvPolynomial β R →+* MvPolynomial α R)
         (eσ : MvPolynomial α R →+* MvPolynomial β R) := RingHomInvPair.of_ringEquiv_symm eσ
       let eM := compatSemilinearEquiv eσ (fun _ (_ : M) => rfl)
-      have : Module.Finite (MvPolynomial α R) M := (LinearMap.finite_iff_of_bijective
-        (eM : M →ₛₗ[(eσ : MvPolynomial α R →+* MvPolynomial β R)] M) eM.bijective).2
-          inferInstance
-      exact hasFiniteFreeResolution_of_semilinearEquiv (MvPolynomial α R) (MvPolynomial β R) M M eM
+      have : Module.Finite (MvPolynomial α R) M := Module.Finite.of_surjective _ eM.symm.surjective
+      exact of_semilinearEquiv (MvPolynomial α R) (MvPolynomial β R) M M eM
     · intro M _ _ _
       let eσ : R ≃+* MvPolynomial PEmpty R := (MvPolynomial.isEmptyAlgEquiv.{u, w} R PEmpty).symm
       let : Module R M := Module.compHom M (eσ : R →+* MvPolynomial PEmpty R)
@@ -450,29 +442,27 @@ theorem Module.mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing
       have : RingHomInvPair (eσ.symm : MvPolynomial PEmpty R →+* R)
         (eσ : R →+* MvPolynomial PEmpty R) := RingHomInvPair.of_ringEquiv_symm eσ
       let eM := compatSemilinearEquiv eσ (fun _ (_ : M) => rfl)
-      have : Module.Finite R M := (LinearMap.finite_iff_of_bijective
-        (eM : M →ₛₗ[(eσ : R →+* MvPolynomial PEmpty R)] M) eM.bijective).2 inferInstance
+      have : Module.Finite R M := Module.Finite.of_surjective _ eM.symm.surjective
       have : Small.{u} M := Module.Finite.small.{u} R M
       have : HasFiniteFreeResolution R (Shrink.{u} M) := hR (Shrink.{u} M) inferInstance
-      have := hasFiniteFreeResolution_of_linearEquiv (Shrink.linearEquiv R M)
-      exact hasFiniteFreeResolution_of_semilinearEquiv R (MvPolynomial PEmpty R) M M eM
+      have : HasFiniteFreeResolution R M := of_linearEquiv (Shrink.linearEquiv R M)
+      exact of_semilinearEquiv R (MvPolynomial PEmpty R) M M eM
     · intro α _ hα M _ _ _
       let A := Polynomial (MvPolynomial α R)
       let B := MvPolynomial (Option α) R
       let eσ : A ≃+* B := (MvPolynomial.optionEquivLeft R α).symm.toRingEquiv
       let : Module A M := Module.compHom M (eσ : A →+* B)
       have : RingHomInvPair (eσ : A →+* B) (eσ.symm : B →+* A) := RingHomInvPair.of_ringEquiv eσ
-      have : RingHomInvPair (eσ.symm : B →+* A) (eσ : A →+* B) := RingHomInvPair.of_ringEquiv_symm eσ
+      have : RingHomInvPair eσ.symm (eσ : A →+* B) := RingHomInvPair.of_ringEquiv_symm eσ
       let eM := compatSemilinearEquiv eσ (fun _ (_ : M) => rfl)
-      have : Module.Finite A M := (LinearMap.finite_iff_of_bijective
-        (eM : M →ₛₗ[(eσ : A →+* B)] M) eM.bijective).2 inferInstance
-      have : HasFiniteFreeResolution A M := polynomial_hasFiniteFreeResolution_of_isNoetherianRing
+      have : Module.Finite A M := Module.Finite.of_surjective _ eM.symm.surjective
+      have : HasFiniteFreeResolution A M := polynomial_of_isNoetherianRing
         (MvPolynomial α R) (fun N _ _ hN => hα N) M
-      exact hasFiniteFreeResolution_of_semilinearEquiv A B M M eM
+      exact of_semilinearEquiv A B M M eM
   have : Small.{max u w, v} P := Module.Finite.small (MvPolynomial σ R) P
   let eP : Shrink.{max u w} P ≃ₗ[MvPolynomial σ R] P := Shrink.linearEquiv (MvPolynomial σ R) P
   have : Module.Finite (MvPolynomial σ R) (Shrink.{max u w} P) := Module.Finite.equiv eP.symm
   have : HasFiniteFreeResolution (MvPolynomial σ R) (Shrink.{max u w} P) := hm (Shrink.{max u w} P)
-  exact hasFiniteFreeResolution_of_linearEquiv eP
+  exact of_linearEquiv eP
 
 end MvPolynomial

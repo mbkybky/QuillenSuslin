@@ -252,12 +252,12 @@ theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrinci
   have e : (ULift.{max u v} P) ≃ₗ[MvPolynomial σ R] P := ULift.moduleEquiv
   have : Projective (MvPolynomial σ R) (ULift P) := Projective.of_equiv' e.symm
   have : HasFiniteFreeResolution (MvPolynomial σ R) (ULift.{max u v, u_1} P):= by
-    refine mvPolynomial_hasFiniteFreeResolution_of_isNoetherianRing σ (fun Q _ _ hQ ↦ ?_) (ULift P)
+    refine HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing σ (fun Q _ _ hQ ↦ ?_) (ULift P)
     rcases Module.Finite.exists_fin' R Q with ⟨n, f, hf⟩
     obtain ⟨m, bK⟩ := Submodule.basisOfPid (Pi.basisFun R (Fin n)) (LinearMap.ker f)
     have : Free R (LinearMap.ker f) := Free.of_basis bK
     have : Module.Finite R (LinearMap.ker f) := Module.Finite.of_basis bK
-    exact hasFiniteFreeResolution_of_ker_hasFiniteFreeResolution (LinearMap.ker f).subtype f
+    exact HasFiniteFreeResolution.of_ker_hasFiniteFreeResolution (LinearMap.ker f).subtype f
       Subtype.val_injective hf (LinearMap.exact_subtype_ker_map f)
   exact IsStablyFree.equiv e
 

@@ -28,10 +28,10 @@ lemma IsLocalRing.maximalIdeal_sq_lt_maximalIdeal [IsLocalRing R] [IsNoetherianR
       isField_iff_maximalIdeal_eq]
 
 lemma ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal [IsLocalRing R]
-    {P : Ideal R} [P.IsPrime] [P.FiniteHeight] (hP_lt_max : P < IsLocalRing.maximalIdeal R) :
+    {P : Ideal R} [P.IsPrime] [P.FiniteHeight] (hP : P < IsLocalRing.maximalIdeal R) :
     ringKrullDim (Localization.AtPrime P) < ringKrullDim R := by
   rw [IsLocalization.AtPrime.ringKrullDim_eq_height P _]
-  exact lt_of_lt_of_eq (by exact_mod_cast Ideal.height_strict_mono_of_is_prime hP_lt_max)
+  exact lt_of_lt_of_eq (by exact_mod_cast Ideal.height_strict_mono_of_is_prime hP)
     IsLocalRing.maximalIdeal_height_eq_ringKrullDim
 
 private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [IsRegularLocalRing R]
@@ -83,15 +83,15 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
       Free.of_equiv (hloc P).symm
     exact Projective.of_free
   let q : Ideal R := Ideal.comap (algebraMap R (Localization.Away x)) Q
-  have : HasFiniteFreeResolution R (R ⧸ q) := hasFiniteFreeResolution_of_projectiveDimension_ne_top
+  have : HasFiniteFreeResolution R (R ⧸ q) := HasFiniteFreeResolution.of_projectiveDimension_ne_top
       (projectiveDimension_ne_top_of_isRegularLocalRing (ModuleCat.of R (R ⧸ q)))
-  have := hasFiniteFreeResolution_of_linearEquiv <| (localizedQuotientEquiv M q).symm.trans
+  have := HasFiniteFreeResolution.of_linearEquiv <| (localizedQuotientEquiv M q).symm.trans
       (Submodule.quotEquivOfEq _ _ (Ideal.localized'_eq_map (Localization.Away x) M q))
   have : HasFiniteFreeResolution (Localization.Away x) (Localization.Away x ⧸ Q) :=
-    hasFiniteFreeResolution_of_linearEquiv <| AlgEquiv.toLinearEquiv <|
+    HasFiniteFreeResolution.of_linearEquiv <| AlgEquiv.toLinearEquiv <|
       Ideal.quotientEquivAlgOfEq (Localization.Away x) (IsLocalization.map_comap M _ Q)
   have : Free (Localization.Away x) Q :=
-    have := hasFiniteFreeResolution_of_shortExact_of_middle_of_right _ _
+    have := HasFiniteFreeResolution.of_shortExact_of_middle_of_right _ _
       (Submodule.subtype_injective Q) (Submodule.mkQ_surjective Q) (LinearMap.exact_subtype_mkQ Q)
     free_of_isStablyFree_of_localized_eq_ring hloc
   exact Q.isPrincipal_of_free
