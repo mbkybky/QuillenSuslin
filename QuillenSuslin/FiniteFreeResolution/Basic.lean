@@ -9,13 +9,11 @@ universe u u' v v' w
 
 namespace Module
 
-variable (R : Type u) [CommRing R] [Small.{v} R]
+variable (R : Type u) [Ring R] [Small.{v} R]
 
-/-- `HasFiniteFreeResolutionOfLength R P n` means `P` admits a free resolution of length `n`
-by finitely generated free modules. We use the convention that length `0` means `P` itself is
-finitely generated and free, and the successor step is given by a surjection from a finitely
-generated free module with kernel admitting a shorter resolution. -/
-inductive HasFiniteFreeResolutionOfLength (R : Type u) [CommRing R] [Small.{v} R] :
+/-- An `R`-module `P` has a finite free resolution of length `n` if there exists an exact sequence
+`0 ⟶ Fₙ ⟶ ⋯ ⟶ F₀ ⟶ P ⟶ 0`, where `Fᵢ` are finitely free `R`-modules. -/
+inductive HasFiniteFreeResolutionOfLength (R : Type u) [Ring R] [Small.{v} R] :
     ∀ (P : Type v), [AddCommGroup P] → [Module R P] → ℕ → Prop
   | zero (P : Type v) [AddCommGroup P] [Module R P] [Module.Finite R P] [Free R P] :
       HasFiniteFreeResolutionOfLength R P 0
@@ -50,13 +48,13 @@ theorem of_ge {m : ℕ} (hP : HasFiniteFreeResolutionOfLength R P n) (h : n ≤ 
 
 section compHom
 
-variable {R S M N : Type*} [CommRing R] [CommRing S] (σ : R →+* S) (σ' : S →+* R)
+variable {R S M N : Type*} [Semiring R] [Semiring S] (σ : R →+* S) (σ' : S →+* R)
   [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
-  [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N]
+  [AddCommMonoid M] [Module R M] [AddCommMonoid N] [Module R N]
 
-/- Let `M` be a `R`-module. Viewing `M` as an `S`-module via `σ' : S →+* R`, then the identity map
-gives a semilinear equivalence over `σ: R →+* S`. -/
 variable (M) in
+/-- Let `M` be a `R`-module. Viewing `M` as an `S`-module via `σ' : S →+* R`, then the identity map
+gives a semilinear equivalence over `σ: R →+* S`. -/
 def _root_.Module.compHom.self_equiv : let : Module S M := compHom M σ'
     M ≃ₛₗ[σ] M :=
   let : Module S M := compHom M σ'
@@ -67,7 +65,7 @@ end compHom
 
 /-- A semilinear equivalence over mutually inverse ring homomorphisms preserves finite free
 resolutions. -/
-theorem of_semilinearEquiv {S : Type u'} [CommRing S] [Small.{v'} S]
+theorem of_semilinearEquiv {S : Type u'} [Ring S] [Small.{v'} S]
     {σ : R →+* S} {σ' : S →+* R} [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
     {P : Type v} [AddCommGroup P] [Module R P] {n : ℕ} (hn : HasFiniteFreeResolutionOfLength R P n)
     {Q : Type v'} [AddCommGroup Q] [Module S Q] (e : P ≃ₛₗ[σ] Q) :
@@ -124,7 +122,7 @@ end HasFiniteFreeResolutionOfLength
 
 /-- A module `P` over a commutative ring `R` has a finite free resolution if it has a resolution
 of some finite length by finitely generated free `R`-modules. -/
-class HasFiniteFreeResolution (R : Type u) [CommRing R] [Small.{v} R]
+class HasFiniteFreeResolution (R : Type u) [Ring R] [Small.{v} R]
     (P : Type v) [AddCommGroup P] [Module R P] : Prop where
   out (R P) : ∃ (n : ℕ),  HasFiniteFreeResolutionOfLength R P n
 
@@ -141,7 +139,7 @@ instance (priority := low) module_finite (P : Type v) [AddCommGroup P] [Module R
 
 /-- A semilinear equivalence over mutually inverse ring homomorphisms preserves finite free
 resolutions. -/
-theorem of_semilinearEquiv (S : Type u') [CommRing S] [Small.{v'} S] {σ : R →+* S} {σ' : S →+* R}
+theorem of_semilinearEquiv (S : Type u') [Ring S] [Small.{v'} S] {σ : R →+* S} {σ' : S →+* R}
     [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
     (P : Type v) [AddCommGroup P] [Module R P] [HasFiniteFreeResolution R P]
     (Q : Type v') [AddCommGroup Q] [Module S Q] (e : P ≃ₛₗ[σ] Q) :
