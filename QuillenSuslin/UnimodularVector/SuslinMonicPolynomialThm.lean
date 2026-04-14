@@ -77,9 +77,8 @@ lemma height_le_one_of_isPrime_comap_C_eq_bot [IsDomain R] (Q : Ideal R[X]) [Q.I
     refine Set.disjoint_left.2 ?_
     intro x hxM hxQmem
     rcases (Submonoid.mem_map).1 hxM with ⟨a, ha, rfl⟩
-    have : a = 0 := by simpa [hQ, mem_comap] using (show a ∈ comap C Q from hxQmem)
     have ha0 : (a : R) ≠ 0 := (mem_nonZeroDivisors_iff_ne_zero).1 ha
-    exact ha0 this
+    exact ha0 (by simpa [hQ, mem_comap] using (show a ∈ comap C Q from hxQmem))
   let : Algebra R[X] K[X] := Polynomial.algebra R K
   let : IsLocalization M K[X] := Polynomial.isLocalization (nonZeroDivisors R) K
   have hheight : (map (algebraMap R[X] K[X]) Q).height = Q.height :=

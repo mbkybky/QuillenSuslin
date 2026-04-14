@@ -38,8 +38,7 @@ variable (R)
 /-- Let `M` be a finite projective module. Then `M` is stably free if `M` admits a
   finite free resolution. -/
 instance HasFiniteFreeResolution.isStablyFree (M : Type v) [AddCommGroup M] [Module R M]
-    [Module.Finite R M] [Module.Projective R M] [HasFiniteFreeResolution R M] :
-    Module.IsStablyFree R M := by
+    [Module.Projective R M] [HasFiniteFreeResolution R M] : Module.IsStablyFree R M := by
   obtain ⟨_, hn⟩ := HasFiniteFreeResolution.out R M
   exact hn.isStablyFree_of_projective
 

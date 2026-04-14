@@ -42,8 +42,7 @@ theorem succ_of_hasFiniteFreeResolutionOfLength (hP : HasFiniteFreeResolutionOfL
       exact (HasFiniteFreeResolutionOfLength.zero PUnit).succ P 0 P PUnit 0 LinearMap.id
         (Function.injective_of_subsingleton _) (fun x ↦ ⟨x, rfl⟩)
           (Function.Exact.of_comp_of_mem_range rfl (fun _ hy ↦ ⟨0, hy.symm⟩))
-  | succ P n F K f g hf hg he _ ih =>
-      exact ih.succ P (n + 1) F K f g hf hg he
+  | succ P n F K f g hf hg he _ ih => exact ih.succ P (n + 1) F K f g hf hg he
 
 theorem of_ge {m : ℕ} (hP : HasFiniteFreeResolutionOfLength R P n) (h : n ≤ m) :
     HasFiniteFreeResolutionOfLength R P m :=
@@ -58,14 +57,11 @@ variable {R S M N : Type*} [CommRing R] [CommRing S] (σ : R →+* S) (σ' : S �
 /- Let `M` be a `R`-module. Viewing `M` as an `S`-module via `σ' : S →+* R`, then the identity map
 gives a semilinear equivalence over `σ: R →+* S`. -/
 variable (M) in
-def _root_.Module.compHom.self_equiv : let : Module S M := compHom M σ'; M ≃ₛₗ[σ] M :=
+def _root_.Module.compHom.self_equiv : let : Module S M := compHom M σ'
+    M ≃ₛₗ[σ] M :=
   let : Module S M := compHom M σ'
-  { toFun := id
-    invFun := id
-    left_inv _ := rfl
-    right_inv _ := rfl
-    map_add' _ _ := rfl
-    map_smul' := fun a x => show a • x = (σ' (σ a)) • x by simp }
+{ __ := AddEquiv.refl M
+  map_smul' a x : a • x = (σ' (σ a)) • x := by simp }
 
 end compHom
 
@@ -84,29 +80,22 @@ theorem of_semilinearEquiv {S : Type u'} [CommRing S] [Small.{v'} S]
   | succ _ n F K f g hf hg he hk ih =>
       let : Module S F := compHom F σ'
       let : Module S K := compHom K σ'
-      let fS : K →ₗ[S] F :=
-        { __ := f
-          map_smul' := fun a x => f.map_smul (σ' a) x }
-      let gS : F →ₗ[S] Q :=
-        { toFun := fun x => e (g x)
-          map_add' := fun x y => by simp
-          map_smul' := fun b x => show e (g (σ' b • x)) = _ by simp [LinearEquiv.map_smulₛₗ] }
-      have eF := compHom.self_equiv F σ σ'
-      have eK := compHom.self_equiv K σ σ'
+      let eF : F ≃ₛₗ[σ] F := compHom.self_equiv F σ σ'
+      let eK : K ≃ₛₗ[σ] K := compHom.self_equiv K σ σ'
+      let fS : K →ₗ[S] F := (eF.toLinearMap ∘ₛₗ f) ∘ₛₗ eK.symm.toLinearMap
+      let gS : F →ₗ[S] Q := (e.toLinearMap ∘ₛₗ g) ∘ₛₗ eF.symm.toLinearMap
       have : Free S F := Free.of_equiv eF
       have : Module.Finite S F := Module.Finite.of_surjective eF.toLinearMap eF.surjective
       have : Module.Finite S K := Module.Finite.of_surjective eK.toLinearMap eK.surjective
       have : Small.{v'} F := Module.Finite.small S F
       have : Small.{v'} K := Module.Finite.small S K
-      let eFv : Shrink.{v'} F ≃ₗ[S] F := Shrink.linearEquiv S F
-      let eKv : Shrink.{v'} K ≃ₗ[S] K := Shrink.linearEquiv S K
+      have eFv : Shrink.{v'} F ≃ₗ[S] F := Shrink.linearEquiv S F
+      have eKv : Shrink.{v'} K ≃ₗ[S] K := Shrink.linearEquiv S K
       refine (ih (eK.trans eKv.symm)).succ Q n (Shrink.{v'} F) (Shrink.{v'} K)
-        (eFv.symm ∘ₗ fS ∘ₗ eKv.toLinearMap) (gS ∘ₗ eFv.toLinearMap) ?_
-          ((e.surjective.comp hg).comp eFv.surjective) ?_
+        (eFv.symm ∘ₗ fS ∘ₗ eKv) (gS ∘ₗ eFv) ?_ ((e.surjective.comp hg).comp eFv.surjective) ?_
       · exact eFv.symm.injective.comp (hf.comp eKv.injective)
       · exact (LinearEquiv.conj_exact_iff_exact (fS ∘ₗ eKv.toLinearMap) gS eFv.symm).2 <|
-          (Function.Surjective.comp_exact_iff_exact eKv.surjective).2 <|
-            fun y ↦ e.map_eq_zero_iff.trans (he y)
+          fun x ↦ by simpa [gS, fS] using he (eF.symm x)
 
 variable [Small.{w} R]
 
