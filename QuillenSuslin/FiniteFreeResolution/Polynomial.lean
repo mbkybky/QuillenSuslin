@@ -461,7 +461,6 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       exact of_semilinearEquiv A B M M eM
   have : Small.{max u w, v} P := Module.Finite.small (MvPolynomial σ R) P
   let eP : Shrink.{max u w} P ≃ₗ[MvPolynomial σ R] P := Shrink.linearEquiv (MvPolynomial σ R) P
-  have : Module.Finite (MvPolynomial σ R) (Shrink.{max u w} P) := Module.Finite.equiv eP.symm
   have : HasFiniteFreeResolution (MvPolynomial σ R) (Shrink.{max u w} P) := hm (Shrink.{max u w} P)
   exact of_linearEquiv eP
 

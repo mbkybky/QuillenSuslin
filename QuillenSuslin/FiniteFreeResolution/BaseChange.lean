@@ -12,25 +12,25 @@ universe u v w z
 namespace Module
 
 variable {R : Type u} [CommRing R] {A : Type u} [CommRing A] [Algebra R A] [Flat R A]
-  {P : Type u} [AddCommGroup P] [Module R P]
+  {M : Type u} [AddCommGroup M] [Module R M]
 
 open TensorProduct
 
 /-- Extending scalars along a flat `R`-algebra preserves finite free resolutions. -/
 theorem HasFiniteFreeResolutionOfLength.tensorProduct_of_flat {n : ℕ}
-    (hP : HasFiniteFreeResolutionOfLength R P n) :
-    HasFiniteFreeResolutionOfLength A (A ⊗[R] P) n := by
-  induction hP with
-  | zero P => exact HasFiniteFreeResolutionOfLength.zero (A ⊗[R] P)
-  | succ P n F K f g hf hg he hk ih =>
+    (hM : HasFiniteFreeResolutionOfLength R M n) :
+    HasFiniteFreeResolutionOfLength A (A ⊗[R] M) n := by
+  induction hM with
+  | zero M => exact HasFiniteFreeResolutionOfLength.zero (A ⊗[R] M)
+  | succ _ _ _ _ f g hf hg he _ ih =>
       exact ih.succ' (AlgebraTensorModule.lTensor A A f) (AlgebraTensorModule.lTensor A A g)
         (Flat.lTensor_preserves_injective_linearMap f hf) (LinearMap.lTensor_surjective A hg)
           (Flat.lTensor_exact A he)
 
 /-- Extending scalars along a flat `R`-algebra preserves finite free resolutions. -/
-instance HasFiniteFreeResolution.of_flat_baseChange [HasFiniteFreeResolution R P] :
-    HasFiniteFreeResolution A (A ⊗[R] P) :=
-  let ⟨n, hn⟩ := HasFiniteFreeResolution.out R P
+instance HasFiniteFreeResolution.of_flat_baseChange [HasFiniteFreeResolution R M] :
+    HasFiniteFreeResolution A (A ⊗[R] M) :=
+  let ⟨n, hn⟩ := HasFiniteFreeResolution.out R M
   ⟨n, hn.tensorProduct_of_flat⟩
 
 end Module

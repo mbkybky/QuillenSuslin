@@ -247,11 +247,12 @@ theorem free_of_isStablyFree_of_unimodularVectorEquiv
 
 theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrincipalIdealRing R]
     (σ : Type v) [Finite σ] (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ R) P]
-    [Module.Finite (MvPolynomial σ R) P] [Projective (MvPolynomial σ R) P] :
+    [Module.Finite (MvPolynomial σ R) P] [Flat (MvPolynomial σ R) P] :
     IsStablyFree (MvPolynomial σ R) P := by
   have e : (ULift.{max u v} P) ≃ₗ[MvPolynomial σ R] P := ULift.moduleEquiv
-  have : Projective (MvPolynomial σ R) (ULift P) := Projective.of_equiv' e.symm
-  have : HasFiniteFreeResolution (MvPolynomial σ R) (ULift.{max u v, u_1} P):= by
+  have := Module.finitePresentation_of_finite (MvPolynomial σ R) (ULift.{max u v} P)
+  have : Projective (MvPolynomial σ R) (ULift P) := Module.Flat.projective_of_finitePresentation
+  have : HasFiniteFreeResolution (MvPolynomial σ R) (ULift.{max u v} P):= by
     refine HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing σ (fun Q _ _ hQ ↦ ?_) (ULift P)
     rcases Module.Finite.exists_fin' R Q with ⟨n, f, hf⟩
     obtain ⟨m, bK⟩ := Submodule.basisOfPid (Pi.basisFun R (Fin n)) (LinearMap.ker f)
@@ -261,11 +262,11 @@ theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrinci
       Subtype.val_injective hf (LinearMap.exact_subtype_ker_map f)
   exact IsStablyFree.equiv e
 
-/-- **Quillen-Suslin Theorem**: Any finitely generated projective module over $k[x_1, \dots, x_n]$
+/-- **Quillen-Suslin Theorem**: Any finite flat module module over $k[x_1, \dots, x_n]$
   is free, where $k$ is a principal ideal domain. -/
 instance quillenSuslin [IsDomain R] [IsPrincipalIdealRing R] (σ : Type*) [Finite σ]
     (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ R) P] [Module.Finite (MvPolynomial σ R) P]
-    [Projective (MvPolynomial σ R) P] : Free (MvPolynomial σ R) P := by
+    [Flat (MvPolynomial σ R) P] : Free (MvPolynomial σ R) P := by
   refine free_of_isStablyFree_of_unimodularVectorEquiv (MvPolynomial σ R) ?_ P <|
     mvPolynomial_isStablyFree_of_isPrincipalIdealRing R σ P
   intro _ _ _
