@@ -433,7 +433,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
         (eσ : MvPolynomial α R →+* MvPolynomial β R) := RingHomInvPair.of_ringEquiv_symm eσ
       let eM := compatSemilinearEquiv eσ (fun _ (_ : M) => rfl)
       have : Module.Finite (MvPolynomial α R) M := Module.Finite.of_surjective _ eM.symm.surjective
-      exact of_semilinearEquiv (MvPolynomial α R) (MvPolynomial β R) M M eM
+      exact of_semilinearEquiv (MvPolynomial α R) M (MvPolynomial β R) M eM
     · intro M _ _ _
       let eσ : R ≃+* MvPolynomial PEmpty R := (MvPolynomial.isEmptyAlgEquiv.{u, w} R PEmpty).symm
       let : Module R M := Module.compHom M (eσ : R →+* MvPolynomial PEmpty R)
@@ -446,7 +446,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       have : Small.{u} M := Module.Finite.small.{u} R M
       have : HasFiniteFreeResolution R (Shrink.{u} M) := hR (Shrink.{u} M) inferInstance
       have : HasFiniteFreeResolution R M := of_linearEquiv (Shrink.linearEquiv R M)
-      exact of_semilinearEquiv R (MvPolynomial PEmpty R) M M eM
+      exact of_semilinearEquiv R M (MvPolynomial PEmpty R) M eM
     · intro α _ hα M _ _ _
       let A := Polynomial (MvPolynomial α R)
       let B := MvPolynomial (Option α) R
@@ -458,7 +458,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       have : Module.Finite A M := Module.Finite.of_surjective _ eM.symm.surjective
       have : HasFiniteFreeResolution A M := polynomial_of_isNoetherianRing
         (MvPolynomial α R) (fun N _ _ hN => hα N) M
-      exact of_semilinearEquiv A B M M eM
+      exact of_semilinearEquiv A M B M eM
   have : Small.{max u w, v} P := Module.Finite.small (MvPolynomial σ R) P
   let eP : Shrink.{max u w} P ≃ₗ[MvPolynomial σ R] P := Shrink.linearEquiv (MvPolynomial σ R) P
   have : HasFiniteFreeResolution (MvPolynomial σ R) (Shrink.{max u w} P) := hm (Shrink.{max u w} P)
