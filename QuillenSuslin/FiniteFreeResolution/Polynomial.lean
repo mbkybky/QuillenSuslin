@@ -36,22 +36,6 @@ instance Module.HasFiniteFreeResolution.of_quotient_of_submodule
   of_shortExact_of_left_of_middle K.subtype (Submodule.mkQ K)
     Subtype.coe_injective (Submodule.mkQ_surjective K) (LinearMap.exact_subtype_mkQ K)
 
-private def compatSemilinearEquiv {A : Type*} {B : Type*} [CommRing A] [CommRing B] (e : A ≃+* B)
-    {M : Type*} [AddCommMonoid M] [Module A M] [Module B M]
-    (hcompat : ∀ (a : A) (x : M), (e a : B) • x = (a : A) • x) := by
-  letI : RingHomInvPair (e : A →+* B) (e.symm : B →+* A) := RingHomInvPair.of_ringEquiv e
-  letI : RingHomInvPair (e.symm : B →+* A) (e : A →+* B) := RingHomInvPair.of_ringEquiv_symm e
-  show M ≃ₛₗ[(e : A →+* B)] M
-  exact
-    { toFun := id
-      invFun := id
-      left_inv _ := rfl
-      right_inv _ := rfl
-      map_add' _ _ := rfl
-      map_smul' := by
-        intro a x
-        exact (hcompat a x).symm }
-
 section polynomial
 
 private noncomputable def polynomialModuleIdealMapCLinearEquiv (I : Ideal R) :
@@ -270,12 +254,13 @@ private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianR
       have : e (C (Ideal.Quotient.mk I d) : A₀) * e g₀ ∈ Fbar := by
         simpa [Fbar, hspan, map_mul] using hmem
       simpa [g₀, hCd] using this
-    let Kbar : Submodule A Pbar := Submodule.comap (Pbar.subtype.restrictScalars A) (Fbar.restrictScalars A)
+    let Kbar : Submodule A Pbar :=
+      Submodule.comap (Pbar.subtype.restrictScalars A) (Fbar.restrictScalars A)
     let N := Pbar ⧸ Kbar
     let : AddCommGroup N := Submodule.Quotient.addCommGroup Kbar
     have hsmul_d_mem_Kbar : ∀ y : Pbar, (C d : A) • y ∈ Kbar := by
       intro y
-      change ((C d : A) • (y : B)) ∈ (Fbar.restrictScalars A)
+      change ((C d : A) • (y : B)) ∈ Fbar.restrictScalars A
       have hyFmul : (π (C d) : B) * (y : B) ∈ Fbar := by
         simpa [π] using hmul_bar (y : B) y.2
       have hsmul : ((C d : A) • (y : B)) = (π (C d) : B) * (y : B) := by
@@ -285,7 +270,7 @@ private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianR
     have hN : HasFiniteFreeResolution A N := by
       have hsmul_I_mem_Kbar : ∀ r : R, r ∈ I → ∀ y : Pbar, (C r : A) • y ∈ Kbar := by
         intro r hrI y
-        change ((C r : A) • (y : B)) ∈ (Fbar.restrictScalars A)
+        change ((C r : A) • (y : B)) ∈ Fbar.restrictScalars A
         have hCrIA : (C r : A) ∈ IA := Ideal.mem_map_of_mem (C : R →+* A) hrI
         have hπCr : (π (C r) : B) = 0 := (Ideal.Quotient.eq_zero_iff_mem).2 hCrIA
         have hy0 : (C r : A) • (y : B) = 0 := by
@@ -426,42 +411,37 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
     refine Finite.induction_empty_option ?_ ?_ ?_ σ
     · intro α β e hα M _ _ _
       let eσ : MvPolynomial α R ≃+* MvPolynomial β R := (MvPolynomial.renameEquiv R e).toRingEquiv
-      let : Module (MvPolynomial α R) M := Module.compHom M (eσ : MvPolynomial α R →+* MvPolynomial β R)
-      have : RingHomInvPair (eσ : MvPolynomial α R →+* MvPolynomial β R)
-        (eσ.symm : MvPolynomial β R →+* MvPolynomial α R) := RingHomInvPair.of_ringEquiv eσ
-      have : RingHomInvPair (eσ.symm : MvPolynomial β R →+* MvPolynomial α R)
-        (eσ : MvPolynomial α R →+* MvPolynomial β R) := RingHomInvPair.of_ringEquiv_symm eσ
-      let eM := compatSemilinearEquiv eσ (fun _ (_ : M) => rfl)
-      have : Module.Finite (MvPolynomial α R) M := Module.Finite.of_surjective _ eM.symm.surjective
-      exact of_semilinearEquiv (MvPolynomial α R) M (MvPolynomial β R) M eM
+      let : Module (MvPolynomial α R) M := Module.compHom M eσ.toRingHom
+      have : RingHomInvPair eσ.toRingHom eσ.symm.toRingHom := RingHomInvPair.of_ringEquiv eσ
+      have : RingHomInvPair eσ.symm.toRingHom eσ.toRingHom := RingHomInvPair.of_ringEquiv_symm eσ
+      let eM := Module.compHom.self_equiv M eσ.symm.toRingHom eσ.toRingHom
+      have : Module.Finite (MvPolynomial α R) M := Module.Finite.of_surjective _ eM.surjective
+      exact of_semilinearEquiv (MvPolynomial α R) M (MvPolynomial β R) M eM.symm
     · intro M _ _ _
       let eσ : R ≃+* MvPolynomial PEmpty R := (MvPolynomial.isEmptyAlgEquiv.{u, w} R PEmpty).symm
-      let : Module R M := Module.compHom M (eσ : R →+* MvPolynomial PEmpty R)
-      have : RingHomInvPair (eσ : R →+* MvPolynomial PEmpty R)
-        (eσ.symm : MvPolynomial PEmpty R →+* R) := RingHomInvPair.of_ringEquiv eσ
-      have : RingHomInvPair (eσ.symm : MvPolynomial PEmpty R →+* R)
-        (eσ : R →+* MvPolynomial PEmpty R) := RingHomInvPair.of_ringEquiv_symm eσ
-      let eM := compatSemilinearEquiv eσ (fun _ (_ : M) => rfl)
-      have : Module.Finite R M := Module.Finite.of_surjective _ eM.symm.surjective
+      let : Module R M := Module.compHom M eσ.toRingHom
+      have : RingHomInvPair eσ.toRingHom eσ.symm.toRingHom := RingHomInvPair.of_ringEquiv eσ
+      have : RingHomInvPair eσ.symm.toRingHom eσ.toRingHom := RingHomInvPair.of_ringEquiv_symm eσ
+      let eM := Module.compHom.self_equiv M eσ.symm.toRingHom eσ.toRingHom
+      have : Module.Finite R M := Module.Finite.of_surjective _ eM.surjective
       have : Small.{u} M := Module.Finite.small.{u} R M
       have : HasFiniteFreeResolution R (Shrink.{u} M) := hR (Shrink.{u} M) inferInstance
-      have : HasFiniteFreeResolution R M := of_linearEquiv (Shrink.linearEquiv R M)
-      exact of_semilinearEquiv R M (MvPolynomial PEmpty R) M eM
+      have : HasFiniteFreeResolution R M := of_shrink.{u} R M
+      exact of_semilinearEquiv R M (MvPolynomial PEmpty R) M eM.symm
     · intro α _ hα M _ _ _
       let A := Polynomial (MvPolynomial α R)
       let B := MvPolynomial (Option α) R
       let eσ : A ≃+* B := (MvPolynomial.optionEquivLeft R α).symm.toRingEquiv
-      let : Module A M := Module.compHom M (eσ : A →+* B)
-      have : RingHomInvPair (eσ : A →+* B) (eσ.symm : B →+* A) := RingHomInvPair.of_ringEquiv eσ
-      have : RingHomInvPair eσ.symm (eσ : A →+* B) := RingHomInvPair.of_ringEquiv_symm eσ
-      let eM := compatSemilinearEquiv eσ (fun _ (_ : M) => rfl)
-      have : Module.Finite A M := Module.Finite.of_surjective _ eM.symm.surjective
+      let : Module A M := Module.compHom M eσ.toRingHom
+      have : RingHomInvPair eσ.toRingHom eσ.symm.toRingHom := RingHomInvPair.of_ringEquiv eσ
+      have : RingHomInvPair eσ.symm.toRingHom eσ.toRingHom := RingHomInvPair.of_ringEquiv_symm eσ
+      let eM := Module.compHom.self_equiv M eσ.symm.toRingHom eσ.toRingHom
+      have : Module.Finite A M := Module.Finite.of_surjective _ eM.surjective
       have : HasFiniteFreeResolution A M := polynomial_of_isNoetherianRing
         (MvPolynomial α R) (fun N _ _ hN => hα N) M
-      exact of_semilinearEquiv A M B M eM
+      exact of_semilinearEquiv A M B M eM.symm
   have : Small.{max u w, v} P := Module.Finite.small (MvPolynomial σ R) P
-  let eP : Shrink.{max u w} P ≃ₗ[MvPolynomial σ R] P := Shrink.linearEquiv (MvPolynomial σ R) P
   have : HasFiniteFreeResolution (MvPolynomial σ R) (Shrink.{max u w} P) := hm (Shrink.{max u w} P)
-  exact of_linearEquiv eP
+  exact of_shrink.{max u w} (MvPolynomial σ R) P
 
 end MvPolynomial

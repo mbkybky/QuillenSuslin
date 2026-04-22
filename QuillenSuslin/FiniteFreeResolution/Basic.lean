@@ -5,13 +5,13 @@ Authors: Yongle Hu
 -/
 import Mathlib.RingTheory.Finiteness.Small
 
-universe u u' v v' w
+universe w v v' u u'
 
 namespace Module
 
 variable (R : Type u) [Ring R] [Small.{v} R]
 
-/-- An `R`-module `M` has a finite free resolution of length `n` if there exists an exact sequence
+/-- An `R`-module `M` has a finite free resolution of length `n` means there exists an exact sequence
 `0 ⟶ Fₙ ⟶ ⋯ ⟶ F₀ ⟶ M ⟶ 0`, where `Fᵢ` are finite free `R`-modules. -/
 inductive HasFiniteFreeResolutionOfLength (R : Type u) [Ring R] [Small.{v} R] :
     ∀ (M : Type v), [AddCommGroup M] → [Module R M] → ℕ → Prop
@@ -141,27 +141,37 @@ theorem of_semilinearEquiv (S : Type u') [Ring S] [Small.{v'} S] {σ : R →+* S
   let ⟨n, hn⟩ := out R M
   ⟨n, hn.of_semilinearEquiv e⟩
 
-variable {R} [Small.{w} R]
+variable {R M} [Small.{w} R]
 
-theorem of_linearEquiv {M : Type v} {N : Type w} [AddCommGroup M] [Module R M] [AddCommGroup N]
-    [Module R N] (e : M ≃ₗ[R] N) [HasFiniteFreeResolution R M] : HasFiniteFreeResolution R N :=
+theorem of_linearEquiv {N : Type w} [AddCommGroup N] [Module R N] (e : M ≃ₗ[R] N)
+    [HasFiniteFreeResolution R M] : HasFiniteFreeResolution R N :=
   of_semilinearEquiv R M R N e
 
-instance shrink [Small.{w, v} M] [HasFiniteFreeResolution R M] :
+theorem of_ker_hasFiniteFreeResolution {F : Type*} [AddCommGroup F] [Module R F] [Module.Finite R F]
+    [Free R F] {K : Type w} [AddCommGroup K] [Module R K] (f : K →ₗ[R] F) (g : F →ₗ[R] M)
+    (hf : Function.Injective f) (hg : Function.Surjective g) (he : Function.Exact f g)
+    [HasFiniteFreeResolution R K] : HasFiniteFreeResolution R M :=
+  let ⟨n, hk⟩ := out R K
+  ⟨n + 1, hk.succ' f g hf hg he⟩
+
+variable (R M)
+
+instance ulift [Small.{max w v} R] [HasFiniteFreeResolution R M] :
+    HasFiniteFreeResolution R (ULift.{w} M) :=
+  of_linearEquiv ULift.moduleEquiv.symm
+
+omit [Small.{w} R] in
+theorem of_ulift [Small.{max w v} R] [HasFiniteFreeResolution R (ULift.{w} M)] :
+    HasFiniteFreeResolution R M :=
+  of_linearEquiv ULift.moduleEquiv
+
+instance shrink [Small.{w} M] [HasFiniteFreeResolution R M] :
     HasFiniteFreeResolution R (Shrink.{w} M) :=
   of_linearEquiv (Shrink.linearEquiv R M).symm
 
 theorem of_shrink [Small.{w, v} M] [HasFiniteFreeResolution R (Shrink.{w} M)] :
     HasFiniteFreeResolution R M :=
   of_linearEquiv (Shrink.linearEquiv R M)
-
-theorem of_ker_hasFiniteFreeResolution {M : Type v} {F : Type*} {K : Type w}
-    [AddCommGroup M] [Module R M] [AddCommGroup F] [Module R F] [Module.Finite R F]
-    [Free R F] [AddCommGroup K] [Module R K] (f : K →ₗ[R] F) (g : F →ₗ[R] M)
-    (hf : Function.Injective f) (hg : Function.Surjective g) (he : Function.Exact f g)
-    [HasFiniteFreeResolution R K] : HasFiniteFreeResolution R M :=
-  let ⟨n, hk⟩ := out R K
-  ⟨n + 1, hk.succ' f g hf hg he⟩
 
 end HasFiniteFreeResolution
 
