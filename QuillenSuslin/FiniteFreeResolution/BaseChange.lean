@@ -3,9 +3,13 @@ Copyright (c) 2026 Yongle Hu. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
-import Mathlib.Algebra.Polynomial.Module.TensorProduct
-import Mathlib.RingTheory.Flat.Basic
-import QuillenSuslin.FiniteFreeResolution.Basic
+module
+
+public import Mathlib.Algebra.Polynomial.Module.TensorProduct
+public import Mathlib.RingTheory.Flat.Basic
+public import QuillenSuslin.FiniteFreeResolution.Basic
+
+public section
 
 universe u v w z
 

@@ -1,16 +1,18 @@
-import QuillenSuslin.FiniteFreeResolution.BaseChange
-import QuillenSuslin.FiniteFreeResolution.Basic
-import QuillenSuslin.FiniteFreeResolution.Exact
-import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
-import QuillenSuslin.FiniteFreeResolution.Localization
-import QuillenSuslin.FiniteFreeResolution.Polynomial
-import QuillenSuslin.MainTheorem
-import QuillenSuslin.PicardGroup
-import QuillenSuslin.StablyFree.Basic
-import QuillenSuslin.StablyFree.FreeOfLocalizedEq
-import QuillenSuslin.StablyFree.HasFiniteFreeResolution
-import QuillenSuslin.UFD.Lemmas
-import QuillenSuslin.UFD.Regular
-import QuillenSuslin.UnimodularVector.Basic
-import QuillenSuslin.UnimodularVector.PID
-import QuillenSuslin.UnimodularVector.SuslinMonicPolynomialThm
+module
+
+public import QuillenSuslin.FiniteFreeResolution.BaseChange
+public import QuillenSuslin.FiniteFreeResolution.Basic
+public import QuillenSuslin.FiniteFreeResolution.Exact
+public import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
+public import QuillenSuslin.FiniteFreeResolution.Localization
+public import QuillenSuslin.FiniteFreeResolution.Polynomial
+public import QuillenSuslin.MainTheorem
+public import QuillenSuslin.PicardGroup
+public import QuillenSuslin.StablyFree.Basic
+public import QuillenSuslin.StablyFree.FreeOfLocalizedEq
+public import QuillenSuslin.StablyFree.HasFiniteFreeResolution
+public import QuillenSuslin.UFD.Lemmas
+public import QuillenSuslin.UFD.Regular
+public import QuillenSuslin.UnimodularVector.Basic
+public import QuillenSuslin.UnimodularVector.PID
+public import QuillenSuslin.UnimodularVector.SuslinMonicPolynomialThm

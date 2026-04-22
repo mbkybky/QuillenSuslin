@@ -3,13 +3,17 @@ Copyright (c) 2026 Yongle Hu. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
-import Mathlib.Algebra.Polynomial.Module.TensorProduct
-import Mathlib.RingTheory.Ideal.IsPrincipal
-import Mathlib.RingTheory.Ideal.Quotient.Noetherian
-import Mathlib.RingTheory.PicardGroup
-import Mathlib.RingTheory.Polynomial.Quotient
-import QuillenSuslin.FiniteFreeResolution.BaseChange
-import QuillenSuslin.FiniteFreeResolution.Exact
+module
+
+public import Mathlib.Algebra.Polynomial.Module.TensorProduct
+public import Mathlib.RingTheory.Ideal.IsPrincipal
+public import Mathlib.RingTheory.Ideal.Quotient.Noetherian
+public import Mathlib.RingTheory.PicardGroup
+public import Mathlib.RingTheory.Polynomial.Quotient
+public import QuillenSuslin.FiniteFreeResolution.BaseChange
+public import QuillenSuslin.FiniteFreeResolution.Exact
+
+public section
 
 universe u v w
 

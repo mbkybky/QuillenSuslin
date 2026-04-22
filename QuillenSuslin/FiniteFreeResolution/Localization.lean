@@ -3,10 +3,14 @@ Copyright (c) 2026 Yongle Hu. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
-import Mathlib.Algebra.Module.LocalizedModule.Exact
-import Mathlib.RingTheory.LocalProperties.Projective
-import Mathlib.RingTheory.Localization.Finiteness
-import QuillenSuslin.FiniteFreeResolution.Basic
+module
+
+public import Mathlib.Algebra.Module.LocalizedModule.Exact
+public import Mathlib.RingTheory.LocalProperties.Projective
+public import Mathlib.RingTheory.Localization.Finiteness
+public import QuillenSuslin.FiniteFreeResolution.Basic
+
+public section
 
 universe u v
 

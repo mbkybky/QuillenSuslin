@@ -3,7 +3,11 @@ Copyright (c) 2026 Yongle Hu. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
-import Mathlib.RingTheory.Finiteness.Small
+module
+
+public import Mathlib.RingTheory.Finiteness.Small
+
+@[expose] public section
 
 universe w v v' u u'
 

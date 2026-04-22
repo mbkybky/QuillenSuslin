@@ -3,9 +3,13 @@ Copyright (c) 2026 Yongle Hu. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
-import Mathlib.LinearAlgebra.FreeModule.PID
-import QuillenSuslin.UnimodularVector.Basic
-import QuillenSuslin.UnimodularVector.SuslinMonicPolynomialThm
+module
+
+public import Mathlib.LinearAlgebra.FreeModule.PID
+public import QuillenSuslin.UnimodularVector.Basic
+public import QuillenSuslin.UnimodularVector.SuslinMonicPolynomialThm
+
+public section
 
 open Module Polynomial Finset BigOperators Bivariate
 

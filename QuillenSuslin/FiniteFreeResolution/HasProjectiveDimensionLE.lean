@@ -3,11 +3,15 @@ Copyright (c) 2026 Yongle Hu. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
-import Mathlib.Algebra.Category.ModuleCat.Projective
-import Mathlib.Algebra.Homology.ShortComplex.ModuleCat
-import Mathlib.CategoryTheory.Abelian.Projective.Dimension
-import Mathlib.RingTheory.LocalRing.Module
-import QuillenSuslin.FiniteFreeResolution.Basic
+module
+
+public import Mathlib.Algebra.Category.ModuleCat.Projective
+public import Mathlib.Algebra.Homology.ShortComplex.ModuleCat
+public import Mathlib.CategoryTheory.Abelian.Projective.Dimension
+public import Mathlib.RingTheory.LocalRing.Module
+public import QuillenSuslin.FiniteFreeResolution.Basic
+
+public section
 
 universe u v
 

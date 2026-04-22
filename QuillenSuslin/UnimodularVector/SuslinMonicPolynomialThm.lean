@@ -3,9 +3,13 @@ Copyright (c) 2026 Yongle Hu. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
-import Mathlib.Algebra.Polynomial.Bivariate
-import Mathlib.RingTheory.KrullDimension.Field
-import Mathlib.RingTheory.KrullDimension.Polynomial
+module
+
+public import Mathlib.Algebra.Polynomial.Bivariate
+public import Mathlib.RingTheory.KrullDimension.Field
+public import Mathlib.RingTheory.KrullDimension.Polynomial
+
+public section
 
 open Polynomial Bivariate
 

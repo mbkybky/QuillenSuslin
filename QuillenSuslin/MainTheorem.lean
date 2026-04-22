@@ -3,10 +3,14 @@ Copyright (c) 2026 Yongle Hu. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
-import Mathlib.LinearAlgebra.FreeModule.PID
-import QuillenSuslin.FiniteFreeResolution.Polynomial
-import QuillenSuslin.StablyFree.HasFiniteFreeResolution
-import QuillenSuslin.UnimodularVector.PID
+module
+
+public import Mathlib.LinearAlgebra.FreeModule.PID
+public import QuillenSuslin.FiniteFreeResolution.Polynomial
+public import QuillenSuslin.StablyFree.HasFiniteFreeResolution
+public import QuillenSuslin.UnimodularVector.PID
+
+public section
 
 universe u v
 

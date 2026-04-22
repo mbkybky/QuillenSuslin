@@ -3,12 +3,16 @@ Copyright (c) 2026 Yongle Hu. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
-import Mathlib.RingTheory.RegularLocalRing.Localization
-import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
-import QuillenSuslin.FiniteFreeResolution.Localization
-import QuillenSuslin.StablyFree.FreeOfLocalizedEq
-import QuillenSuslin.StablyFree.HasFiniteFreeResolution
-import QuillenSuslin.UFD.Lemmas
+module
+
+public import Mathlib.RingTheory.RegularLocalRing.Localization
+public import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
+public import QuillenSuslin.FiniteFreeResolution.Localization
+public import QuillenSuslin.StablyFree.FreeOfLocalizedEq
+public import QuillenSuslin.StablyFree.HasFiniteFreeResolution
+public import QuillenSuslin.UFD.Lemmas
+
+public section
 
 universe u
 

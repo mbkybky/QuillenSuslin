@@ -3,10 +3,14 @@ Copyright (c) 2026 Yongle Hu. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yongle Hu
 -/
-import Mathlib.LinearAlgebra.Matrix.Permutation
-import Mathlib.RingTheory.Localization.AtPrime.Basic
-import Mathlib.RingTheory.LocalRing.ResidueField.Basic
-import Mathlib.Algebra.Polynomial.Bivariate
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Permutation
+public import Mathlib.RingTheory.Localization.AtPrime.Basic
+public import Mathlib.RingTheory.LocalRing.ResidueField.Basic
+public import Mathlib.Algebra.Polynomial.Bivariate
+
+@[expose] public section
 
 open Module Polynomial Finset BigOperators
 
