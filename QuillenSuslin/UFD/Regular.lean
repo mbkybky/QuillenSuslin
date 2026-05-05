@@ -38,6 +38,8 @@ lemma ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal [IsLocalRing R]
   exact lt_of_lt_of_eq (by exact_mod_cast Ideal.height_strict_mono_of_is_prime hP)
     IsLocalRing.maximalIdeal_height_eq_ringKrullDim
 
+namespace IsRegularLocalRing
+
 private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [IsRegularLocalRing R]
     {x : R} (hxmem : x ∈ IsLocalRing.maximalIdeal R) (hxp : Prime x)
     (hP : ∀ (P : Ideal R) [P.IsPrime] (_ : P < IsLocalRing.maximalIdeal R),
@@ -45,7 +47,7 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
     UniqueFactorizationMonoid (Localization.Away x) := by
   let M : Submonoid R := Submonoid.powers x
   have : IsDomain (Localization.Away x) := Localization.Away.isDomain hxp.ne_zero
-  apply Ideal.ufd_iff_height_one_primes_principal.2
+  rw [UniqueFactorizationMonoid.iff_height_one_primes_principal]
   intro Q hQ hQheight
   have hloc (P : Ideal (Localization.Away x)) [P.IsMaximal] :
       LocalizedModule P.primeCompl Q ≃ₗ[Localization.AtPrime P] Localization.AtPrime P := by
@@ -67,16 +69,15 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
         IsLocalization.localizationLocalizationAtPrimeIsoLocalization M P
           |>.toMulEquiv.uniqueFactorizationMonoid (hP p hp_lt_max)
       have : Q'.IsPrime := Ideal.isPrime_map_of_isLocalizationAtPrime P hQP
-      have hmap_disj : Disjoint (P.primeCompl : Set (Localization.Away x)) Q := by
+      have hd : Disjoint (P.primeCompl : Set (Localization.Away x)) Q := by
         simp [Ideal.primeCompl, ← le_compl_iff_disjoint_left, hQP]
-      have hmap_height : Q'.primeHeight = 1 := by
-        simpa [Q', IsLocalization.comap_map_of_isPrime_disjoint
-            P.primeCompl (Localization.AtPrime P) inferInstance hmap_disj, hQheight]
-          using (IsLocalization.primeHeight_comap P.primeCompl Q').symm
-      have := (Ideal.ufd_iff_height_one_primes_principal).1 inferInstance Q' hmap_height
+      have hQh : Q'.height = 1 := by
+        simp [Q', IsLocalization.comap_map_of_isPrime_disjoint P.primeCompl (Localization.AtPrime P)
+          inferInstance hd, hQheight, ← IsLocalization.height_comap P.primeCompl Q']
+      have := UniqueFactorizationMonoid.height_one_primes_principal hQh
       exact eIdeal.trans <| LinearEquiv.symm <| Ideal.isoBaseOfIsPrincipal <|
-        Ideal.primeHeight_eq_zero_iff_eq_bot.not.mp (by simp [hmap_height])
-    · exact eIdeal.trans <| LinearEquiv.ofTop _ <|
+        Ideal.height_eq_zero_iff_eq_bot.not.mp (by simp [hQh])
+    · exact eIdeal.trans <| LinearEquiv.ofTop Q' <|
         IsLocalization.AtPrime.map_eq_top_of_not_le (Localization.AtPrime P) hQP
   have : Projective (Localization.Away x) Q := by
     have := finitePresentation_of_finite (Localization.Away x) Q
@@ -86,7 +87,7 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
     have : Free (Localization.AtPrime P) (LocalizedModule P.primeCompl Q) :=
       Free.of_equiv (hloc P).symm
     exact Projective.of_free
-  let q : Ideal R := Ideal.comap (algebraMap R (Localization.Away x)) Q
+  let q : Ideal R := Q.under R
   have : HasFiniteFreeResolution R (R ⧸ q) := HasFiniteFreeResolution.of_projectiveDimension_ne_top
       (projectiveDimension_ne_top_of_isRegularLocalRing (ModuleCat.of R (R ⧸ q)))
   have := HasFiniteFreeResolution.of_linearEquiv <| (localizedQuotientEquiv M q).symm.trans
@@ -101,7 +102,8 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
   exact Q.isPrincipal_of_free
 
 variable (R) in
-theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMonoid R := by
+instance (priority := low) uniqueFactorizationMonoid [IsRegularLocalRing R] :
+    UniqueFactorizationMonoid R := by
   have hmain (n : ℕ) : ∀ {S : Type u} [CommRing S] [IsRegularLocalRing S],
       ringKrullDim S = n → UniqueFactorizationMonoid S := by
     induction n using Nat.strong_induction_on with
@@ -127,6 +129,8 @@ theorem ufd_of_isRegularLocalRing [IsRegularLocalRing R] : UniqueFactorizationMo
             exact ih k (ENat.coe_lt_coe.mp <| WithBot.coe_lt_coe.mp <| hk.symm.trans_lt <|
               (ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal hP_lt_max).trans_eq h) hk
           have := ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd hxm hxp hP
-          exact ufd_of_ufd_localization_away_of_prime hxp
+          rwa [UniqueFactorizationMonoid.iff_localization_away_of_prime hxp]
   obtain ⟨n, hn⟩ := exist_nat_eq R
   exact hmain n hn
+
+end IsRegularLocalRing

@@ -129,7 +129,7 @@ theorem of_shortExact_of_left_of_right (hf : Function.Injective f) (hg : Functio
           have hK₃ : HasFiniteFreeResolution R g₃.ker :=
             of_linearEquiv (LinearEquiv.ofInjective f₃ hf₃ ≪≫ₗ
               (LinearEquiv.ofEq g₃.ker f₃.range he₃.linearMap_ker_eq).symm)
-          have eK : Shrink.{β} K ≃ₗ[R] K := Shrink.linearEquiv R K
+          let +nondep eK : Shrink.{β} K ≃ₗ[R] K := Shrink.linearEquiv R K
           have : HasFiniteFreeResolution R (Shrink.{β} K) :=
             ih _ _ (eK.symm.injective.comp hϕ) (hψ.comp eK.surjective)
               ((LinearEquiv.conj_exact_iff_exact ϕ ψ eK.symm).2 hKer)

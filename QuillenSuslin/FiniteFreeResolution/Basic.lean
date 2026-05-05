@@ -7,7 +7,7 @@ module
 
 public import Mathlib.RingTheory.Finiteness.Small
 
-@[expose] public section
+public section
 
 universe w v v' u u'
 
@@ -59,9 +59,9 @@ variable {R S M N : Type*} [Semiring R] [Semiring S] (σ : R →+* S) (σ' : S �
 variable (M) in
 /-- Let `M` be a `R`-module. Viewing `M` as an `S`-module via `σ' : S →+* R`, then the identity map
 gives a semilinear equivalence over `σ: R →+* S`. -/
-def _root_.Module.compHom.self_equiv : let : Module S M := compHom M σ'
+def _root_.Module.compHom.self_equiv : letI : Module S M := compHom M σ'
     M ≃ₛₗ[σ] M :=
-  let : Module S M := compHom M σ'
+  letI : Module S M := compHom M σ'
 { __ := AddEquiv.refl M
   map_smul' a x : a • x = (σ' (σ a)) • x := by simp }
 
@@ -89,8 +89,8 @@ theorem of_semilinearEquiv {S : Type u'} [Ring S] [Small.{v'} S]
       have : Module.Finite S K := Module.Finite.of_surjective eK.toLinearMap eK.surjective
       have : Small.{v'} F := Module.Finite.small S F
       have : Small.{v'} K := Module.Finite.small S K
-      have eFv : Shrink.{v'} F ≃ₗ[S] F := Shrink.linearEquiv S F
-      have eKv : Shrink.{v'} K ≃ₗ[S] K := Shrink.linearEquiv S K
+      let +nondep eFv : Shrink.{v'} F ≃ₗ[S] F := Shrink.linearEquiv S F
+      let +nondep eKv : Shrink.{v'} K ≃ₗ[S] K := Shrink.linearEquiv S K
       refine (ih (eK.trans eKv.symm)).succ N n (Shrink.{v'} F) (Shrink.{v'} K)
         (eFv.symm ∘ₗ fS ∘ₗ eKv) (gS ∘ₗ eFv) ?_ ((e.surjective.comp hg).comp eFv.surjective) ?_
       · exact eFv.symm.injective.comp (hf.comp eKv.injective)
@@ -112,8 +112,8 @@ theorem succ' {M : Type v} {F : Type*} {K : Type w} [AddCommGroup M] [Module R M
   have : Module.Finite R K := hk.module_finite
   have : Small.{v} F := Module.Finite.small.{v} R F
   have : Small.{v} K := Module.Finite.small.{v} R K
-  have eF : Shrink.{v} F ≃ₗ[R] F := Shrink.linearEquiv R F
-  have eK : Shrink.{v} K ≃ₗ[R] K := Shrink.linearEquiv R K
+  let +nondep eF : Shrink.{v} F ≃ₗ[R] F := Shrink.linearEquiv R F
+  let +nondep eK : Shrink.{v} K ≃ₗ[R] K := Shrink.linearEquiv R K
   let fv : Shrink.{v} K →ₗ[R] Shrink.{v} F := eF.symm ∘ₗ (f ∘ₗ eK.toLinearMap)
   exact (hk.of_linearEquiv eK.symm).succ M n (Shrink.{v} F) (Shrink.{v} K) fv (g ∘ₗ eF.toLinearMap)
     (eF.symm.injective.comp (hf.comp eK.injective)) (hg.comp eF.surjective) <|
@@ -136,14 +136,14 @@ instance of_finite_of_free [Module.Finite R M] [Free R M] : HasFiniteFreeResolut
   ⟨0, HasFiniteFreeResolutionOfLength.zero M⟩
 
 instance (priority := low) module_finite [HasFiniteFreeResolution R M] : Module.Finite R M :=
-  (out R M).choose_spec.module_finite
+  (HasFiniteFreeResolution.out R M).choose_spec.module_finite
 
 theorem of_semilinearEquiv (S : Type u') [Ring S] [Small.{v'} S] {σ : R →+* S} {σ' : S →+* R}
     [RingHomInvPair σ σ'] [RingHomInvPair σ' σ] [HasFiniteFreeResolution R M]
     (N : Type v') [AddCommGroup N] [Module S N] (e : M ≃ₛₗ[σ] N) :
-    HasFiniteFreeResolution S N :=
-  let ⟨n, hn⟩ := out R M
-  ⟨n, hn.of_semilinearEquiv e⟩
+    HasFiniteFreeResolution S N := by
+  obtain ⟨n, hn⟩ := HasFiniteFreeResolution.out R M
+  exact ⟨n, hn.of_semilinearEquiv e⟩
 
 variable {R M} [Small.{w} R]
 
@@ -154,13 +154,13 @@ theorem of_linearEquiv {N : Type w} [AddCommGroup N] [Module R N] (e : M ≃ₗ[
 theorem of_ker_hasFiniteFreeResolution {F : Type*} [AddCommGroup F] [Module R F] [Module.Finite R F]
     [Free R F] {K : Type w} [AddCommGroup K] [Module R K] (f : K →ₗ[R] F) (g : F →ₗ[R] M)
     (hf : Function.Injective f) (hg : Function.Surjective g) (he : Function.Exact f g)
-    [HasFiniteFreeResolution R K] : HasFiniteFreeResolution R M :=
-  let ⟨n, hk⟩ := out R K
-  ⟨n + 1, hk.succ' f g hf hg he⟩
+    [HasFiniteFreeResolution R K] : HasFiniteFreeResolution R M := by
+  obtain ⟨n, hk⟩ := HasFiniteFreeResolution.out R K
+  exact ⟨n + 1, hk.succ' f g hf hg he⟩
 
 variable (R M)
 
-instance ulift [Small.{max w v} R] [HasFiniteFreeResolution R M] :
+instance [Small.{max w v} R] [HasFiniteFreeResolution R M] :
     HasFiniteFreeResolution R (ULift.{w} M) :=
   of_linearEquiv ULift.moduleEquiv.symm
 
@@ -169,8 +169,7 @@ theorem of_ulift [Small.{max w v} R] [HasFiniteFreeResolution R (ULift.{w} M)] :
     HasFiniteFreeResolution R M :=
   of_linearEquiv ULift.moduleEquiv
 
-instance shrink [Small.{w} M] [HasFiniteFreeResolution R M] :
-    HasFiniteFreeResolution R (Shrink.{w} M) :=
+instance [Small.{w} M] [HasFiniteFreeResolution R M] : HasFiniteFreeResolution R (Shrink.{w} M) :=
   of_linearEquiv (Shrink.linearEquiv R M).symm
 
 theorem of_shrink [Small.{w, v} M] [HasFiniteFreeResolution R (Shrink.{w} M)] :

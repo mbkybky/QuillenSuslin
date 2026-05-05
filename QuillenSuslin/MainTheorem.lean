@@ -218,7 +218,7 @@ theorem free_of_isStablyFree_of_unimodularVectorEquiv
     induction n with
     | zero =>
         intro h0
-        have e0 : (P × (Fin 0 → R)) ≃ₗ[R] P :=
+        let +nondep e0 : (P × (Fin 0 → R)) ≃ₗ[R] P :=
           { toFun := Prod.fst
             invFun := fun p => (p, 0)
             left_inv := by
@@ -240,7 +240,7 @@ theorem free_of_isStablyFree_of_unimodularVectorEquiv
         let eFin : (Fin (n + 1) → R) ≃ₗ[R] (Fin n → R) × R :=
           ePi.trans (eSum.trans (LinearEquiv.prodCongr (LinearEquiv.refl R _) e1))
         have hQ : Free R ((P × (Fin n → R)) × R) := by
-          have eAssoc : (P × (Fin (n + 1) → R)) ≃ₗ[R] ((P × (Fin n → R)) × R) :=
+          let +nondep eAssoc : (P × (Fin (n + 1) → R)) ≃ₗ[R] ((P × (Fin n → R)) × R) :=
             (LinearEquiv.prodCongr (LinearEquiv.refl R P) eFin) ≪≫ₗ
               (LinearEquiv.prodAssoc R P (Fin n → R) R).symm
           exact Free.of_equiv eAssoc
@@ -252,8 +252,7 @@ theorem free_of_isStablyFree_of_unimodularVectorEquiv
 theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrincipalIdealRing R]
     (σ : Type v) [Finite σ] (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ R) P]
     [Module.Finite (MvPolynomial σ R) P] [Flat (MvPolynomial σ R) P] :
-    IsStablyFree (MvPolynomial σ R) P := by
-  have e : (ULift.{max u v} P) ≃ₗ[MvPolynomial σ R] P := ULift.moduleEquiv
+    IsStablyFree (MvPolynomial σ R) P :=
   have := Module.finitePresentation_of_finite (MvPolynomial σ R) (ULift.{max u v} P)
   have : Projective (MvPolynomial σ R) (ULift P) := Module.Flat.projective_of_finitePresentation
   have : HasFiniteFreeResolution (MvPolynomial σ R) (ULift.{max u v} P):= by
@@ -264,7 +263,7 @@ theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrinci
     have : Module.Finite R (LinearMap.ker f) := Module.Finite.of_basis bK
     exact HasFiniteFreeResolution.of_ker_hasFiniteFreeResolution (LinearMap.ker f).subtype f
       Subtype.val_injective hf (LinearMap.exact_subtype_ker_map f)
-  exact IsStablyFree.equiv e
+  IsStablyFree.of_ulift (MvPolynomial σ R) P
 
 /-- **Quillen-Suslin Theorem**: Any finite flat module module over $k[x_1, \dots, x_n]$
   is free, where $k$ is a principal ideal domain. -/
