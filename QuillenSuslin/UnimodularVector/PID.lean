@@ -115,7 +115,8 @@ lemma Ideal.height_add_one_le_of_forall_notMem_minimalPrimes {A : Type*} [CommRi
     subst h
     exact haq haP
   have hq_lt_P : q < P := lt_of_le_of_ne hq_le_P hq_ne_P
-  have hqp : q.primeHeight + 1 ≤ P.primeHeight := Ideal.primeHeight_add_one_le_of_lt hq_lt_P
+  have hqp : q.primeHeight + 1 ≤ P.primeHeight := by
+    simpa [Ideal.height_eq_primeHeight] using Ideal.height_add_one_le_of_lt_of_isPrime hq_lt_P
   exact le_trans (add_le_add_left hkq 1) hqp
 
 theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing R]

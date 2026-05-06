@@ -19,60 +19,6 @@ namespace Ideal
 
 variable {R : Type*} [CommRing R]
 
-section leadingCoeff
-
-@[gcongr]
-lemma leadingCoeff_mono {I J : Ideal R[X]} (hIJ : I ≤ J) : I.leadingCoeff ≤ J.leadingCoeff := by
-  intro x hx
-  rcases (I.mem_leadingCoeff x).1 hx with ⟨p, hpI, rfl⟩
-  exact (J.mem_leadingCoeff p.leadingCoeff).2 ⟨p, hIJ hpI, rfl⟩
-
-@[simp]
-lemma map_C_leadingCoeff (p : Ideal R) : (map C p).leadingCoeff = p := by
-  ext x
-  constructor
-  · intro hx
-    rcases ((map C p).mem_leadingCoeff x).1 hx with ⟨f, hf, rfl⟩
-    exact p.mem_map_C_iff.1 hf f.natDegree
-  · intro hx
-    exact ((map C p).mem_leadingCoeff x).2 ⟨C x, mem_map_of_mem C hx, leadingCoeff_C x⟩
-
-@[simp]
-lemma leadingCoeff_top : (⊤ : Ideal R[X]).leadingCoeff = ⊤ := by simp [← map_top C]
-
-lemma leadingCoeff_mul_le [NoZeroDivisors R] (I J : Ideal R[X]) :
-    I.leadingCoeff * J.leadingCoeff ≤ (I * J).leadingCoeff := by
-  refine (mul_le).2 ?_
-  intro a ha b hb
-  rcases (I.mem_leadingCoeff a).1 ha with ⟨p, hpI, hp⟩
-  rcases (J.mem_leadingCoeff b).1 hb with ⟨q, hqJ, hq⟩
-  exact ((I * J).mem_leadingCoeff (a * b)).2 ⟨p * q, mul_mem_mul hpI hqJ, by simp [hp, hq]⟩
-
-lemma leadingCoeff_finset_prod_le [NoZeroDivisors R] {ι : Type*} (s : Finset ι)
-    (f : ι → Ideal R[X]) : (s.prod fun i ↦ (f i).leadingCoeff) ≤ (s.prod f).leadingCoeff := by
-  classical refine Finset.induction_on s (by simp) ?_
-  intro i s hi hs
-  simpa [hi] using (mul_mono_right hs).trans (leadingCoeff_mul_le (f i) (s.prod f))
-
-lemma leadingCoeff_pow_le [NoZeroDivisors R] (I : Ideal R[X]) (n : ℕ) :
-    I.leadingCoeff ^ n ≤ (I ^ n).leadingCoeff := by
-  simpa using leadingCoeff_finset_prod_le (Finset.range n) fun _ ↦ I
-
-lemma map_C_comap_of_comap_eq_leadingCoeff (I : Ideal R[X]) (hI : comap C I = I.leadingCoeff) :
-    map C (comap C I) = I := by
-  refine le_antisymm map_comap_le (fun f hfI ↦ ?_)
-  generalize hn : f.natDegree = n
-  induction n using Nat.strong_induction_on generalizing f with | _ _ ih
-  have h : C f.leadingCoeff * X ^ f.natDegree ∈ map C (comap C I) :=
-    (map C (comap C I)).mul_mem_right (X ^ f.natDegree) <| mem_map_of_mem C <| by
-      simpa [hI] using (I.mem_leadingCoeff f.leadingCoeff).2 ⟨f, hfI, rfl⟩
-  rcases f.eraseLead_natDegree_lt_or_eraseLead_eq_zero with hlt | hzero
-  · have he : f.eraseLead ∈ I := by simpa using I.sub_mem hfI (map_comap_le h)
-    simpa using (map C (comap C I)).add_mem (ih _ (by simpa [hn] using hlt) _ he rfl) h
-  · rwa [← f.eraseLead_add_C_mul_X_pow, hzero, zero_add]
-
-end leadingCoeff
-
 lemma height_le_one_of_isPrime_comap_C_eq_bot [IsDomain R] (Q : Ideal R[X]) [Q.IsPrime]
     (hQ : comap C Q = ⊥) : Q.height ≤ 1 := by
   let K := FractionRing R
@@ -143,7 +89,7 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal R[X]) [P.IsPrime] :
     have hP_le : P.height ≤ p.height + 1 := by simpa [hheight] using add_le_add_right hQle p.height
     have hp_lt : p < P.leadingCoeff := lt_of_le_of_ne hp_le fun hp_eq ↦
       hPeq (map_C_comap_of_comap_eq_leadingCoeff P hp_eq).symm
-    exact hP_le.trans (Order.add_one_le_of_lt <| height_strict_mono_of_is_prime hp_lt)
+    exact hP_le.trans (Order.add_one_le_of_lt <| height_strict_mono_of_isPrime hp_lt)
 
 theorem height_le_height_leadingCoeff [NoZeroDivisors R] (I : Ideal R[X]) :
     I.height ≤ I.leadingCoeff.height := by

@@ -23,19 +23,11 @@ open Module Ideal
 theorem Ideal.isPrincipal_of_free [IsDomain R] {I : Ideal R} [Module.Free R I] : I.IsPrincipal :=
   (Submodule.rank_le_one_iff_isPrincipal I).1 ((Submodule.rank_le I).trans_eq (Module.rank_self R))
 
-variable (R) in
-lemma IsLocalRing.maximalIdeal_sq_lt_maximalIdeal [IsLocalRing R] [IsNoetherianRing R] :
-    maximalIdeal R ^ 2 < maximalIdeal R ↔ ¬ IsField R := by
-  trans ¬ IsIdempotentElem (maximalIdeal R)
-  · simp [IsIdempotentElem, ← pow_two, lt_iff_le_and_ne, Ideal.pow_le_self]
-  · simp [Ideal.isIdempotentElem_iff_eq_bot_or_top_of_isLocalRing, Ideal.IsPrime.ne_top,
-      isField_iff_maximalIdeal_eq]
-
 lemma ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal [IsLocalRing R]
     {P : Ideal R} [P.IsPrime] [P.FiniteHeight] (hP : P < IsLocalRing.maximalIdeal R) :
     ringKrullDim (Localization.AtPrime P) < ringKrullDim R := by
   rw [IsLocalization.AtPrime.ringKrullDim_eq_height P _]
-  exact lt_of_lt_of_eq (by exact_mod_cast Ideal.height_strict_mono_of_is_prime hP)
+  exact lt_of_lt_of_eq (by exact_mod_cast Ideal.height_strict_mono_of_isPrime hP)
     IsLocalRing.maximalIdeal_height_eq_ringKrullDim
 
 namespace IsRegularLocalRing
@@ -125,12 +117,12 @@ instance (priority := low) uniqueFactorizationMonoid [IsRegularLocalRing R] :
           have hP (P : Ideal S) [P.IsPrime] (hP_lt_max : P < IsLocalRing.maximalIdeal S) :
               UniqueFactorizationMonoid (Localization.AtPrime P) := by
             have : IsRegularLocalRing _ := isRegularLocalRing_localization S P
-            obtain ⟨k, hk⟩ := exist_nat_eq (Localization.AtPrime P)
+            obtain ⟨k, hk⟩ := FiniteRingKrullDim.ringKrullDim_eq_nat (Localization.AtPrime P)
             exact ih k (ENat.coe_lt_coe.mp <| WithBot.coe_lt_coe.mp <| hk.symm.trans_lt <|
               (ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal hP_lt_max).trans_eq h) hk
           have := ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd hxm hxp hP
           rwa [UniqueFactorizationMonoid.iff_localization_away_of_prime hxp]
-  obtain ⟨n, hn⟩ := exist_nat_eq R
+  obtain ⟨n, hn⟩ := FiniteRingKrullDim.ringKrullDim_eq_nat R
   exact hmain n hn
 
 end IsRegularLocalRing

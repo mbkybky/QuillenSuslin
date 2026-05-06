@@ -23,16 +23,8 @@ public section
 
 variable {R : Type*} [CommRing R] [IsDomain R]
 
-lemma Ideal.exists_prime_height_eq {I : Ideal R} {n : ℕ} (hI : I.height = n) :
-    ∃ (p : Ideal R) (_ : p.IsPrime) (_  : I ≤ p), p.height = n := sorry
-
 lemma Ideal.height_eq_zero_iff_eq_bot {I : Ideal R} : I.height = 0 ↔ I = ⊥ := by
-  refine ⟨fun hI ↦ ?_, fun hI0 ↦ by simp [hI0]⟩
-  rcases exists_prime_height_eq hI with ⟨p, _, hIp, hp0⟩
-  have hpbot : p = ⊥ := by
-    rwa [height_eq_primeHeight, CharP.cast_eq_zero, primeHeight_eq_zero_iff,
-      IsDomain.minimalPrimes_eq_singleton_bot] at hp0
-  exact bot_unique (hIp.trans_eq hpbot)
+  sorry
 
 /-- If `x ≠ 0`, then the localization of a domain away from `x` is again a domain. -/
 theorem Localization.Away.isDomain {x : R} (hx : x ≠ 0) :
