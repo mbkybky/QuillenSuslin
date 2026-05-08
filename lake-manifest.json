@@ -5,7 +5,7 @@
    "type": "git",
    "subDir": null,
    "scope": "",
-   "rev": "8936586f443f1591b5451af25b4e33adf95e4c69",
+   "rev": "45e7168c76230db977b076c71a5f526bcb1cd671",
    "name": "mathlib",
    "manifestFile": "lake-manifest.json",
    "inputRev": "Localization-of-Regular-(Local)-Ring",

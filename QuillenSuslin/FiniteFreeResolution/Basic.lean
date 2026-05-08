@@ -15,8 +15,8 @@ namespace Module
 
 variable (R : Type u) [Ring R] [Small.{v} R]
 
-/-- An `R`-module `M` has a finite free resolution of length `n` means there exists an exact sequence
-`0 ⟶ Fₙ ⟶ ⋯ ⟶ F₀ ⟶ M ⟶ 0`, where `Fᵢ` are finite free `R`-modules. -/
+/-- We say that an `R`-module `M` has a finite free resolution of length `n` if there exists an
+exact sequence `0 ⟶ Eₙ ⟶ ⋯ ⟶ E₀ ⟶ M ⟶ 0` such that `Eᵢ` are finite free `R`-modules. -/
 inductive HasFiniteFreeResolutionOfLength (R : Type u) [Ring R] [Small.{v} R] :
     ∀ (M : Type v), [AddCommGroup M] → [Module R M] → ℕ → Prop
   | zero (M : Type v) [AddCommGroup M] [Module R M] [Module.Finite R M] [Free R M] :
@@ -52,15 +52,12 @@ theorem of_ge {m : ℕ} (hM : HasFiniteFreeResolutionOfLength R M n) (h : n ≤ 
 
 section compHom
 
-variable {R S M N : Type*} [Semiring R] [Semiring S] (σ : R →+* S) (σ' : S →+* R)
-  [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
-  [AddCommMonoid M] [Module R M] [AddCommMonoid N] [Module R N]
-
-variable (M) in
 /-- Let `M` be a `R`-module. Viewing `M` as an `S`-module via `σ' : S →+* R`, then the identity map
 gives a semilinear equivalence over `σ: R →+* S`. -/
-def _root_.Module.compHom.self_equiv : letI : Module S M := compHom M σ'
-    M ≃ₛₗ[σ] M :=
+def _root_.Module.compHom.self_equiv
+  {R S : Type*} [Semiring R] [Semiring S] (σ : R →+* S) (σ' : S →+* R)
+  [RingHomInvPair σ σ'] [RingHomInvPair σ' σ] (M : Type*) [AddCommMonoid M] [Module R M] :
+  letI : Module S M := compHom M σ'; M ≃ₛₗ[σ] M :=
   letI : Module S M := compHom M σ'
 { __ := AddEquiv.refl M
   map_smul' a x : a • x = (σ' (σ a)) • x := by simp }
@@ -80,8 +77,8 @@ theorem of_semilinearEquiv {S : Type u'} [Ring S] [Small.{v'} S]
   | succ _ n F K f g hf hg he hk ih =>
       let : Module S F := compHom F σ'
       let : Module S K := compHom K σ'
-      let eF : F ≃ₛₗ[σ] F := compHom.self_equiv F σ σ'
-      let eK : K ≃ₛₗ[σ] K := compHom.self_equiv K σ σ'
+      let eF : F ≃ₛₗ[σ] F := compHom.self_equiv σ σ' F
+      let eK : K ≃ₛₗ[σ] K := compHom.self_equiv σ σ' K
       let fS : K →ₗ[S] F := (eF.toLinearMap ∘ₛₗ f) ∘ₛₗ eK.symm.toLinearMap
       let gS : F →ₗ[S] N := (e.toLinearMap ∘ₛₗ g) ∘ₛₗ eF.symm.toLinearMap
       have : Free S F := Free.of_equiv eF
@@ -104,9 +101,8 @@ theorem of_linearEquiv {M : Type v} {N : Type w} [AddCommGroup M] [Module R M] [
     HasFiniteFreeResolutionOfLength R N n :=
   hn.of_semilinearEquiv e
 
-theorem succ' {M : Type v} {F : Type*} {K : Type w} [AddCommGroup M] [Module R M] [AddCommGroup F]
-    [Module R F] [Module.Finite R F] [Free R F] [AddCommGroup K] [Module R K]
-    (f : K →ₗ[R] F) (g : F →ₗ[R] M) (hf : Function.Injective f)
+theorem succ' {F : Type*} {K : Type w} [AddCommGroup F] [Module R F] [Module.Finite R F] [Free R F]
+    [AddCommGroup K] [Module R K] (f : K →ₗ[R] F) (g : F →ₗ[R] M) (hf : Function.Injective f)
     (hg : Function.Surjective g) (he : Function.Exact f g) {n : ℕ}
     (hk : HasFiniteFreeResolutionOfLength R K n) : HasFiniteFreeResolutionOfLength R M (n + 1) := by
   have : Module.Finite R K := hk.module_finite
@@ -114,7 +110,7 @@ theorem succ' {M : Type v} {F : Type*} {K : Type w} [AddCommGroup M] [Module R M
   have : Small.{v} K := Module.Finite.small.{v} R K
   let +nondep eF : Shrink.{v} F ≃ₗ[R] F := Shrink.linearEquiv R F
   let +nondep eK : Shrink.{v} K ≃ₗ[R] K := Shrink.linearEquiv R K
-  let fv : Shrink.{v} K →ₗ[R] Shrink.{v} F := eF.symm ∘ₗ (f ∘ₗ eK.toLinearMap)
+  let fv : Shrink.{v} K →ₗ[R] Shrink.{v} F := eF.symm ∘ₗ f ∘ₗ eK.toLinearMap
   exact (hk.of_linearEquiv eK.symm).succ M n (Shrink.{v} F) (Shrink.{v} K) fv (g ∘ₗ eF.toLinearMap)
     (eF.symm.injective.comp (hf.comp eK.injective)) (hg.comp eF.surjective) <|
       (LinearEquiv.conj_symm_exact_iff_exact (f ∘ₗ eK.toLinearMap) g eF).2 <|
@@ -176,6 +172,4 @@ theorem of_shrink [Small.{w, v} M] [HasFiniteFreeResolution R (Shrink.{w} M)] :
     HasFiniteFreeResolution R M :=
   of_linearEquiv (Shrink.linearEquiv R M)
 
-end HasFiniteFreeResolution
-
-end Module
+end Module.HasFiniteFreeResolution

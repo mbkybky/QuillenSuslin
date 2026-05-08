@@ -102,10 +102,10 @@ lemma Ideal.height_add_one_le_of_forall_notMem_minimalPrimes {A : Type*} [CommRi
     k + 1 ≤ (I ⊔ Ideal.span ({a} : Set A)).height := by
   refine le_iInf₂ ?_
   intro P hP
-  have : P.IsPrime := Ideal.minimalPrimes_isPrime hP
+  have : P.IsPrime := IsPrime.of_mem_minimalPrimes hP
   have hIP : I ≤ P := le_trans le_sup_left hP.1.2
   rcases Ideal.exists_minimalPrimes_le hIP with ⟨q, hq, hq_le_P⟩
-  have : q.IsPrime := Ideal.minimalPrimes_isPrime hq
+  have : q.IsPrime := IsPrime.of_mem_minimalPrimes hq
   have haq : a ∉ q := ha q hq
   have hI_le_q : I.height ≤ q.primeHeight := by simpa [Ideal.height] using iInf₂_le q hq
   have hkq : k ≤ q.primeHeight := le_trans hk hI_le_q
@@ -161,8 +161,7 @@ theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing
       rcases ih hsubS with ⟨w, hvw, hheight⟩
       have hw_unimod : IsUnimodular w := (isUnimodular_iff_of_unimodularVectorEquiv hvw).1 hv
       let I : Ideal A := Iof S w
-      let J : Ideal A :=
-        Ideal.span (Set.range fun j : s => if j ∈ insert i S then 0 else w j)
+      let J : Ideal A := Ideal.span (Set.range fun j : s => if j ∈ insert i S then 0 else w j)
       have hfin : I.minimalPrimes.Finite :=
         Ideal.finite_minimalPrimes_of_isNoetherianRing A I
       let P : Finset (Ideal A) := hfin.toFinset
@@ -187,9 +186,7 @@ theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing
           by_cases hpy : w i + y ∈ p
           · -- We need to modify `y` by adding an element `y' ∈ J` that lies in every `q ∈ Q`
             -- but not in `p`.
-            have hpI : p ∈ I.minimalPrimes := (hmemP p).1 hpP
-            have : p.IsPrime := Ideal.minimalPrimes_isPrime hpI
-            have hIp : I ≤ p := hpI.1.2
+            have ⟨⟨_, hIp⟩, hpI⟩ : p ∈ I.minimalPrimes := (hmemP p).1 hpP
             have hJnot : ¬ J ≤ p := by
               intro hJle
               have hyP : y ∈ p := hJle hyJ
@@ -228,7 +225,7 @@ theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing
                 exact hpQ hqQ
               have hq_notle : ¬ q ≤ p := by
                 intro hle
-                exact hq_ne_p (le_antisymm hle (hpI.2 hqI.1 hle))
+                exact hq_ne_p (le_antisymm hle (hpI hqI.1 hle))
               rcases (Set.not_subset.1 hq_notle) with ⟨x, hxq, hxnp⟩
               exact ⟨x, hxq, hxnp⟩
             let x : Ideal A → A := fun q => if h : q ∈ Q then Classical.choose (hsel q h) else 1
@@ -299,23 +296,18 @@ theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing
       let U : Finset s := Finset.univ.filter fun j : s => j ∉ insert i S
       have hiU : i ∉ U := by simp [U]
       have hy_sum : ∑ j ∈ U, c j * w j = y := by
-        have hc0 : (∑ j : s, c j * (if j ∈ insert i S then (0 : A) else w j)) = y := by
-          simpa [J] using hc
         have hc1 : (∑ j : s, if j ∉ insert i S then c j * w j else 0) = y := by
           have hterm : (∑ j : s, c j * (if j ∈ insert i S then (0 : A) else w j)) =
               ∑ j : s, if j ∉ insert i S then c j * w j else 0 := by
             refine Fintype.sum_congr _ _ ?_
             intro j
-            by_cases hj : j ∈ insert i S
-            · simp [hj]
-            · simp [hj]
-          exact hterm ▸ hc0
+            by_cases hj : j ∈ insert i S <;> simp [hj]
+          exact hterm ▸ hc
         have hc2 : (∑ j ∈ Finset.univ, if j ∉ insert i S then c j * w j else 0) = y := by
           simpa using hc1
         have hfilter :
-            (∑ j ∈ Finset.univ, if j ∉ insert i S then c j * w j else 0) = ∑ j ∈ U, c j * w j := by
-          simpa [U] using
-            (Finset.sum_filter (fun j : s => j ∉ insert i S) (fun j : s => c j * w j)).symm
+            (∑ j ∈ Finset.univ, if j ∉ insert i S then c j * w j else 0) = ∑ j ∈ U, c j * w j :=
+          (Finset.sum_filter (fun j : s => j ∉ insert i S) (fun j : s => c j * w j)).symm
         exact hfilter.symm.trans hc2
       let w1 : s → A := Function.update w i (w i + y)
       have hww1 : UnimodularVectorEquiv w w1 := by
@@ -701,13 +693,10 @@ theorem thm12 {σ : Type*} [Fintype σ] (o : s) (v : s → MvPolynomial σ R) (h
         (Ideal.span (Set.range fun i : s => if i = o then (1 : R) else 0)).eq_top_of_isUnit_mem
           (Ideal.subset_span ⟨o, by simp⟩) isUnit_one
       have h' : UnimodularVectorEquiv
-          (fun i => e (v i)) (fun i : s => if i = o then (1 : R) else 0) := by
-        simpa using unimodularVectorEquiv_of_pid hv' hstd
-      have h'' : UnimodularVectorEquiv
-          v (fun i : s => if i = o then (1 : MvPolynomial (Fin 0) R) else 0) := by
-        simpa using unimodularVectorEquiv_map_ringEquiv e.symm (fun i => e (v i))
-          (fun i : s => if i = o then (1 : R) else 0) h'
-      simpa using h''
+          (fun i => e (v i)) (fun i : s => if i = o then (1 : R) else 0) :=
+        unimodularVectorEquiv_of_pid hv' hstd
+      simpa using unimodularVectorEquiv_map_ringEquiv e.symm (fun i => e (v i))
+        (fun i : s => if i = o then (1 : R) else 0) h'
     | succ n ih =>
       intro v hv
       let A := MvPolynomial (Fin n) R
@@ -719,7 +708,7 @@ theorem thm12 {σ : Type*} [Fintype σ] (o : s) (v : s → MvPolynomial σ R) (h
       have hv' : IsUnimodular fun i : s => e (v i) := isUnimodular_map_ringEquiv e.toRingEquiv v hv
       have hw : IsUnimodular w := (isUnimodular_iff_of_unimodularVectorEquiv hvw).1 hv'
       let wpoly : s → P := fun j => φr (w j)
-      have hwpoly : IsUnimodular wpoly := by simpa [wpoly] using isUnimodular_map_ringEquiv φr w hw
+      have hwpoly : IsUnimodular wpoly := isUnimodular_map_ringEquiv φr w hw
       have hmonic' : ∃ j : s, (wpoly j).Monic := by
         rcases hmonic with ⟨i, hi⟩
         exact ⟨i, by simpa [wpoly, φr, φ] using hi⟩

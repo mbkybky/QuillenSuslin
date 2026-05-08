@@ -52,11 +52,10 @@ lemma height_le_leadingCoeff_of_isPrime (P : Ideal R[X]) [P.IsPrime] :
       p.height + (map (Quotient.mk (map (algebraMap R R[X]) p)) P).height := by
     simpa [under_def] using height_eq_height_add_of_liesOver_of_hasGoingDown p P
   by_cases hPeq : P = map C p
-  · have hQ : map (Quotient.mk (map (algebraMap R R[X]) p)) P = ⊥ := by
-      simpa [hPeq] using map_quotient_self (map (algebraMap R R[X]) p)
+  · have hQ : map (Quotient.mk (map (algebraMap R R[X]) p)) P = ⊥ := by simp [hPeq]
     have hQ' : map (Quotient.mk (map C p)) P = ⊥ := by simpa using hQ
     have hP_le : P.height ≤ p.height := by
-      calc _ ≤ p.height + (map (Quotient.mk (map C p)) P).height := by simpa [hheight] using by rfl
+      calc _ ≤ p.height + (map (Quotient.mk (map C p)) P).height := by simp [hheight]
         _ = p.height := by simp [hQ', height_bot]
     exact hP_le.trans (height_mono hp_le)
   · let I0 : Ideal R[X] := map C p
@@ -104,14 +103,14 @@ theorem height_le_height_leadingCoeff [NoZeroDivisors R] (I : Ideal R[X]) :
       (prod_le_inf : J ≤ Pset.inf id)
   rcases exists_pow_le_of_le_radical_of_fg hJ_le_rad J.fg_of_isNoetherianRing with ⟨N, hJN⟩
   refine le_iInf fun q ↦ le_iInf fun hq ↦ ?_
-  have : q.IsPrime := minimalPrimes_isPrime hq
+  have : q.IsPrime := IsPrime.of_mem_minimalPrimes hq
   rcases (IsPrime.prod_le inferInstance).1 <|
       IsPrime.le_of_pow_le <|
         (pow_right_mono (by simpa [J] using leadingCoeff_finset_prod_le Pset id) N).trans <|
           (leadingCoeff_pow_le J N).trans <| (leadingCoeff_mono hJN).trans hq.1.2
     with ⟨P, hP, hPq⟩
   have hPmin : P ∈ I.minimalPrimes := (Set.Finite.mem_toFinset hfin).1 hP
-  have : P.IsPrime := minimalPrimes_isPrime hPmin
+  have : P.IsPrime := IsPrime.of_mem_minimalPrimes hPmin
   exact le_trans (by simpa [height] using (iInf₂_le P hPmin))
     (by simpa [P.height_eq_primeHeight, q.height_eq_primeHeight] using
       le_trans (height_le_leadingCoeff_of_isPrime P) (height_mono hPq))

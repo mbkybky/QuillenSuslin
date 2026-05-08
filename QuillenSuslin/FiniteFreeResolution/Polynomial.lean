@@ -94,8 +94,7 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] {P : Ideal (R[X])}
     have hp0eq0 : (p0 : R[X]) = 0 := by
       apply (Polynomial.map_injective i hi)
       have hp0Pext : Polynomial.map i p0 ∈ Pext := Ideal.mem_map_of_mem (Polynomial.mapRingHom i) hp0P
-      have : Polynomial.map i p0 = 0 := by simpa [Pext, hbot] using hp0Pext
-      simpa using this
+      simpa [Pext, hbot] using hp0Pext
     apply hp0ne
     simp [Subtype.ext_iff, hp0eq0]
   let fK : K[X] := Submodule.IsPrincipal.generator Pext
@@ -308,13 +307,11 @@ private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianR
           have hAnn_d1 : ∀ x : M₁, (C d : A) • x = 0 := by
             intro x
             apply hf
-            have : f ((C d : A) • x) = 0 := by simpa using hAnn_d2 (f x)
-            simpa using this
+            simpa using hAnn_d2 (f x)
           have hAnn_I1 : ∀ r : R, r ∈ I → ∀ x : M₁, (C r : A) • x = 0 := by
             intro r hrI x
             apply hf
-            have : f ((C r : A) • x) = 0 := by simpa using hAnn_I2 r hrI (f x)
-            simpa using this
+            simpa using hAnn_I2 r hrI (f x)
           have hAnn_d3 : ∀ x : M₃, (C d : A) • x = 0 := by
             intro z
             rcases hg z with ⟨y, rfl⟩
@@ -418,7 +415,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       let : Module (MvPolynomial α R) M := Module.compHom M eσ.toRingHom
       have : RingHomInvPair eσ.toRingHom eσ.symm.toRingHom := RingHomInvPair.of_ringEquiv eσ
       have : RingHomInvPair eσ.symm.toRingHom eσ.toRingHom := RingHomInvPair.of_ringEquiv_symm eσ
-      let eM := Module.compHom.self_equiv M eσ.symm.toRingHom eσ.toRingHom
+      let eM := Module.compHom.self_equiv eσ.symm.toRingHom eσ.toRingHom M
       have : Module.Finite (MvPolynomial α R) M := Module.Finite.of_surjective _ eM.surjective
       exact of_semilinearEquiv (MvPolynomial α R) M (MvPolynomial β R) M eM.symm
     · intro M _ _ _
@@ -426,7 +423,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       let : Module R M := Module.compHom M eσ.toRingHom
       have : RingHomInvPair eσ.toRingHom eσ.symm.toRingHom := RingHomInvPair.of_ringEquiv eσ
       have : RingHomInvPair eσ.symm.toRingHom eσ.toRingHom := RingHomInvPair.of_ringEquiv_symm eσ
-      let eM := Module.compHom.self_equiv M eσ.symm.toRingHom eσ.toRingHom
+      let eM := Module.compHom.self_equiv eσ.symm.toRingHom eσ.toRingHom M
       have : Module.Finite R M := Module.Finite.of_surjective _ eM.surjective
       have : Small.{u} M := Module.Finite.small.{u} R M
       have : HasFiniteFreeResolution R (Shrink.{u} M) := hR (Shrink.{u} M) inferInstance
@@ -439,7 +436,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       let : Module A M := Module.compHom M eσ.toRingHom
       have : RingHomInvPair eσ.toRingHom eσ.symm.toRingHom := RingHomInvPair.of_ringEquiv eσ
       have : RingHomInvPair eσ.symm.toRingHom eσ.toRingHom := RingHomInvPair.of_ringEquiv_symm eσ
-      let eM := Module.compHom.self_equiv M eσ.symm.toRingHom eσ.toRingHom
+      let eM := Module.compHom.self_equiv eσ.symm.toRingHom eσ.toRingHom M
       have : Module.Finite A M := Module.Finite.of_surjective _ eM.surjective
       have : HasFiniteFreeResolution A M := polynomial_of_isNoetherianRing
         (MvPolynomial α R) (fun N _ _ hN => hα N) M
