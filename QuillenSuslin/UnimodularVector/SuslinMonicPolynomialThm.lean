@@ -102,18 +102,15 @@ theorem height_le_height_leadingCoeff [NoZeroDivisors R] (I : Ideal R[X]) :
     simpa [J, Pset, Finset.inf_id_eq_sInf, sInf_minimalPrimes] using
       (prod_le_inf : J ≤ Pset.inf id)
   rcases exists_pow_le_of_le_radical_of_fg hJ_le_rad J.fg_of_isNoetherianRing with ⟨N, hJN⟩
-  refine le_iInf fun q ↦ le_iInf fun hq ↦ ?_
-  have : q.IsPrime := IsPrime.of_mem_minimalPrimes hq
-  rcases (IsPrime.prod_le inferInstance).1 <|
-      IsPrime.le_of_pow_le <|
-        (pow_right_mono (by simpa [J] using leadingCoeff_finset_prod_le Pset id) N).trans <|
-          (leadingCoeff_pow_le J N).trans <| (leadingCoeff_mono hJN).trans hq.1.2
-    with ⟨P, hP, hPq⟩
-  have hPmin : P ∈ I.minimalPrimes := (Set.Finite.mem_toFinset hfin).1 hP
-  have : P.IsPrime := IsPrime.of_mem_minimalPrimes hPmin
-  exact le_trans (by simpa [height] using (iInf₂_le P hPmin))
-    (by simpa [P.height_eq_primeHeight, q.height_eq_primeHeight] using
-      le_trans (height_le_leadingCoeff_of_isPrime P) (height_mono hPq))
+  simp only [I.leadingCoeff.height_eq_inf_minimalPrimes, Set.mem_setOf_eq, le_iInf_iff]
+  intro q hq
+  have : q.IsPrime := hq.isPrime
+  obtain ⟨P, hP, hPq⟩ := (IsPrime.prod_le inferInstance).1 <| IsPrime.le_of_pow_le <|
+    (pow_right_mono (leadingCoeff_finset_prod_le Pset id) N).trans <|
+      (leadingCoeff_pow_le J N).trans <| (leadingCoeff_mono hJN).trans hq.le
+  rw [Set.Finite.mem_toFinset hfin] at hP
+  have : P.IsPrime := hP.isPrime
+  exact (height_mono hP.le).trans ((height_le_leadingCoeff_of_isPrime P).trans (height_mono hPq))
 
 end Ideal
 
