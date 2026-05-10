@@ -8,6 +8,7 @@ module
 public import Mathlib.RingTheory.RegularLocalRing.Localization
 public import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
 public import QuillenSuslin.FiniteFreeResolution.Localization
+public import QuillenSuslin.Invertible
 public import QuillenSuslin.StablyFree.FreeOfLocalizedEq
 public import QuillenSuslin.StablyFree.HasFiniteFreeResolution
 public import QuillenSuslin.UFD.Lemmas
@@ -22,6 +23,12 @@ open Module Ideal
 
 theorem Ideal.isPrincipal_of_free [IsDomain R] {I : Ideal R} [Module.Free R I] : I.IsPrincipal :=
   (Submodule.rank_le_one_iff_isPrincipal I).1 ((Submodule.rank_le I).trans_eq (Module.rank_self R))
+
+theorem Ideal.isPrincipal_iff_free [IsDomain R] {I : Ideal R} : Module.Free R I ↔ I.IsPrincipal := by
+  refine ⟨fun _ ↦ by simp [← I.rank_le_one_iff_isPrincipal, I.rank_le.trans_eq], fun _ ↦ ?_⟩
+  by_cases h : I = ⊥
+  · sorry
+  · exact Module.Free.of_equiv (Ideal.isoBaseOfIsPrincipal h)
 
 lemma ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal [IsLocalRing R]
     {P : Ideal R} [P.IsPrime] [P.FiniteHeight] (hP : P < IsLocalRing.maximalIdeal R) :
@@ -41,8 +48,10 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
   have : IsDomain (Localization.Away x) := Localization.Away.isDomain hxp.ne_zero
   rw [UniqueFactorizationMonoid.iff_height_one_primes_principal]
   intro Q hQ hQheight
-  have hloc (P : Ideal (Localization.Away x)) [P.IsMaximal] :
-      LocalizedModule P.primeCompl Q ≃ₗ[Localization.AtPrime P] Localization.AtPrime P := by
+  have : Module.Invertible (Localization.Away x) Q := by
+    have : FinitePresentation (Localization.Away x) Q := finitePresentation_of_finite ..
+    apply Module.Invertible.of_localized_maximal
+    intro P _
     let Q' : Ideal (Localization.AtPrime P) := Ideal.map (algebraMap (Localization.Away x) _) Q
     let eIdeal : LocalizedModule P.primeCompl Q ≃ₗ[Localization.AtPrime P] Q' :=
       LinearEquiv.extendScalarsOfIsLocalization P.primeCompl (Localization.AtPrime P) <|
@@ -67,18 +76,10 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
         simp [Q', IsLocalization.comap_map_of_isPrime_disjoint P.primeCompl (Localization.AtPrime P)
           inferInstance hd, hQheight, ← IsLocalization.height_comap P.primeCompl Q']
       have := UniqueFactorizationMonoid.height_one_primes_principal hQh
-      exact eIdeal.trans <| LinearEquiv.symm <| Ideal.isoBaseOfIsPrincipal <|
-        Ideal.height_eq_zero_iff_eq_bot.not.mp (by simp [hQh])
-    · exact eIdeal.trans <| LinearEquiv.ofTop Q' <|
+      exact Module.Invertible.congr <| Q'.isoBaseOfIsPrincipal
+        (Ideal.height_eq_zero_iff_eq_bot.not.mp (by simp [hQh])) ≪≫ₗ eIdeal.symm
+    · exact Module.Invertible.congr <| LinearEquiv.symm <| eIdeal.trans <| LinearEquiv.ofTop Q' <|
         IsLocalization.AtPrime.map_eq_top_of_not_le (Localization.AtPrime P) hQP
-  have : Projective (Localization.Away x) Q := by
-    have := finitePresentation_of_finite (Localization.Away x) Q
-    apply projective_of_localization_maximal
-    intro P _
-    have : Free (Localization.AtPrime P) (Localization.AtPrime P) := Free.self _
-    have : Free (Localization.AtPrime P) (LocalizedModule P.primeCompl Q) :=
-      Free.of_equiv (hloc P).symm
-    exact Projective.of_free
   let q : Ideal R := Q.under R
   have : HasFiniteFreeResolution R (R ⧸ q) := HasFiniteFreeResolution.of_projectiveDimension_ne_top
       (projectiveDimension_ne_top_of_isRegularLocalRing (ModuleCat.of R (R ⧸ q)))
@@ -90,7 +91,7 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
   have : Free (Localization.Away x) Q :=
     have := HasFiniteFreeResolution.of_shortExact_of_middle_of_right _ _
       (Submodule.subtype_injective Q) (Submodule.mkQ_surjective Q) (LinearMap.exact_subtype_mkQ Q)
-    free_of_isStablyFree_of_localized_eq_ring hloc
+    free_of_isStablyFree_of_invertible (Localization.Away x) Q
   exact Q.isPrincipal_of_free
 
 variable (R) in

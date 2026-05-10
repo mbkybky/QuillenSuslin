@@ -5,7 +5,7 @@ Authors: Yongle Hu
 -/
 module
 
-public import Mathlib
+public import Mathlib.RingTheory.PicardGroup
 
 public section
 
@@ -44,7 +44,7 @@ theorem Module.Invertible.of_isLocalized_maximal [Module.FinitePresentation R M]
       simp only [TensorProduct.AlgebraTensorModule.curry_apply, LinearMap.restrictScalars_self,
         TensorProduct.curry_apply, LinearMap.coe_comp, Function.comp_apply,
         LinearMap.coe_restrictScalars, LinearEquiv.coe_coe]
-      change _ = (mapExtendScalars m.primeCompl (f m) (Algebra.linearMap R (Rₚ m)) (Rₚ m)) α (f m x)
+      change _ = mapExtendScalars m.primeCompl (f m) (Algebra.linearMap R (Rₚ m)) (Rₚ m) α (f m x)
       simp [IsLocalizedModule.mapExtendScalars]
     simp [hψ, (h m).bijective.comp ψ.symm.bijective]
 
