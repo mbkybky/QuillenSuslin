@@ -100,24 +100,20 @@ section thm12
 lemma Ideal.height_add_one_le_of_forall_notMem_minimalPrimes {A : Type*} [CommRing A] {I : Ideal A}
     (a : A) {k : ℕ∞} (hk : k ≤ I.height) (ha : ∀ p ∈ I.minimalPrimes, a ∉ p) :
     k + 1 ≤ (I ⊔ Ideal.span ({a} : Set A)).height := by
-  refine le_iInf₂ ?_
+  simp only [(I ⊔ Ideal.span ({ a } : Set A)).height_eq_inf_minimalPrimes, le_iInf_iff]
   intro P hP
-  have : P.IsPrime := IsPrime.of_mem_minimalPrimes hP
+  have : P.IsPrime := hP.isPrime
   have hIP : I ≤ P := le_trans le_sup_left hP.1.2
   rcases Ideal.exists_minimalPrimes_le hIP with ⟨q, hq, hq_le_P⟩
-  have : q.IsPrime := IsPrime.of_mem_minimalPrimes hq
-  have haq : a ∉ q := ha q hq
-  have hI_le_q : I.height ≤ q.primeHeight := by simpa [Ideal.height] using iInf₂_le q hq
-  have hkq : k ≤ q.primeHeight := le_trans hk hI_le_q
+  have : q.IsPrime := hq.isPrime
   have haP : a ∈ P :=  (le_trans le_sup_right hP.1.2) (Ideal.subset_span (by simp))
   have hq_ne_P : q ≠ P := by
     intro h
     subst h
-    exact haq haP
+    exact ha q hq haP
   have hq_lt_P : q < P := lt_of_le_of_ne hq_le_P hq_ne_P
-  have hqp : q.primeHeight + 1 ≤ P.primeHeight := by
-    simpa [Ideal.height_eq_primeHeight] using Ideal.height_add_one_le_of_lt_of_isPrime hq_lt_P
-  exact le_trans (add_le_add_left hkq 1) hqp
+  have hqp : q.height + 1 ≤ P.height := Ideal.height_add_one_le_of_lt_of_isPrime hq_lt_P
+  exact (add_le_add_left (hk.trans (height_mono hq.le)) 1).trans hqp
 
 theorem exists_equiv_exists_index_height_gt_krullDim (n : ℕ) [IsNoetherianRing R]
     (v : s → MvPolynomial (Fin (n + 1)) R) (hv : IsUnimodular v)
