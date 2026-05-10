@@ -13,6 +13,10 @@ public import QuillenSuslin.StablyFree.FreeOfLocalizedEq
 public import QuillenSuslin.StablyFree.HasFiniteFreeResolution
 public import QuillenSuslin.UFD.Lemmas
 
+/-!
+This file proves that any regular local ring is a unique factorization domain.
+-/
+
 public section
 
 universe u
@@ -23,12 +27,6 @@ open Module Ideal
 
 theorem Ideal.isPrincipal_of_free [IsDomain R] {I : Ideal R} [Module.Free R I] : I.IsPrincipal :=
   (Submodule.rank_le_one_iff_isPrincipal I).1 ((Submodule.rank_le I).trans_eq (Module.rank_self R))
-
-theorem Ideal.isPrincipal_iff_free [IsDomain R] {I : Ideal R} : Module.Free R I ↔ I.IsPrincipal := by
-  refine ⟨fun _ ↦ by simp [← I.rank_le_one_iff_isPrincipal, I.rank_le.trans_eq], fun _ ↦ ?_⟩
-  by_cases h : I = ⊥
-  · sorry
-  · exact Module.Free.of_equiv (Ideal.isoBaseOfIsPrincipal h)
 
 lemma ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal [IsLocalRing R]
     {P : Ideal R} [P.IsPrime] [P.FiniteHeight] (hP : P < IsLocalRing.maximalIdeal R) :
@@ -50,8 +48,7 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
   intro Q hQ hQheight
   have : Module.Invertible (Localization.Away x) Q := by
     have : FinitePresentation (Localization.Away x) Q := finitePresentation_of_finite ..
-    apply Module.Invertible.of_localized_maximal
-    intro P _
+    refine Module.Invertible.of_localized_maximal (fun P _ ↦ ?_)
     let Q' : Ideal (Localization.AtPrime P) := Ideal.map (algebraMap (Localization.Away x) _) Q
     let eIdeal : LocalizedModule P.primeCompl Q ≃ₗ[Localization.AtPrime P] Q' :=
       LinearEquiv.extendScalarsOfIsLocalization P.primeCompl (Localization.AtPrime P) <|
@@ -62,10 +59,8 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
       have hx_not_mem_p : x ∉ p := Set.disjoint_left.mp
         ((IsLocalization.isPrime_iff_isPrime_disjoint M (Localization.Away x) P).1 inferInstance).2
           (Submonoid.mem_powers x)
-      have hp_lt_max : p < IsLocalRing.maximalIdeal R := by
-        refine lt_of_le_of_ne (IsLocalRing.le_maximalIdeal_of_isPrime p) ?_
-        intro hEq
-        exact hx_not_mem_p (hEq ▸ hxmem)
+      have hp_lt_max : p < IsLocalRing.maximalIdeal R :=
+        lt_of_le_of_ne (IsLocalRing.le_maximalIdeal_of_isPrime p) (fun h ↦ hx_not_mem_p (h ▸ hxmem))
       have : UniqueFactorizationMonoid (Localization.AtPrime P) :=
         IsLocalization.localizationLocalizationAtPrimeIsoLocalization M P
           |>.toMulEquiv.uniqueFactorizationMonoid (hP p hp_lt_max)
@@ -84,17 +79,18 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
   have : HasFiniteFreeResolution R (R ⧸ q) := HasFiniteFreeResolution.of_projectiveDimension_ne_top
       (projectiveDimension_ne_top_of_isRegularLocalRing (ModuleCat.of R (R ⧸ q)))
   have := HasFiniteFreeResolution.of_linearEquiv <| (localizedQuotientEquiv M q).symm.trans
-      (Submodule.quotEquivOfEq _ _ (Ideal.localized'_eq_map (Localization.Away x) M q))
+      (Submodule.quotEquivOfEq _ _ (q.localized'_eq_map (Localization.Away x) M))
   have : HasFiniteFreeResolution (Localization.Away x) (Localization.Away x ⧸ Q) :=
     HasFiniteFreeResolution.of_linearEquiv <| AlgEquiv.toLinearEquiv <|
       Ideal.quotientEquivAlgOfEq (Localization.Away x) (IsLocalization.map_comap M _ Q)
-  have : Free (Localization.Away x) Q :=
+  have : Free (Localization.Away x) Q := by
     have := HasFiniteFreeResolution.of_shortExact_of_middle_of_right _ _
       (Submodule.subtype_injective Q) (Submodule.mkQ_surjective Q) (LinearMap.exact_subtype_mkQ Q)
-    free_of_isStablyFree_of_invertible (Localization.Away x) Q
+    exact free_of_isStablyFree_of_invertible (Localization.Away x) Q
   exact Q.isPrincipal_of_free
 
 variable (R) in
+/-- Any regular local ring is a unique factorization domain.-/
 instance (priority := low) uniqueFactorizationMonoid [IsRegularLocalRing R] :
     UniqueFactorizationMonoid R := by
   have hmain (n : ℕ) : ∀ {S : Type u} [CommRing S] [IsRegularLocalRing S],
@@ -113,8 +109,9 @@ instance (priority := low) uniqueFactorizationMonoid [IsRegularLocalRing R] :
             simpa only [ringKrullDim_eq_zero_of_isField h] using not_eq_of_beq_eq_false rfl
           have hx_ne_zero : x ≠ 0 := fun hx0 ↦ hxnm (by simp [hx0])
           have : IsRegularLocalRing (S ⧸ Ideal.span {x}) := (quotient_span_singleton S hxm hxnm).1
-          have hxp : Prime x := (Ideal.span_singleton_prime hx_ne_zero).1 <|
-            (Ideal.Quotient.isDomain_iff_prime _).1 inferInstance
+          have hxp : Prime x := by
+            rw [← Ideal.span_singleton_prime hx_ne_zero, ← Ideal.Quotient.isDomain_iff_prime]
+            infer_instance
           have hP (P : Ideal S) [P.IsPrime] (hP_lt_max : P < IsLocalRing.maximalIdeal S) :
               UniqueFactorizationMonoid (Localization.AtPrime P) := by
             have : IsRegularLocalRing _ := isRegularLocalRing_localization S P
