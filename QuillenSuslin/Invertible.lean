@@ -15,186 +15,86 @@ namespace Module
 
 open scoped TensorProduct
 
-variable {R : Type*} [CommRing R] {M : Type*} [AddCommGroup M] [Module R M]
+variable {R : Type*} [CommRing R] {M N : Type*} [AddCommGroup M] [Module R M]
+  [AddCommGroup N] [Module R N]
 
 section Free
 
-lemma rankAtStalk_eq_of_le_of_finite_of_flat [Module.Finite R M] [Module.Flat R M]
-    {p q : Ideal R} [p.IsPrime] [q.IsPrime] (hpq : p ≤ q) :
-    rankAtStalk M ⟨p, inferInstance⟩ = rankAtStalk M ⟨q, inferInstance⟩ := by
-  let S := Localization.AtPrime q
-  have hdisj : Disjoint (q.primeCompl : Set R) p := by
-    rw [Set.disjoint_left]
-    intro x hxq hxp
-    exact hxq (hpq hxp)
-  have hp_range : (⟨p, inferInstance⟩ : PrimeSpectrum R) ∈
-      Set.range (PrimeSpectrum.comap (algebraMap R S)) := by
-    rw [PrimeSpectrum.localization_comap_range S q.primeCompl]
-    exact hdisj
-  obtain ⟨P, hP⟩ := hp_range
-  have : Module.Free S (LocalizedModule q.primeCompl M) := Module.free_of_flat_of_isLocalRing
-  let e : LocalizedModule q.primeCompl M ≃ₗ[S] S ⊗[R] M :=
-    LocalizedModule.equivTensorProduct q.primeCompl M
-  calc
-    rankAtStalk M (⟨p, inferInstance⟩ : PrimeSpectrum R)
-        = rankAtStalk (S ⊗[R] M) P := by
-          rw [rankAtStalk_baseChange]
-          exact congr_arg (rankAtStalk M) hP.symm
-    _ = rankAtStalk (LocalizedModule q.primeCompl M) P := by
-          exact congr_fun (rankAtStalk_eq_of_equiv e.symm) P
-    _ = Module.finrank S (LocalizedModule q.primeCompl M) := by
-          simp
-    _ = rankAtStalk M (⟨q, inferInstance⟩ : PrimeSpectrum R) := rfl
+lemma exists_isLocalizedModule_map_surjective_of_surjective [Module.FinitePresentation R M]
+    (p : Ideal R) [p.IsPrime] (Rₚ : Type*) [CommRing Rₚ] [Algebra R Rₚ] [IsLocalization.AtPrime Rₚ p]
+    {Mₚ : Type*} [AddCommGroup Mₚ] [Module R Mₚ] [Module (Rₚ) Mₚ] [IsScalarTower R (Rₚ) Mₚ]
+    (f : M →ₗ[R] Mₚ) [IsLocalizedModule.AtPrime p f]
+    {Nₚ : Type*} [AddCommGroup Nₚ] [Module R Nₚ] [Module (Rₚ) Nₚ] [IsScalarTower R (Rₚ) Nₚ]
+    (g : N →ₗ[R] Nₚ) [IsLocalizedModule.AtPrime p g] {ϕ : Mₚ →ₗ[Rₚ] Nₚ} (hϕ : Function.Surjective ϕ) :
+    ∃ φ : M →ₗ[R] N, Function.Surjective (IsLocalizedModule.map p.primeCompl f g φ) := by
+  sorry
+
+lemma exists_localizedModule_map_surjective_of_surjective [Module.FinitePresentation R M]
+    (p : Ideal R) [p.IsPrime]
+    {ϕ : LocalizedModule.AtPrime p M →ₗ[Localization.AtPrime p] LocalizedModule.AtPrime p N}
+    (hϕ : Function.Surjective ϕ) :
+    ∃ φ : M →ₗ[R] N, Function.Surjective (LocalizedModule.map p.primeCompl φ) := by
+  sorry
+
+lemma exists_localizedModule_map_away_surjective_of_map_atPrime_surjective [Module.Finite R N]
+    (p : Ideal R) [p.IsPrime]
+    (φ : M →ₗ[R] N) (hφ : Function.Surjective (LocalizedModule.map p.primeCompl φ)) :
+    ∃ a ∉ p, Function.Surjective (LocalizedModule.map (Submonoid.powers a) φ) := by
+  sorry
+
+lemma bijective_of_surjective_of_finite_of_free_of_finrank_eq
+    [Module.Finite R M] [Module.Free R M] [Module.Free R N]
+    (h : finrank R M = finrank R N) {f : M →ₗ[R] N} (hf : Function.Surjective f) :
+    Function.Bijective f := by
+  sorry
+
+lemma localized_atPrime_finite_of_finite [Module.Finite R M] (p : Ideal R) [p.IsPrime] (a : R) :
+    Module.Finite (Localization.AtPrime p) (LocalizedModule.AtPrime p (LocalizedModule.Away a M)) := by
+  sorry
 
 variable (M) in
 theorem Free.away_of_finite_of_flat_of_rankAtStalk_constant [Module.Finite R M] [Module.Flat R M]
-    (m : Ideal R) [m.IsPrime] (h : ∀ (p : Ideal R) [p.IsMaximal],
-      rankAtStalk M ⟨p, inferInstance⟩ = rankAtStalk M ⟨m, inferInstance⟩) :
-    ∃ (f : R) (_ : f ∉ m), Module.Free (Localization.Away f) (LocalizedModule.Away f M) := by
+    (p : Ideal R) [p.IsPrime] (h : ∀ (m : Ideal R) [m.IsMaximal],
+      rankAtStalk M ⟨m, inferInstance⟩ = rankAtStalk M ⟨p, inferInstance⟩) :
+    ∃ (f : R) (_ : f ∉ p), Module.Free (Localization.Away f) (LocalizedModule.Away f M) := by
   rcases subsingleton_or_nontrivial R with _ | _
   · use 1, Ideal.IsPrime.one_notMem ‹_›
     exact of_subsingleton' (Localization.Away 1) (LocalizedModule.Away 1 M)
-  let n := rankAtStalk M ⟨m, inferInstance⟩
-  obtain ⟨v, hφm⟩ : ∃ (v : Fin n → M), Function.Bijective <| IsLocalizedModule.map m.primeCompl
-      (Finsupp.mapRange.linearMap (Algebra.linearMap R (Localization.AtPrime m)))
-        (LocalizedModule.mkLinearMap m.primeCompl M) (Finsupp.linearCombination R v) := by
-    have : Module.Free (Localization.AtPrime m) (LocalizedModule m.primeCompl M) :=
-      Module.free_of_flat_of_isLocalRing
-    let b : Basis (Fin n) (Localization.AtPrime m) (LocalizedModule m.primeCompl M) :=
-      Module.finBasisOfFinrankEq (Localization.AtPrime m) (LocalizedModule m.primeCompl M) rfl
-    choose y hy using fun i ↦
-      IsLocalizedModule.surj m.primeCompl (LocalizedModule.mkLinearMap m.primeCompl M) (b i)
-    let v : Fin n → M := fun i ↦ (y i).1
-    refine ⟨v, ?_⟩
-    let b' := b.isUnitSMul (fun i ↦ IsLocalization.map_units (Localization.AtPrime m) (y i).2)
-    have hb' (i : Fin n) : b' i = (LocalizedModule.mkLinearMap m.primeCompl M) (v i) := by
-      rw [Module.Basis.isUnitSMul_apply]
-      simpa [Algebra.smul_def] using hy i
-    rw [IsLocalizedModule.map_linearCombination]
-    rw [show ((LocalizedModule.mkLinearMap m.primeCompl M) ∘ v) = b' by
-      funext i
-      exact (hb' i).symm]
-    rw [← b'.coe_repr_symm]
-    exact b'.repr.symm.bijective
-  let φ : (Fin n →₀ R) →ₗ[R] M := Finsupp.linearCombination R v
-  obtain ⟨g, hgm, hφs⟩ :
-      ∃ g ∉ m, Function.Surjective (LocalizedModule.map (Submonoid.powers g) φ) := by
-    let Q := M ⧸ LinearMap.range φ
-    have hQm : Subsingleton (LocalizedModule m.primeCompl Q) := by
-      let e : (LocalizedModule m.primeCompl M ⧸ (LinearMap.range φ).localized m.primeCompl)
-          ≃ₗ[Localization.AtPrime m] LocalizedModule m.primeCompl Q :=
-        localizedQuotientEquiv m.primeCompl (LinearMap.range φ)
-      have hquot : Subsingleton
-          (LocalizedModule m.primeCompl M ⧸ (LinearMap.range φ).localized m.primeCompl) := by
-        rw [Submodule.Quotient.subsingleton_iff]
-        apply Submodule.restrictScalars_injective R
-        rw [Submodule.restrictScalars_localized']
-        rw [← LinearMap.range_localizedMap_eq_localized₀_range (m.primeCompl)
-          (Finsupp.mapRange.linearMap (Algebra.linearMap R (Localization.AtPrime m)))]
-        exact LinearMap.range_eq_top.mpr hφm.2
-      exact e.symm.subsingleton
-    obtain ⟨g, hgm, hQg⟩ := LocalizedModule.exists_subsingleton_away (M := Q) m
-    refine ⟨g, hgm, ?_⟩
-    rw [← LinearMap.range_eq_top]
-    apply Submodule.restrictScalars_injective R
-    change Submodule.restrictScalars R ((LocalizedModule.map (Submonoid.powers g)) φ).range =
-      (⊤ : Submodule R (LocalizedModule (Submonoid.powers g) M))
-    rw [eq_top_iff]
-    intro y hy
-    have hyker :
-        y ∈ LinearMap.ker (LocalizedModule.map (Submonoid.powers g) (LinearMap.range φ).mkQ) := by
-      rw [LinearMap.mem_ker]
-      exact Subsingleton.elim _ 0
-    change y ∈ LinearMap.ker
-        (IsLocalizedModule.map (Submonoid.powers g)
-          (LocalizedModule.mkLinearMap (Submonoid.powers g) M)
-          (LocalizedModule.mkLinearMap (Submonoid.powers g) Q)
-          (LinearMap.range φ).mkQ) at hyker
-    rw [LinearMap.ker_localizedMap_eq_localized₀_ker, Submodule.ker_mkQ,
-      ← LinearMap.range_localizedMap_eq_localized₀_range (Submonoid.powers g)
-        (Finsupp.mapRange.linearMap (Algebra.linearMap R (Localization.Away g)))] at hyker
-    rcases hyker with ⟨x, rfl⟩
-    obtain ⟨z, hz⟩ := IsLocalizedModule.surj (Submonoid.powers g)
-      (Finsupp.mapRange.linearMap (Algebra.linearMap R (Localization.Away g))) x
-    change (z.2 : R) • x =
-      (Finsupp.mapRange.linearMap (Algebra.linearMap R (Localization.Away g))) z.1 at hz
-    refine ⟨IsLocalizedModule.mk'
-      (LocalizedModule.mkLinearMap (Submonoid.powers g) (Fin n →₀ R)) z.1 z.2, ?_⟩
-    apply IsLocalizedModule.smul_injective (LocalizedModule.mkLinearMap (Submonoid.powers g) M) z.2
-    calc
-      z.2 • (((LocalizedModule.map (Submonoid.powers g)) φ)
-          (IsLocalizedModule.mk' (LocalizedModule.mkLinearMap (Submonoid.powers g)
-            (Fin n →₀ R)) z.1 z.2))
-          = (LocalizedModule.mkLinearMap (Submonoid.powers g) M) (φ z.1) := by
-            simp [LocalizedModule.map]
-      _ = z.2 • (((IsLocalizedModule.map (Submonoid.powers g)
-              (Finsupp.mapRange.linearMap (Algebra.linearMap R (Localization.Away g)))
-              (LocalizedModule.mkLinearMap (Submonoid.powers g) M)) φ) x) := by
-            change (LocalizedModule.mkLinearMap (Submonoid.powers g) M) (φ z.1) =
-              (z.2 : R) • (((IsLocalizedModule.map (Submonoid.powers g)
-                (Finsupp.mapRange.linearMap (Algebra.linearMap R (Localization.Away g)))
-                (LocalizedModule.mkLinearMap (Submonoid.powers g) M)) φ) x)
-            rw [← LinearMap.map_smul]
-            rw [hz]
-            rw [IsLocalizedModule.map_apply]
-  refine ⟨g, hgm, ?_⟩
-  let A := Localization.Away g
-  let Mg := LocalizedModule.Away g M
-  let Fg := LocalizedModule.Away g (Fin n →₀ R)
-  let φg : Fg →ₗ[A] Mg := LocalizedModule.map (Submonoid.powers g) φ
-  have hφs' : Function.Surjective φg := hφs
-  have hφg_bij : Function.Bijective φg := by
-    refine bijective_of_localized_maximal φg ?_
-    intro 𝔪 h𝔪
-    have h01A : (0 : A) ≠ 1 := by
-      intro h01
-      apply h𝔪.ne_top
-      simp [Ideal.eq_top_iff_one, ← h01]
-    have : Nontrivial A := ⟨⟨0, 1, h01A⟩⟩
-    let B := Localization.AtPrime 𝔪
-    let F𝔪 := LocalizedModule 𝔪.primeCompl Fg
-    let M𝔪 := LocalizedModule 𝔪.primeCompl Mg
-    let φ𝔪 : F𝔪 →ₗ[B] M𝔪 := LocalizedModule.map 𝔪.primeCompl φg
-    have hφ𝔪_surj : Function.Surjective φ𝔪 :=
-      LocalizedModule.map_surjective 𝔪.primeCompl φg hφs'
-    have : Module.Free B M𝔪 := Module.free_of_flat_of_isLocalRing
-    have : Module.Free A Fg := Module.free_of_isLocalizedModule (Submonoid.powers g)
-      (LocalizedModule.mkLinearMap (Submonoid.powers g) (Fin n →₀ R))
-    have : Module.Free B F𝔪 := Module.free_of_isLocalizedModule 𝔪.primeCompl
-      (LocalizedModule.mkLinearMap 𝔪.primeCompl Fg)
-    have hfinFg : Module.finrank A Fg = n := by
-      calc
-        Module.finrank A Fg = Module.finrank R (Fin n →₀ R) := by
-          exact Module.finrank_of_isLocalizedModule_of_free A (Submonoid.powers g)
-            (LocalizedModule.mkLinearMap (Submonoid.powers g) (Fin n →₀ R))
-        _ = n := by
-          rw [Module.finrank_finsupp_self, Fintype.card_fin]
-    have hfinF𝔪 : Module.finrank B F𝔪 = n := by
-      calc
-        Module.finrank B F𝔪 = Module.finrank A Fg := by
-          exact Module.finrank_of_isLocalizedModule_of_free B 𝔪.primeCompl
-            (LocalizedModule.mkLinearMap 𝔪.primeCompl Fg)
-        _ = n := hfinFg
-    have hrankMg : rankAtStalk Mg ⟨𝔪, inferInstance⟩ = n := by
-      let P : PrimeSpectrum A := ⟨𝔪, inferInstance⟩
-      let q : PrimeSpectrum R := PrimeSpectrum.comap (algebraMap R A) P
-      obtain ⟨m', hm', hqm'⟩ := Ideal.exists_le_maximal q.asIdeal q.2.1
-      let e : Mg ≃ₗ[A] A ⊗[R] M := LocalizedModule.equivTensorProduct (Submonoid.powers g) M
-      calc
-        rankAtStalk Mg P = rankAtStalk (A ⊗[R] M) P := congr_fun (rankAtStalk_eq_of_equiv e) P
-        _ = rankAtStalk M q := by rw [rankAtStalk_baseChange]
-        _ = rankAtStalk M ⟨m', hm'.isPrime⟩ := rankAtStalk_eq_of_le_of_finite_of_flat hqm'
-        _ = n := h m'
-    let bF : Basis (Fin n) B F𝔪 := Module.finBasisOfFinrankEq B F𝔪 hfinF𝔪
-    let bM : Basis (Fin n) B M𝔪 := Module.finBasisOfFinrankEq B M𝔪 hrankMg
-    let e : F𝔪 ≃ₗ[B] M𝔪 := bF.repr ≪≫ₗ bM.repr.symm
-    let ψ : Module.End B F𝔪 := e.symm.toLinearMap ∘ₗ φ𝔪
-    have hψ_surj : Function.Surjective ψ := e.symm.surjective.comp hφ𝔪_surj
-    have hψ_inj : Function.Injective ψ := Module.End.injective_of_surjective B F𝔪 hψ_surj
-    exact ⟨fun x y hxy ↦ hψ_inj (congr_arg e.symm hxy), hφ𝔪_surj⟩
-  have : Module.Free A Fg := Module.free_of_isLocalizedModule (Submonoid.powers g)
-    (LocalizedModule.mkLinearMap (Submonoid.powers g) (Fin n →₀ R))
-  exact Module.Free.of_equiv (LinearEquiv.ofBijective φg hφg_bij)
+  let n := rankAtStalk M ⟨p, inferInstance⟩
+  have : Module.Free (Localization.AtPrime p) (LocalizedModule.AtPrime p M) :=
+    Module.free_of_flat_of_isLocalRing
+  let b : Basis (Fin n) (Localization.AtPrime p) (LocalizedModule.AtPrime p M) :=
+    finBasisOfFinrankEq (Localization.AtPrime p) (LocalizedModule.AtPrime p M) rfl
+  obtain ⟨φ, hφs⟩ := exists_isLocalizedModule_map_surjective_of_surjective p (Localization.AtPrime p)
+    (Finsupp.mapRange.linearMap (Algebra.linearMap R (Localization.AtPrime p)))
+      (LocalizedModule.mkLinearMap p.primeCompl M) <| LinearEquiv.surjective <|
+        (finBasisOfFinrankEq (Localization.AtPrime p) (LocalizedModule.AtPrime p M) rfl).repr.symm
+  obtain ⟨a, hap, hφs⟩ := by
+    refine exists_localizedModule_map_away_surjective_of_map_atPrime_surjective p φ ?_
+    sorry
+  refine ⟨a, hap, ?_⟩
+  let Rₐ := Localization.Away a
+  let Mₐ := LocalizedModule.Away a M
+  let Fₐ := LocalizedModule.Away a (Fin n →₀ R)
+  have : Module.Free Rₐ Fₐ := Module.free_of_isLocalizedModule (Submonoid.powers a)
+    (LocalizedModule.mkLinearMap (Submonoid.powers a) (Fin n →₀ R))
+  let φₐ : Fₐ →ₗ[Rₐ] Mₐ := LocalizedModule.map (Submonoid.powers a) φ
+  have hφbij : Function.Bijective φₐ := by
+    refine bijective_of_localized_maximal (φₐ.restrictScalars R) (fun m _ ↦ ?_)
+    have : Function.Surjective (φₐ.restrictScalars R) := hφs
+    have hφₐ : Function.Surjective (LocalizedModule.map m.primeCompl (φₐ.restrictScalars R)) :=
+      LocalizedModule.map_surjective _ _ hφs
+    have : Module.Finite (Localization.AtPrime m) (LocalizedModule.AtPrime m Fₐ) := sorry
+    have : Module.Finite (Localization.AtPrime m) (LocalizedModule.AtPrime m Mₐ) := sorry
+    have : Flat R Fₐ := Flat.trans R Rₐ Fₐ
+    have : Flat R Mₐ := Flat.trans R Rₐ Mₐ
+    have : Free (Localization.AtPrime m) (LocalizedModule.AtPrime m Fₐ) :=
+      free_of_flat_of_isLocalRing
+    have : Free (Localization.AtPrime m) (LocalizedModule.AtPrime m Mₐ) :=
+      free_of_flat_of_isLocalRing
+    refine bijective_of_surjective_of_finite_of_free_of_finrank_eq ?_ hφₐ
+    sorry
+  exact Module.Free.of_equiv (LinearEquiv.ofBijective φₐ hφbij)
 
 end Free
 
@@ -252,7 +152,7 @@ theorem Invertible.of_isLocalized_maximal [Module.Finite R M]
       refine Module.FinitePresentation.of_finite_of_flat_of_rankAtStalk_constant 1 (fun m _ ↦ ?_)
       have : IsLocalRing (Rₚ m) := IsLocalization.AtPrime.isLocalRing (Rₚ m) m
       have hfree : Module.Free (Rₚ m) (Mₚ m) := Module.free_of_flat_of_isLocalRing
-      let e : LocalizedModule m.primeCompl M ≃ₗ[R] Localization.AtPrime m :=
+      let e : LocalizedModule.AtPrime m M ≃ₗ[R] Localization.AtPrime m :=
         IsLocalizedModule.linearEquiv m.primeCompl (LocalizedModule.mkLinearMap _ M) (f m) ≪≫ₗ
           (Invertible.free_iff_linearEquiv.mp hfree).some.restrictScalars R ≪≫ₗ
             (algEquiv m.primeCompl (Localization.AtPrime m) (Rₚ m)).symm.toLinearEquiv
