@@ -41,7 +41,6 @@ lemma rankAtStalk_eq_of_le_of_finite_of_flat [Module.Finite R M] [Module.Flat R 
     rw [PrimeSpectrum.localization_comap_range S q.asIdeal.primeCompl]
     exact disjoint_compl_left_iff.mpr hpq
   have : Module.Free S (LocalizedModule q.asIdeal.primeCompl M) := free_of_flat_of_isLocalRing
-  have := IsLocalizedModule.isBaseChange q.asIdeal.primeCompl (Localization.AtPrime q.asIdeal) (mkLinearMap q.asIdeal.primeCompl M)
   rw [← hpr.choose_spec, ← rankAtStalk_isBaseChange
     (LocalizedModule.isBaseChange q.asIdeal.primeCompl M), rankAtStalk_eq_finrank_of_free]
   simp [rankAtStalk]
@@ -51,35 +50,24 @@ lemma rankAtStalk_eq_of_le_of_finite_of_flat' [Module.Finite R M] [Module.Flat R
     {p q : Ideal R} [hp : p.IsPrime] [hq : q.IsPrime] (hpq : p ≤ q) : rankAtStalk M ⟨p, hp⟩ = rankAtStalk M ⟨q, hq⟩ :=
   rankAtStalk_eq_of_le_of_finite_of_flat M hpq
 
-/-
-lemma wedqe (S : Submonoid R) (Rₐ : Type*) [CommRing Rₐ] [Algebra R Rₐ] [IsLocalization S Rₐ]
-    (Mₐ : Type*) [AddCommGroup Mₐ] [Module R Mₐ] [Module Rₐ Mₐ] [IsScalarTower R Rₐ Mₐ]
-    (p : PrimeSpectrum Rₐ) :
-    rankAtStalk Mₐ p = rankAtStalk M (p.comap (algebraMap R Rₐ)) := by
-  sorry
- -/
-
+/-- Let `M` be a finitely presented `R`-module, `N` be a `R`-module, `p` be a prime ideal of `R`.
+Then any surjective linear map `ϕ : Mₚ →ₗ[R] Nₚ` between the localized modules at `p` lifts to a
+linear map `φ : M →ₗ[R] N` that is surjective at `p`. -/
 lemma exists_isLocalizedModule_map_surjective_of_surjective [Module.FinitePresentation R M]
     (p : Ideal R) [p.IsPrime] (Rₚ : Type*) [CommRing Rₚ] [Algebra R Rₚ] [IsLocalization.AtPrime Rₚ p]
-    {Mₚ : Type*} [AddCommGroup Mₚ] [Module R Mₚ] [Module (Rₚ) Mₚ] [IsScalarTower R (Rₚ) Mₚ]
+    {Mₚ : Type*} [AddCommGroup Mₚ] [Module R Mₚ] [Module Rₚ Mₚ] [IsScalarTower R Rₚ Mₚ]
     (f : M →ₗ[R] Mₚ) [IsLocalizedModule.AtPrime p f]
-    {Nₚ : Type*} [AddCommGroup Nₚ] [Module R Nₚ] [Module (Rₚ) Nₚ] [IsScalarTower R (Rₚ) Nₚ]
-    (g : N →ₗ[R] Nₚ) [IsLocalizedModule.AtPrime p g] {ϕ : Mₚ →ₗ[Rₚ] Nₚ} (hϕ : Function.Surjective ϕ) :
+    {Nₚ : Type*} [AddCommGroup Nₚ] [Module R Nₚ] [Module Rₚ Nₚ] [IsScalarTower R Rₚ Nₚ]
+    (g : N →ₗ[R] Nₚ) [IsLocalizedModule.AtPrime p g] {ϕ : Mₚ →ₗ[R] Nₚ} (hϕ : Function.Surjective ϕ) :
     ∃ φ : M →ₗ[R] N, Function.Surjective (IsLocalizedModule.map p.primeCompl f g φ) := by
-  obtain ⟨φ, s, hφ⟩ := Module.FinitePresentation.exists_lift_of_isLocalizedModule
-    p.primeCompl g (ϕ.restrictScalars R ∘ₗ f)
+  obtain ⟨φ, s, hφ⟩ := FinitePresentation.exists_lift_of_isLocalizedModule p.primeCompl g (ϕ ∘ₗ f)
   refine ⟨φ, ?_⟩
-  have hmap : IsLocalizedModule.map p.primeCompl f g φ = s • ϕ.restrictScalars R := by
-    apply IsLocalizedModule.ext p.primeCompl f (IsLocalizedModule.map_units g)
-    ext x
-    simpa only [LinearMap.coe_comp, Function.comp_apply, IsLocalizedModule.map_apply] using
-      LinearMap.congr_fun hφ x
+  have hmap : IsLocalizedModule.map p.primeCompl f g φ = s • ϕ := by
+    apply IsLocalizedModule.linearMap_ext p.primeCompl f g
+    rw [IsLocalizedModule.map_comp, hφ]
+    rfl
   rw [hmap]
-  intro y
-  obtain ⟨z, hz⟩ := ((Module.End.isUnit_iff _).mp
-    (IsLocalizedModule.map_units (S := p.primeCompl) (f := g) s)).2 y
-  obtain ⟨x, rfl⟩ := hϕ z
-  exact ⟨x, hz⟩
+  exact ((Module.End.isUnit_iff _).mp (IsLocalizedModule.map_units g s)).2.comp hϕ
 
 lemma _root_.LinearMap.localizedMap_surjective_iff_subsingleton_localized_coker (S : Submonoid R)
     (φ : M →ₗ[R] N) :
@@ -137,23 +125,25 @@ lemma localized_map_bijective_of_surjective_of_rankAtStalk_eq [Module.Finite R M
   simp [rankAtStalk_eq_of_le_of_finite_of_flat' _ hm𝔪, h 𝔪]
 
 variable (M) in
+/-- Let `M` be a finite flat `R`-module, `p` be a prime ideal of `R`. If `rankAtStalk M` is
+constant, then there exists `a ∉ p` such that the `M` is free after localization away from `a`. -/
 theorem Free.away_of_finite_of_flat_of_rankAtStalk_constant [Module.Finite R M] [Module.Flat R M]
     (p : Ideal R) [p.IsPrime] (h : ∀ (m : Ideal R) [m.IsMaximal],
       rankAtStalk M ⟨m, inferInstance⟩ = rankAtStalk M ⟨p, inferInstance⟩) :
-    ∃ (f : R) (_ : f ∉ p), Module.Free (Localization.Away f) (LocalizedModule.Away f M) := by
+    ∃ (a : R) (_ : a ∉ p), Module.Free (Localization.Away a) (LocalizedModule.Away a M) := by
   rcases subsingleton_or_nontrivial R with _ | _
   · use 1, Ideal.IsPrime.one_notMem ‹_›
     exact Module.Free.of_subsingleton' (Localization.Away 1) (LocalizedModule.Away 1 M)
   let Rₚ := Localization.AtPrime p
   let n := rankAtStalk M ⟨p, inferInstance⟩
   have : Module.Free Rₚ (LocalizedModule.AtPrime p M) := Module.free_of_flat_of_isLocalRing
-  obtain ⟨φ, hφps⟩ := exists_isLocalizedModule_map_surjective_of_surjective p Rₚ
-    (Finsupp.mapRange.linearMap (Algebra.linearMap R Rₚ)) (mkLinearMap p.primeCompl M)
-      (finBasisOfFinrankEq Rₚ (LocalizedModule.AtPrime p M) rfl).repr.symm.surjective
+  let f : (Fin n →₀ R) →ₗ[R] Fin n →₀ Rₚ := Finsupp.mapRange.linearMap (Algebra.linearMap R Rₚ)
+  let g : M →ₗ[R] LocalizedModule.AtPrime p M := LocalizedModule.mkLinearMap p.primeCompl M
+  obtain ⟨φ, hφps⟩ := exists_isLocalizedModule_map_surjective_of_surjective p Rₚ f g
+    ((finBasis Rₚ (LocalizedModule.AtPrime p M)).repr.restrictScalars R).symm.surjective
   obtain ⟨a, hap, hφas⟩ := by
     refine exists_localizedModule_map_away_surjective_of_map_atPrime_surjective p φ ?_
-    simpa [LocalizedModule.coe_map_eq (Finsupp.mapRange.linearMap (Algebra.linearMap R Rₚ))
-      (LocalizedModule.mkLinearMap p.primeCompl M)]
+    simpa [LocalizedModule.coe_map_eq f g]
   have : Module.Free (Localization.Away a) (LocalizedModule.Away a (Fin n →₀ R)) :=
     free_of_isLocalizedModule (Submonoid.powers a) (mkLinearMap (Submonoid.powers a) (Fin n →₀ R))
   let φₐ : LocalizedModule.Away a (Fin n →₀ R) →ₗ[Localization.Away a] LocalizedModule.Away a M :=
@@ -239,6 +229,8 @@ theorem Invertible.of_isLocalized_maximal [Module.Finite R M]
       simp
     simp [hψ, (h m).bijective.comp ψ.symm.bijective]
 
+/-- Let `M` be a finite `R`-module, then `M` is invertible if `Mₘ` is invertible for any every
+maximal ideal `m` of `R`. -/
 theorem Invertible.of_localized_maximal [Module.Finite R M]
     (h : ∀ (m : Ideal R) [m.IsMaximal],
       Module.Invertible (Localization.AtPrime m) (LocalizedModule.AtPrime m M)) :
