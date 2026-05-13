@@ -47,7 +47,6 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
   rw [UniqueFactorizationMonoid.iff_height_one_primes_principal]
   intro Q hQ hQheight
   have : Module.Invertible (Localization.Away x) Q := by
-    have : FinitePresentation (Localization.Away x) Q := finitePresentation_of_finite ..
     refine Module.Invertible.of_localized_maximal (fun P _ ↦ ?_)
     let Q' : Ideal (Localization.AtPrime P) := Ideal.map (algebraMap (Localization.Away x) _) Q
     let eIdeal : LocalizedModule P.primeCompl Q ≃ₗ[Localization.AtPrime P] Q' :=
@@ -90,7 +89,7 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
   exact Q.isPrincipal_of_free
 
 variable (R) in
-/-- Any regular local ring is a unique factorization domain.-/
+/-- Any regular local ring is a unique factorization domain. -/
 instance (priority := low) uniqueFactorizationMonoid [IsRegularLocalRing R] :
     UniqueFactorizationMonoid R := by
   have hmain (n : ℕ) : ∀ {S : Type u} [CommRing S] [IsRegularLocalRing S],
