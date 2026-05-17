@@ -274,6 +274,6 @@ instance quillenSuslin [IsDomain R] [IsPrincipalIdealRing R] (σ : Type*) [Finit
     mvPolynomial_isStablyFree_of_isPrincipalIdealRing R σ P
   intro _ _ _
   have : Fintype σ := Fintype.ofFinite σ
-  exact thm12
+  exact unimodularVectorEquiv_std_of_mvPolynomial
 
 end Module
