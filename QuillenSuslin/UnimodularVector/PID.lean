@@ -95,8 +95,6 @@ theorem unimodularVectorEquiv_of_pid [IsPrincipalIdealRing R]
   exact unimodularVectorEquiv_equivalence.trans (hstd hv)
     (unimodularVectorEquiv_equivalence.symm (hstd hw))
 
-section thm12
-
 lemma Ideal.height_add_one_le_of_forall_notMem_minimalPrimes {A : Type*} [CommRing A] {I : Ideal A}
     (a : A) {k : ℕ∞} (hk : k ≤ I.height) (ha : ∀ p ∈ I.minimalPrimes, a ∉ p) :
     k + 1 ≤ (I ⊔ Ideal.span ({a} : Set A)).height := by
@@ -671,7 +669,8 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
 
 /-- Let $R = k[x_1, \dots, x_n]$ be a polynomial ring over a principal ideal domain $k$, and let
   $v \in R^n$ be a unimodular vector. Then $v \sim e_1$. -/
-theorem thm12 {σ : Type*} [Fintype σ] (o : s) (v : s → MvPolynomial σ R) (hv : IsUnimodular v) :
+theorem unimodularVectorEquiv_std_of_mvPolynomial {σ : Type*} [Fintype σ] (o : s)
+    (v : s → MvPolynomial σ R) (hv : IsUnimodular v) :
     UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
   let n : ℕ := Fintype.card σ
   let eσ : σ ≃ Fin n := Fintype.equivFin σ
@@ -715,7 +714,7 @@ theorem thm12 {σ : Type*} [Fintype σ] (o : s) (v : s → MvPolynomial σ R) (h
           (fun j => Polynomial.C (v0 j)) (fun j : s => if j = o then 1 else 0) := by
         simpa [v0] using unimodularVectorEquiv_map C (ih v0 hv0)
       have hwstdPoly : UnimodularVectorEquiv wpoly (fun j : s => if j = o then 1 else 0) :=
-        unimodularVectorEquiv_equivalence.trans (cor11 wpoly hwpoly hmonic') hmap
+        unimodularVectorEquiv_equivalence.trans (horrocks wpoly hwpoly hmonic') hmap
       have hwstd : UnimodularVectorEquiv w (fun j : s => if j = o then 1 else 0) := by
         have hcomp : (fun j => φr.symm (wpoly j)) = w := by
           funext j
@@ -740,5 +739,3 @@ theorem thm12 {σ : Type*} [Fintype σ] (o : s) (v : s → MvPolynomial σ R) (h
             (by simpa [er] using unimodularVectorEquiv_equivalence.trans hvw hwstd)
   simpa [v', ρ] using unimodularVectorEquiv_map_ringEquiv ρ.symm.toRingEquiv v'
     (fun i : s => if i = o then 1 else 0) (hfin n v' hv')
-
-end thm12
