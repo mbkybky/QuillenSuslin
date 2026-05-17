@@ -267,7 +267,7 @@ theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrinci
 
 /-- **Quillen-Suslin Theorem**: Any finite flat module module over $k[x_1, \dots, x_n]$
   is free, where $k$ is a principal ideal domain. -/
-instance quillenSuslin [IsDomain R] [IsPrincipalIdealRing R] (σ : Type*) [Finite σ]
+theorem quillenSuslin [IsDomain R] [IsPrincipalIdealRing R] (σ : Type*) [Finite σ]
     (P : Type*) [AddCommGroup P] [Module (MvPolynomial σ R) P] [Module.Finite (MvPolynomial σ R) P]
     [Flat (MvPolynomial σ R) P] : Free (MvPolynomial σ R) P := by
   refine free_of_isStablyFree_of_unimodularVectorEquiv (MvPolynomial σ R) ?_ P <|

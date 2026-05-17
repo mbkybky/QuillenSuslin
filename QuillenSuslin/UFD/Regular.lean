@@ -25,10 +25,13 @@ variable {R : Type u} [CommRing R]
 
 open Module Ideal
 
-theorem Ideal.isPrincipal_of_free [IsDomain R] {I : Ideal R} [Module.Free R I] : I.IsPrincipal :=
+-- [Mathlib.LinearAlgebra.Dimension.FreeAndStrongRankCondition]
+theorem Ideal.isPrincipal_of_free {R : Type u} [Ring R] [StrongRankCondition R] {I : Ideal R}
+    [Module.Free R I] : I.IsPrincipal :=
   (Submodule.rank_le_one_iff_isPrincipal I).1 ((Submodule.rank_le I).trans_eq (Module.rank_self R))
 
-lemma ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal [IsLocalRing R]
+-- [Mathlib.RingTheory.Ideal.Height]
+lemma IsLocalization.AtPrime.ringKrullDim_lt_of_lt_maximalIdeal [IsLocalRing R]
     {P : Ideal R} [P.IsPrime] [P.FiniteHeight] (hP : P < IsLocalRing.maximalIdeal R) :
     ringKrullDim (Localization.AtPrime P) < ringKrullDim R := by
   rw [IsLocalization.AtPrime.ringKrullDim_eq_height P _]
@@ -116,7 +119,7 @@ instance (priority := low) uniqueFactorizationMonoid [IsRegularLocalRing R] :
             have : IsRegularLocalRing _ := isRegularLocalRing_localization S P
             obtain ⟨k, hk⟩ := FiniteRingKrullDim.ringKrullDim_eq_nat (Localization.AtPrime P)
             exact ih k (ENat.coe_lt_coe.mp <| WithBot.coe_lt_coe.mp <| hk.symm.trans_lt <|
-              (ringKrullDim_localizationAtPrime_lt_of_lt_maximalIdeal hP_lt_max).trans_eq h) hk
+              (IsLocalization.AtPrime.ringKrullDim_lt_of_lt_maximalIdeal hP_lt_max).trans_eq h) hk
           have := ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd hxm hxp hP
           rwa [UniqueFactorizationMonoid.iff_localization_away_of_prime hxp]
   obtain ⟨n, hn⟩ := FiniteRingKrullDim.ringKrullDim_eq_nat R

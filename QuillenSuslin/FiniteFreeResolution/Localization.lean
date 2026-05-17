@@ -10,6 +10,12 @@ public import Mathlib.RingTheory.LocalProperties.Projective
 public import Mathlib.RingTheory.Localization.Finiteness
 public import QuillenSuslin.FiniteFreeResolution.Basic
 
+/-!
+# Localization of modules admitting finite free resolutions
+
+This file proves that finite free resolutions are preserved by localization.
+-/
+
 public section
 
 universe u v
