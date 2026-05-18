@@ -5,11 +5,11 @@ Authors: Yongle Hu
 -/
 module
 
+public import Mathlib.Algebra.Module.StablyFree.FreeOfInvertible
 public import Mathlib.RingTheory.RegularLocalRing.Localization
 public import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
 public import QuillenSuslin.FiniteFreeResolution.Localization
 public import QuillenSuslin.Invertible
-public import QuillenSuslin.StablyFree.FreeOfLocalizedEq
 public import QuillenSuslin.StablyFree.HasFiniteFreeResolution
 public import QuillenSuslin.UFD.Lemmas
 
@@ -70,8 +70,8 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
       have hd : Disjoint (P.primeCompl : Set (Localization.Away x)) Q := by
         simp [Ideal.primeCompl, ← le_compl_iff_disjoint_left, hQP]
       have hQh : Q'.height = 1 := by
-        simp [Q', IsLocalization.comap_map_of_isPrime_disjoint P.primeCompl (Localization.AtPrime P)
-          inferInstance hd, hQheight, ← IsLocalization.height_comap P.primeCompl Q']
+        simp [Q', IsLocalization.under_map_of_isPrime_disjoint P.primeCompl (Localization.AtPrime P)
+          inferInstance hd, hQheight, ← IsLocalization.height_under P.primeCompl Q']
       have := UniqueFactorizationMonoid.height_one_primes_principal hQh
       exact Module.Invertible.congr <| Q'.isoBaseOfIsPrincipal
         (Ideal.height_eq_zero_iff_eq_bot.not.mp (by simp [hQh])) ≪≫ₗ eIdeal.symm
@@ -84,7 +84,7 @@ private lemma ufd_localization_away_of_prime_of_nonmaximal_localizations_ufd [Is
       (Submodule.quotEquivOfEq _ _ (q.localized'_eq_map (Localization.Away x) M))
   have : HasFiniteFreeResolution (Localization.Away x) (Localization.Away x ⧸ Q) :=
     HasFiniteFreeResolution.of_linearEquiv <| AlgEquiv.toLinearEquiv <|
-      Ideal.quotientEquivAlgOfEq (Localization.Away x) (IsLocalization.map_comap M _ Q)
+      Ideal.quotientEquivAlgOfEq (Localization.Away x) (IsLocalization.map_under M _ Q)
   have : Free (Localization.Away x) Q := by
     have := HasFiniteFreeResolution.of_shortExact_of_middle_of_right _ _
       (Submodule.subtype_injective Q) (Submodule.mkQ_surjective Q) (LinearMap.exact_subtype_mkQ Q)

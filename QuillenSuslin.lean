@@ -1,4 +1,4 @@
-module
+module  -- shake: keep-all
 
 public import QuillenSuslin.FiniteFreeResolution.BaseChange
 public import QuillenSuslin.FiniteFreeResolution.Basic
@@ -6,10 +6,9 @@ public import QuillenSuslin.FiniteFreeResolution.Exact
 public import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
 public import QuillenSuslin.FiniteFreeResolution.Localization
 public import QuillenSuslin.FiniteFreeResolution.Polynomial
+public import QuillenSuslin.Invertible
 public import QuillenSuslin.MainTheorem
 public import QuillenSuslin.PicardGroup
-public import QuillenSuslin.StablyFree.Basic
-public import QuillenSuslin.StablyFree.FreeOfLocalizedEq
 public import QuillenSuslin.StablyFree.HasFiniteFreeResolution
 public import QuillenSuslin.UFD.Lemmas
 public import QuillenSuslin.UFD.Regular
