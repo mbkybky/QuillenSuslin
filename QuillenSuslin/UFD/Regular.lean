@@ -6,6 +6,7 @@ Authors: Yongle Hu
 module
 
 public import Mathlib.Algebra.Module.StablyFree.FreeOfInvertible
+public import Mathlib.RingTheory.LocalRing.MaximalIdeal.Square
 public import Mathlib.RingTheory.RegularLocalRing.Localization
 public import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
 public import QuillenSuslin.FiniteFreeResolution.Localization
@@ -14,7 +15,7 @@ public import QuillenSuslin.StablyFree.HasFiniteFreeResolution
 public import QuillenSuslin.UFD.Lemmas
 
 /-!
-This file proves that any regular local ring is a unique factorization domain.
+# Any regular local ring is a UFD
 -/
 
 public section
@@ -23,7 +24,7 @@ universe u
 
 variable {R : Type u} [CommRing R]
 
-open Module Ideal
+open Module
 
 -- [Mathlib.LinearAlgebra.Dimension.FreeAndStrongRankCondition]
 theorem Ideal.isPrincipal_of_free {R : Type u} [Ring R] [StrongRankCondition R] {I : Ideal R}
@@ -105,10 +106,11 @@ instance (priority := low) uniqueFactorizationMonoid [IsRegularLocalRing R] :
           have := (isField_of_isRegularLocalRing_of_dimension_zero h).isPrincipalIdealRing
           infer_instance
       | succ n =>
-          obtain ⟨x, hxm, hxnm⟩ := by
-            apply Set.exists_of_ssubset ((IsLocalRing.maximalIdeal_sq_lt_maximalIdeal S).mpr ?_)
-            contrapose h
-            simpa only [ringKrullDim_eq_zero_of_isField h] using not_eq_of_beq_eq_false rfl
+          have hsd : ringKrullDim S ≠ 0 := by
+            rw [h]
+            norm_cast
+          obtain ⟨x, hxm, hxnm⟩ :=
+            Set.exists_of_ssubset (IsLocalRing.maximalIdeal_sq_lt_of_ringKrullDim_ne_zero hsd)
           have hx_ne_zero : x ≠ 0 := fun hx0 ↦ hxnm (by simp [hx0])
           have : IsRegularLocalRing (S ⧸ Ideal.span {x}) := (quotient_span_singleton S hxm hxnm).1
           have hxp : Prime x := by

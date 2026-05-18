@@ -9,8 +9,7 @@ public import Mathlib.Algebra.Module.StablyFree.Basic
 public import QuillenSuslin.FiniteFreeResolution.Exact
 
 /-!
-This file proves that a finite projective module has a finite free resolution if and only if it is
-stably free.
+# A finite projective module has a finite free resolution if and only if it is stably free
 -/
 
 public section
