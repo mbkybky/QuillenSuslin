@@ -11,6 +11,11 @@ public import Mathlib.CategoryTheory.Abelian.Projective.Dimension
 public import Mathlib.RingTheory.LocalRing.Module
 public import QuillenSuslin.FiniteFreeResolution.Basic
 
+/-!
+This file proves that a module over a local noetherian ring has a finite free resolution if its
+projective dimension is finite.
+-/
+
 public section
 
 universe u v
@@ -39,6 +44,8 @@ theorem HasFiniteFreeResolutionOfLength.of_hasProjectiveDimensionLE (n : ℕ)
         (LinearMap.exact_subtype_ker_map f)
 
 variable {R M} in
+/-- Let `M` be an module over a local noetherian ring `R`. Then `M` has a finite free resolution
+if its projective dimension is finite. -/
 theorem HasFiniteFreeResolution.of_projectiveDimension_ne_top
     (h : projectiveDimension (ModuleCat.of R M) ≠ ⊤) : HasFiniteFreeResolution R M :=
   let ⟨n, _⟩ := (CategoryTheory.projectiveDimension_ne_top_iff (ModuleCat.of R M)).1 h

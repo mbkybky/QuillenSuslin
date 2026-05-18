@@ -10,6 +10,13 @@ public import Mathlib.LinearAlgebra.Basis.Prod
 public import Mathlib.RingTheory.Finiteness.Prod
 public import QuillenSuslin.FiniteFreeResolution.Basic
 
+/-!
+# The short exact sequences of modules admitting finite free resolutions
+
+This file proves that in a short exact sequence `0 → M₁ → M₂ → M₃ → 0`, if any two of these modules
+have a finite free resolution, then so does the third .
+-/
+
 public section
 
 universe u α β γ

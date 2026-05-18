@@ -596,9 +596,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
           simpa [wPoly] using hwPolyOf t (by simp [t])
         let w : s → MvPolynomial (Fin (n + 1)) R := fun i => φ.symm (wPoly i)
         have huw : UnimodularVectorEquiv u w := by
-          have hcompu : (fun i : s => φr.symm (uPoly i)) = u := by
-            funext i
-            simpa [uPoly, u, φr] using φr.symm_apply_apply (u i)
+          have hcompu : (fun i : s => φr.symm (uPoly i)) = u := by simp [uPoly, u, φr]
           simpa only [hcompu] using unimodularVectorEquiv_map_ringEquiv φr.symm uPoly wPoly huwPoly
         have hαvv' : UnimodularVectorEquiv (fun i : s => α (v i)) u :=
           unimodularVectorEquiv_map_ringEquiv α.toRingEquiv v v' hvv'
@@ -726,9 +724,7 @@ theorem unimodularVectorEquiv_std_of_mvPolynomial {σ : Type*} [Fintype σ] (o :
         simpa [hcomp, hstdcomp] using unimodularVectorEquiv_map_ringEquiv φr.symm wpoly
           (fun j : s => if j = o then 1 else 0) hwstdPoly
       let er : MvPolynomial (Fin (n + 1)) R ≃+* MvPolynomial (Fin (n + 1)) R := e.toRingEquiv
-      have hcomp : (fun j => er.symm (er (v j))) = v := by
-        funext j
-        simpa [er] using er.symm_apply_apply (v j)
+      have hcomp : (fun j => er.symm (er (v j))) = v := by simp [er]
       have hstdcomp : (fun j : s => er.symm (if j = o then 1 else 0)) =
           (fun j : s => if j = o then 1 else 0) := by
         funext j

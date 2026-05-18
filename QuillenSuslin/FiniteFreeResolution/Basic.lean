@@ -7,6 +7,17 @@ module
 
 public import Mathlib.RingTheory.Finiteness.Small
 
+/-!
+# Modules admitting finite free resolutions
+
+## Main definitions
+* `Module.HasFiniteFreeResolutionOfLength` : We say that an `R`-module `M` has a finite free
+  resolution of length `n` if there exists an exact sequence `0 ⟶ Eₙ ⟶ ⋯ ⟶ E₀ ⟶ M ⟶ 0` such
+  that `Eᵢ` are finite free `R`-modules.
+* `Module.HasFiniteFreeResolution` : We say that an `R`-module `M` has a finite free resolution
+  if it has a finite free resolution of some finite length.
+-/
+
 public section
 
 universe w v v' u u'

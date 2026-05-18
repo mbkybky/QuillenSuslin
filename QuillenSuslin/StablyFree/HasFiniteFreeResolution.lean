@@ -5,8 +5,12 @@ Authors: Yongle Hu
 -/
 module
 
-public import QuillenSuslin.StablyFree.Basic
+public import Mathlib.Algebra.Module.StablyFree.Basic
 public import QuillenSuslin.FiniteFreeResolution.Exact
+
+/-!
+# A finite projective module has a finite free resolution if and only if it is stably free
+-/
 
 public section
 
@@ -21,10 +25,10 @@ theorem HasFiniteFreeResolutionOfLength.isStablyFree_of_projective {P : Type v} 
     [Projective R P] → Module.IsStablyFree R P := by
   induction hn with
   | zero P =>
-      intro _
-      exact ⟨Fin 0 → R, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance⟩
+      intro
+      infer_instance
   | succ P n F K f g hf hg he hk ih =>
-      intro _
+      intro
       obtain ⟨l, hl⟩ := Module.projective_lifting_property g LinearMap.id hg
       let e : F ≃ₗ[R] K × P := ((Function.Exact.splitSurjectiveEquiv he hf) ⟨l, hl⟩).1
       have : Projective R (K × P) := Projective.of_equiv e
