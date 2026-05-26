@@ -6,6 +6,7 @@ Authors: Yongle Hu
 module
 
 public import Mathlib.RingTheory.Flat.Localization
+public import Mathlib.RingTheory.LocalProperties.FinitePresentation
 public import Mathlib.RingTheory.PicardGroup
 public import Mathlib.RingTheory.Spectrum.Prime.FreeLocus
 
@@ -150,12 +151,6 @@ theorem Free.away_of_finite_of_flat_of_rankAtStalk_constant [Module.Finite R M] 
 end Free
 
 section FinitePresentation
-
--- porved in [#39109](https://github.com/leanprover-community/mathlib4/pull/39109)
-theorem FinitePresentation.of_localizationSpan (s : Set R) (hs : Ideal.span s = ⊤)
-    (h : ∀ g : s, Module.FinitePresentation (Localization.Away g.1) (LocalizedModule.Away g.1 M)) :
-    Module.FinitePresentation R M :=
-  sorry
 
 theorem FinitePresentation.of_finite_of_flat_of_rankAtStalk_constant
     [Module.Finite R M] [Module.Flat R M] (n : ℕ)
