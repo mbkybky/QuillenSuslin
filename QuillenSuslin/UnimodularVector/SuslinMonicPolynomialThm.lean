@@ -133,7 +133,7 @@ theorem exists_K_monic_shearSwap {R : Type*} [CommRing R] [Nontrivial R] (p : R[
   have hnat_swapC (q : R[X]) : (swapR (C q)).natDegree = q.natDegree := by
     simpa [hswapC q] using Polynomial.natDegree_map_eq_of_injective C_injective q
   have hτ : τ p = ∑ i ∈ Finset.range (N + 1), (C (p.coeff i)) * (Y + C X ^ K) ^ i := by
-    simpa [τ, N, Algebra.smul_def, mul_assoc, mul_left_comm, mul_comm] using
+    simpa [τ, N, Algebra.smul_def, mul_assoc, mul_left_comm, mul_comm] using!
       Polynomial.aeval_eq_sum_range (Y + C X ^ K)
   have hswap_YCt : swapR (Y + C X ^ K) = base := by
     have hswapY : swapR Y = C X := Polynomial.Bivariate.swap_Y
@@ -232,7 +232,7 @@ theorem suslin_monic_polynomial_thm {R : Type*} [CommRing R] [IsDomain R] [IsNoe
       have hLC_q1 : (eFirst (eExt f0)).leadingCoeff = eB g := by
         simpa [eExt] using Polynomial.leadingCoeff_map_of_injective
           eB.toRingEquiv.injective (eFirst f0) |>.trans (congrArg eB hqLC)
-      simpa [H, Polynomial.mapAlgEquiv, Polynomial.mapAlgHom, hLC_q1] using
+      simpa [H, Polynomial.mapAlgEquiv, Polynomial.mapAlgHom, hLC_q1] using!
         Polynomial.leadingCoeff_map_of_injective eX.toRingEquiv.injective (eFirst (eExt f0))
     have hp_lc_monic : (H (eExt f0)).leadingCoeff.Monic := by simpa [hp_lc, eX] using hgMonic
     rcases exists_K_monic_shearSwap (H (eExt f0)) hp_lc_monic with ⟨K, hmonic_swap⟩

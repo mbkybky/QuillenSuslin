@@ -597,7 +597,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
         let w : s → MvPolynomial (Fin (n + 1)) R := fun i => φ.symm (wPoly i)
         have huw : UnimodularVectorEquiv u w := by
           have hcompu : (fun i : s => φr.symm (uPoly i)) = u := by simp [uPoly, u, φr]
-          simpa only [hcompu] using unimodularVectorEquiv_map_ringEquiv φr.symm uPoly wPoly huwPoly
+          simpa only [hcompu] using! unimodularVectorEquiv_map_ringEquiv φr.symm uPoly wPoly huwPoly
         have hαvv' : UnimodularVectorEquiv (fun i : s => α (v i)) u :=
           unimodularVectorEquiv_map_ringEquiv α.toRingEquiv v v' hvv'
         have hαvw : UnimodularVectorEquiv (fun i : s => α (v i)) w :=

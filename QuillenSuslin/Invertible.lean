@@ -67,10 +67,8 @@ lemma exists_localizedMap_surjective_of_surjective [Module.FinitePresentation R 
   refine ⟨φ, ?_⟩
   have hmap : IsLocalizedModule.map S f g φ = s • ϕ := by
     apply IsLocalizedModule.linearMap_ext S f g
-    rw [IsLocalizedModule.map_comp, hφ]
-    rfl
-  rw [hmap]
-  exact ((Module.End.isUnit_iff _).mp (IsLocalizedModule.map_units g s)).2.comp hϕ
+    simp [IsLocalizedModule.map_comp, hφ, LinearMap.smul_comp]
+  simpa only [hmap] using! ((End.isUnit_iff _).mp (IsLocalizedModule.map_units g s)).2.comp hϕ
 
 -- [Mathlib.Algebra.Module.LocalizedModule.Submodule]
 lemma _root_.LinearMap.localizedMap_surjective_iff_subsingleton_localized_coker (S : Submonoid R)

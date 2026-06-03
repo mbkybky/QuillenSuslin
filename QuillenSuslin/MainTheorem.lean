@@ -123,7 +123,7 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
     have hφ : (φ.toLinearMap).comp g = gstd := by
       apply LinearMap.ext
       intro r
-      have hg1 : g 1 = (v', (0 : I₂ →₀ R)) := by simpa [g, x] using hxE
+      have hg1 : g 1 = (v', (0 : I₂ →₀ R)) := by simpa [g, x] using! hxE
       have hgr : g r = (r • v', (0 : I₂ →₀ R)) := by
         calc g r = r • g 1 := by simpa using (g.map_smul r (1 : R))
           _ = (r • v', (0 : I₂ →₀ R)) := by

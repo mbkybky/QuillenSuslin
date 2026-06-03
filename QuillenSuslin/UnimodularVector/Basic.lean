@@ -110,7 +110,7 @@ variable [Fintype s] [DecidableEq s]
 
 theorem generalLinearGroup_map_mulVec_eq (f : A →+* B) (M : GL s A) {v w : s → A}
     (hM : M.1.mulVec v = w) : (M.map f).1.mulVec (fun i => f (v i)) = fun i => f (w i) :=
-  funext fun i ↦ by simpa [hM] using (RingHom.map_mulVec f M.1 v i).symm
+  funext fun i ↦ by simpa [hM] using! (RingHom.map_mulVec f M.1 v i).symm
 
 /-- Push a unimodular-vector equivalence along a ring homomorphism. -/
 theorem unimodularVectorEquiv_map (f : A →+* B) {v w : s → A} (hvw : UnimodularVectorEquiv v w) :
@@ -531,12 +531,10 @@ theorem exists_unimodularVectorEquiv_eval₂_shift_of_localization {S : Submonoi
   let Mshift : GL s L[X][Y] := Matrix.GeneralLinearGroup.map shift1 M
   have hMC : MC.1.mulVec vxL = const2L := generalLinearGroup_map_mulVec_eq lift M hM
   have hMshift : Mshift.1.mulVec vxy1L = const2L := by
-    simpa [shift1] using generalLinearGroup_map_mulVec_eq shift1 M hM
+    simpa [shift1] using! generalLinearGroup_map_mulVec_eq shift1 M hM
   have hPvxL : (Mshift⁻¹ * MC).1.mulVec vxL = vxy1L := by
-    change (Mshift⁻¹ * MC).1.mulVec vxL = vxy1L
     have htmp : (Mshift⁻¹).1.mulVec (MC.1.mulVec vxL) = vxy1L := by
-      rw [hMC, ← hMshift]
-      rw [Matrix.mulVec_mulVec]
+      rw [hMC, ← hMshift, Matrix.mulVec_mulVec]
       simp [L]
     simpa [Matrix.mulVec_mulVec, L] using htmp
   let ev0Y : L[X][Y] →+* L[X] := Polynomial.eval₂RingHom (RingHom.id L[X]) 0
@@ -695,7 +693,7 @@ theorem horrocks (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Mo
       zero_mem' := by
         refine ⟨1, ?_⟩
         funext i
-        simpa [base, shift] using
+        simpa [base, shift] using!
           (Polynomial.eval₂_algebraMap_X (v i) (IsScalarTower.toAlgHom R R[X] R[X][Y])).symm
       add_mem' := by
         intro a b ha hb

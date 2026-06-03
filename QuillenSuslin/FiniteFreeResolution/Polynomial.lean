@@ -268,7 +268,7 @@ private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianR
         simpa [π] using hmul_bar (y : B) y.2
       have hsmul : ((C d : A) • (y : B)) = (π (C d) : B) * (y : B) := by
         have hAlgebraMap : (algebraMap A B) = π := rfl
-        simpa [hAlgebraMap] using (Algebra.smul_def (C d : A) (y : B))
+        simpa [hAlgebraMap] using! (Algebra.smul_def (C d : A) (y : B))
       exact hsmul ▸ hyFmul
     have hN : HasFiniteFreeResolution A N := by
       have hsmul_I_mem_Kbar : ∀ r : R, r ∈ I → ∀ y : Pbar, (C r : A) • y ∈ Kbar := by
