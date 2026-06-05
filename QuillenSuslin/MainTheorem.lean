@@ -92,12 +92,11 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
       LinearEquiv.prodCongr (Finsupp.linearEquivFunOnFinite R R (Fin n)) (LinearEquiv.refl R _)
     have hxE : eF x = (v', (0 : I₂ →₀ R)) := by
       ext i
-      · simp
-        exact congrArg (fun k => (b.repr x) k) <| Equiv.sumCompl_apply_inl (e.symm i)
+      · exact congrArg (fun k => (b.repr x) k) <| Equiv.sumCompl_apply_inl (e.symm i)
       · have hi0 : c (i : I) = 0 := by
           by_contra hne
           exact i.property (by simpa [t] using Finsupp.mem_support_iff.2 hne)
-        simp
+        simp only [Finsupp.coe_zero, Pi.zero_apply]
         calc _ = (b.repr x) (i : I) := congrArg (fun k => (b.repr x) k) (Equiv.sumCompl_apply_inr i)
           _ = 0 := by simp [c, hi0]
     let U := (Fin n → R) × (I₂ →₀ R)
@@ -109,16 +108,16 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
         map_add' := by
           intro a b
           refine Prod.ext ?_ ?_
-          · show (a + b) • std = a • std + b • std
+          · change (a + b) • std = a • std + b • std
             simp [add_smul]
-          · show (0 : I₂ →₀ R) = (0 : I₂ →₀ R) + 0
+          · change (0 : I₂ →₀ R) = (0 : I₂ →₀ R) + 0
             simp
         map_smul' := by
           intro a b
           refine Prod.ext ?_ ?_
-          · show (a * b) • std = a • (b • std)
+          · change (a * b) • std = a • (b • std)
             simp [mul_smul]
-          · show (0 : I₂ →₀ R) = a • (0 : I₂ →₀ R)
+          · change (0 : I₂ →₀ R) = a • (0 : I₂ →₀ R)
             simp }
     have hφ : (φ.toLinearMap).comp g = gstd := by
       apply LinearMap.ext
@@ -130,7 +129,7 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
             refine (by simpa using congrArg (fun u => r • u) hg1 : r • g 1 = r • (v', 0)).trans ?_
             refine Prod.ext ?_ ?_
             · rfl
-            · show r • (0 : I₂ →₀ R) = 0
+            · change r • (0 : I₂ →₀ R) = 0
               simp
       refine Prod.ext ?_ ?_
       · calc _ = eM (g r).1 := rfl

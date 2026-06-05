@@ -485,8 +485,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
               exact (show (1 : Fin 2) ≠ 0 by decide) <| by
                 simpa only [Fin.isValue, one_ne_zero, Equiv.apply_symm_apply, b, a] using
                   congrArg eσ hba
-            simp [Matrix.mulVec, dotProduct, w, hb]
-            exact this
+            simpa [Matrix.mulVec, dotProduct, w, hb]
         refine ⟨AlgEquiv.refl, w, ⟨Matrix.GeneralLinearGroup.mk'' M hdet, by simp [hmul]⟩, ?_⟩
         exact ⟨a, by simp [w]⟩
       | succ m =>
@@ -604,7 +603,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
           unimodularVectorEquiv_equivalence.trans hαvv' huw
         have hmonic_wPoly : (MvPolynomial.finSuccEquiv R n (w o)).Monic := by
           have hw : MvPolynomial.finSuccEquiv R n (w o) = wPoly o := by
-            show φ (φ.symm (wPoly o)) = wPoly o
+            change φ (φ.symm (wPoly o)) = wPoly o
             simp
           have hsum_cf : ∑ i : s, φ (α (c i)) * (if i = o then 0 else uPoly i) =
               ∑ i ∈ t, φ (α (c i)) * uPoly i := by
@@ -667,9 +666,10 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
 
 /-- Let $R = k[x_1, \dots, x_n]$ be a polynomial ring over a principal ideal domain $k$, and let
   $v \in R^n$ be a unimodular vector. Then $v \sim e_1$. -/
-theorem unimodularVectorEquiv_std_of_mvPolynomial {σ : Type*} [Fintype σ] (o : s)
+theorem unimodularVectorEquiv_std_of_mvPolynomial {σ : Type*} [Finite σ] (o : s)
     (v : s → MvPolynomial σ R) (hv : IsUnimodular v) :
     UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
+  letI := Fintype.ofFinite σ
   let n : ℕ := Fintype.card σ
   let eσ : σ ≃ Fin n := Fintype.equivFin σ
   let ρ : MvPolynomial σ R ≃ₐ[R] MvPolynomial (Fin n) R := MvPolynomial.renameEquiv R eσ

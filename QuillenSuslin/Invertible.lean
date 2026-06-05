@@ -50,7 +50,8 @@ lemma rankAtStalk_eq_of_le_of_finite_of_flat [Module.Finite R M] [Module.Flat R 
 
 variable (M) in
 lemma rankAtStalk_eq_of_le_of_finite_of_flat' [Module.Finite R M] [Module.Flat R M]
-    {p q : Ideal R} [hp : p.IsPrime] [hq : q.IsPrime] (hpq : p ≤ q) : rankAtStalk M ⟨p, hp⟩ = rankAtStalk M ⟨q, hq⟩ :=
+    {p q : Ideal R} [hp : p.IsPrime] [hq : q.IsPrime] (hpq : p ≤ q) :
+    rankAtStalk M ⟨p, hp⟩ = rankAtStalk M ⟨q, hq⟩ :=
   rankAtStalk_eq_of_le_of_finite_of_flat M hpq
 
 -- [Mathlib.Algebra.Module.FinitePresentation]

@@ -9,8 +9,8 @@ public import QuillenSuslin.MainTheorem
 
 public section
 
-theorem subsingleton_pic_of_pid  (R : Type*) [CommRing R] [IsDomain R] [IsPrincipalIdealRing R]
-    (σ : Type*) [Fintype σ] : Subsingleton (CommRing.Pic (MvPolynomial σ R)) :=
+theorem subsingleton_pic_of_pid (R : Type*) [CommRing R] [IsDomain R] [IsPrincipalIdealRing R]
+    (σ : Type*) [Finite σ] : Subsingleton (CommRing.Pic (MvPolynomial σ R)) :=
   CommRing.Pic.subsingleton_iff.2 <| by
     intro M _ _ _
     exact Module.quillenSuslin R σ M

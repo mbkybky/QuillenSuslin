@@ -90,11 +90,11 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] {P : Ideal (R[X])}
   let Pext : Ideal K[X] := Ideal.map (Polynomial.mapRingHom i) P
   have hPext_ne : Pext ≠ ⊥ := by
     intro hbot
-    obtain ⟨⟨p0, hp0P⟩, hp0ne⟩ := Submodule.nonzero_mem_of_bot_lt (bot_lt_iff_ne_bot.2 hPne)
+    obtain ⟨⟨p0, hp⟩, hp0ne⟩ := Submodule.nonzero_mem_of_bot_lt (bot_lt_iff_ne_bot.2 hPne)
     have hp0eq0 : (p0 : R[X]) = 0 := by
       apply (Polynomial.map_injective i hi)
-      have hp0Pext : Polynomial.map i p0 ∈ Pext := Ideal.mem_map_of_mem (Polynomial.mapRingHom i) hp0P
-      simpa [Pext, hbot] using hp0Pext
+      have hpext : Polynomial.map i p0 ∈ Pext := Ideal.mem_map_of_mem (Polynomial.mapRingHom i) hp
+      simpa [Pext, hbot] using hpext
     apply hp0ne
     simp [Subtype.ext_iff, hp0eq0]
   let fK : K[X] := Submodule.IsPrincipal.generator Pext
@@ -117,7 +117,8 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] {P : Ideal (R[X])}
   choose q hq using hq0
   let v : s → K[X] := fun a => (a : R[X]).map i
   have hspan : Ideal.span (Set.range v) = Pext := by
-    simp [Pext, ← hs, Ideal.map_span]
+    change Ideal.span (Set.range v) = Ideal.map (Polynomial.mapRingHom i) P
+    rw [← hs, Ideal.map_span]
     congr
     ext x
     simp [v]
@@ -342,7 +343,7 @@ private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianR
         map_smul' := by
           intro m x
           ext
-          show π (m • x.1) = m • π x.1
+          change π (m • x.1) = m • π x.1
           rw [smul_eq_mul]
           have hAlgebraMap : (algebraMap A B) = π := rfl
           have hsmulB : m • π x.1 = (π m : B) * π x.1 := by
