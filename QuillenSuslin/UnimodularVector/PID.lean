@@ -42,7 +42,7 @@ theorem unimodularVectorEquiv_of_pid [IsPrincipalIdealRing R]
           change ∑ i, c i * (a * x i) = a * ∑ i, c i * x i
           rw [Finset.mul_sum]
           refine Finset.sum_congr rfl ?_
-          intro i hi
+          intro i _
           ring }
     have hφu : φ u = 1 := hc
     let K : Submodule R (s → R) := LinearMap.ker φ
@@ -53,8 +53,8 @@ theorem unimodularVectorEquiv_of_pid [IsPrincipalIdealRing R]
       rwa [map_add, map_smul, LinearMap.mem_ker.mp hz, hφu, smul_eq_mul, mul_one, add_zero,
         map_zero] at hphi
     have hu_span : ∀ z : s → R, z ∈ (⊤ : Submodule R (s → R)) → ∃ a : R, z + a • u ∈ K := by
-      intro z hz
-      refine ⟨-φ z, ?_⟩
+      intro z _
+      refine ⟨- φ z, ?_⟩
       rw [LinearMap.mem_ker, map_add, map_smul, hφu, smul_eq_mul, mul_one]
       ring
     let bTop : Basis (Fin (n + 1)) R (⊤ : Submodule R (s → R)) :=
@@ -72,7 +72,7 @@ theorem unimodularVectorEquiv_of_pid [IsPrincipalIdealRing R]
         ∑ j, b j i * b.coord j (Pi.basisFun R s k)
             = ∑ j, b.coord j (Pi.basisFun R s k) * b j i := by
                 refine Finset.sum_congr rfl ?_
-                intro j hj
+                intro j _
                 rw [mul_comm]
         _ = (Pi.basisFun R s k) i := by
               simpa using congrArg (fun x : s → R => x i) (b.sum_repr (Pi.basisFun R s k))
@@ -83,7 +83,7 @@ theorem unimodularVectorEquiv_of_pid [IsPrincipalIdealRing R]
         ∑ j, b.coord i (Pi.basisFun R s j) * x j
             = ∑ j, x j * b.coord i (Pi.basisFun R s j) := by
                 refine Finset.sum_congr rfl ?_
-                intro j hj
+                intro j _
                 rw [mul_comm]
         _ = b.coord i x := by
               simpa using (congrArg (b.coord i) ((Pi.basisFun R s).sum_repr x).symm).symm
@@ -609,16 +609,12 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
               ∑ i ∈ t, φ (α (c i)) * uPoly i := by
             let h : s → P := fun i => φ (α (c i)) * (if i = o then 0 else uPoly i)
             let g : s → P := fun i => φ (α (c i)) * uPoly i
-            have ho : o ∈ (Finset.univ : Finset s) := by simp
             have h_erase : (∑ i ∈ (Finset.univ.erase o : Finset s), h i) =
                 ∑ i ∈ (Finset.univ.erase o : Finset s), g i := by
               refine Finset.sum_congr rfl ?_
               intro i hi
               have : i ≠ o := by simpa only [ne_eq, mem_erase, mem_univ, and_true] using hi
               simp only [mul_ite, mul_zero, this, reduceIte, h, g]
-            have hs : (∑ i ∈ (Finset.univ.erase o : Finset s), h i) + h o =
-                  ∑ i ∈ (Finset.univ : Finset s), h i :=
-              Finset.sum_erase_add (Finset.univ : Finset s) h ho
             have ho0 : h o = 0 := by simp [h]
             have hs' : (∑ i ∈ (Finset.univ.erase o : Finset s), h i) =
                   ∑ i ∈ (Finset.univ : Finset s), h i := by
@@ -637,7 +633,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
               calc
                 _ = ∑ i ∈ t, X ^ N * (φ (α (c i)) * uPoly i) := by
                   refine Finset.sum_congr rfl ?_
-                  intro i hi
+                  intro i _
                   simp only [mul_assoc]
                 _ = X ^ N * ∑ i ∈ t, φ (α (c i)) * uPoly i := by simp only [mul_sum]
                 _ = X ^ N * fPoly := by simp only [hsum_t]
@@ -724,11 +720,6 @@ theorem unimodularVectorEquiv_std_of_mvPolynomial {σ : Type*} [Finite σ] (o : 
         simpa [hcomp, hstdcomp] using unimodularVectorEquiv_map_ringEquiv φr.symm wpoly
           (fun j : s => if j = o then 1 else 0) hwstdPoly
       let er : MvPolynomial (Fin (n + 1)) R ≃+* MvPolynomial (Fin (n + 1)) R := e.toRingEquiv
-      have hcomp : (fun j => er.symm (er (v j))) = v := by simp [er]
-      have hstdcomp : (fun j : s => er.symm (if j = o then 1 else 0)) =
-          (fun j : s => if j = o then 1 else 0) := by
-        funext j
-        by_cases hj : j = o <;> simp [hj, er]
       simpa only [RingEquiv.symm_apply_apply, MonoidWithZeroHom.map_ite_one_zero] using
         unimodularVectorEquiv_map_ringEquiv er.symm (fun j => er (v j))
           (fun j : s => if j = o then 1 else 0)

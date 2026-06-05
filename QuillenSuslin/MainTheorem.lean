@@ -52,7 +52,7 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
               simpa [v] using Finset.sum_coe_sort t (fun i => (b i).2 * c i)
           _ = t.sum fun i => c i * (b i).2 := by
             refine Finset.sum_congr rfl ?_
-            intro i hi
+            intro i _
             simp [mul_comm]
           _ = (LinearMap.snd R Q R) x := hsnd.symm
           _ = 1 := by simp [x]

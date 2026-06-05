@@ -33,7 +33,7 @@ theorem HasFiniteFreeResolutionOfLength.localizedModule
       have : Free (Localization S) (LocalizedModule S P) :=
         free_of_isLocalizedModule S (LocalizedModule.mkLinearMap S P)
       exact HasFiniteFreeResolutionOfLength.zero (LocalizedModule S P)
-  | succ P n F K f g hf hg he hk ih =>
+  | succ P n F K f g hf hg he _ ih =>
       have : Free (Localization S) (LocalizedModule S F) :=
         free_of_isLocalizedModule S (LocalizedModule.mkLinearMap S F)
       exact ih.succ' _ _ (LocalizedModule.map_injective S f hf)
