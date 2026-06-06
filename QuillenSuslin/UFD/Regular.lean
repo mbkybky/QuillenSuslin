@@ -9,7 +9,7 @@ public import Mathlib.Algebra.Module.StablyFree.FreeOfInvertible
 public import Mathlib.RingTheory.LocalRing.MaximalIdeal.Square
 public import Mathlib.RingTheory.RegularLocalRing.Localization
 public import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
-public import QuillenSuslin.FiniteFreeResolution.Localization
+public import QuillenSuslin.FiniteFreeResolution.BaseChange
 public import QuillenSuslin.Invertible
 public import QuillenSuslin.StablyFree.HasFiniteFreeResolution
 public import QuillenSuslin.UFD.Lemmas

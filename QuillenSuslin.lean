@@ -1,10 +1,9 @@
-module  -- shake: keep-all
+module  -- shake: keep-all --deprecated_module: ignore
 
 public import QuillenSuslin.FiniteFreeResolution.BaseChange
 public import QuillenSuslin.FiniteFreeResolution.Basic
 public import QuillenSuslin.FiniteFreeResolution.Exact
 public import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
-public import QuillenSuslin.FiniteFreeResolution.Localization
 public import QuillenSuslin.FiniteFreeResolution.Polynomial
 public import QuillenSuslin.Invertible
 public import QuillenSuslin.MainTheorem
