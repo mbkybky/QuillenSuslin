@@ -46,7 +46,7 @@ theorem isUnimodular_iff_of_unimodularVectorEquiv {v w : s → R} (hvw : Unimodu
       Ideal.span (Set.range (N.1.mulVec w)) ≤ Ideal.span (Set.range w) := by
     refine Ideal.span_le.2 ?_
     rintro _ ⟨i, rfl⟩
-    simpa [Matrix.mulVec, dotProduct] using (Ideal.span (Set.range w)).sum_mem fun j _ =>
+    simpa [Matrix.mulVec, dotProduct] using (Ideal.span (Set.range w)).sum_mem fun j _ ↦
       (Ideal.span (Set.range w)).mul_mem_left (N.1 i j) (Ideal.subset_span ⟨j, rfl⟩)
   simp [le_antisymm (span_mulVec_le M v) <| by simpa using span_mulVec_le (M⁻¹) (M.1.mulVec v)]
 
@@ -69,7 +69,7 @@ theorem unimodularVectorEquiv_update_add (i j : s) (hij : i ≠ j) (c : R) (v : 
 
 theorem unimodularVectorEquiv_update_add_sum (i : s) (t : Finset s) (ht : i ∉ t) (c : s → R)
     (v : s → R) : UnimodularVectorEquiv v (Function.update v i (v i + ∑ j ∈ t, c j * v j)) := by
-  let vOf : Finset s → s → R := fun t => Function.update v i (v i + ∑ j ∈ t, c j * v j)
+  let vOf : Finset s → s → R := fun t ↦ Function.update v i (v i + ∑ j ∈ t, c j * v j)
   have hvOf (t : Finset s) : i ∉ t → UnimodularVectorEquiv v (vOf t) := by
     refine Finset.induction_on t ?_ ?_
     · intro _
@@ -98,30 +98,30 @@ variable {A B : Type*} [CommRing A] [CommRing B] {s : Type*}
 
 /-- Unimodularity is preserved under a ring homomorphism. -/
 theorem isUnimodular_map_ringHom (f : A →+* B) (v : s → A) (hv : IsUnimodular v) :
-    IsUnimodular fun i => f (v i) := by
+    IsUnimodular fun i ↦ f (v i) := by
   change Ideal.span (Set.range (f ∘ v)) = ⊤
   rw [Set.range_comp, ← Ideal.map_span, hv, Ideal.map_top]
 
 /-- Unimodularity is preserved under an algebra equivalence. -/
 theorem isUnimodular_map_ringEquiv (e : A ≃+* B) (v : s → A) (hv : IsUnimodular v) :
-    IsUnimodular fun i => e (v i) := isUnimodular_map_ringHom e.toRingHom v hv
+    IsUnimodular fun i ↦ e (v i) := isUnimodular_map_ringHom e.toRingHom v hv
 
 variable [Fintype s] [DecidableEq s]
 
 theorem generalLinearGroup_map_mulVec_eq (f : A →+* B) (M : GL s A) {v w : s → A}
-    (hM : M.1.mulVec v = w) : (M.map f).1.mulVec (fun i => f (v i)) = fun i => f (w i) :=
+    (hM : M.1.mulVec v = w) : (M.map f).1.mulVec (fun i ↦ f (v i)) = fun i ↦ f (w i) :=
   funext fun i ↦ by simpa [hM] using! (RingHom.map_mulVec f M.1 v i).symm
 
 /-- Push a unimodular-vector equivalence along a ring homomorphism. -/
 theorem unimodularVectorEquiv_map (f : A →+* B) {v w : s → A} (hvw : UnimodularVectorEquiv v w) :
-    UnimodularVectorEquiv (fun i => f (v i)) (fun i => f (w i)) := by
+    UnimodularVectorEquiv (fun i ↦ f (v i)) (fun i ↦ f (w i)) := by
   rcases hvw with ⟨M, hM⟩
   exact ⟨M.map f, generalLinearGroup_map_mulVec_eq f M hM⟩
 
 /-- Unimodular-vector equivalence is preserved under an algebra equivalence. -/
 theorem unimodularVectorEquiv_map_ringEquiv (e : A ≃+* B) (v w : s → A)
     (hvw : UnimodularVectorEquiv v w) :
-    UnimodularVectorEquiv (fun i => e (v i)) (fun i => e (w i)) :=
+    UnimodularVectorEquiv (fun i ↦ e (v i)) (fun i ↦ e (w i)) :=
   unimodularVectorEquiv_map e.toRingHom hvw
 
 end isUnimodular_map
@@ -174,7 +174,7 @@ theorem degree_lowering (a b : R[X]) (ha : a.Monic) (hb : b.natDegree < a.natDeg
     rcases h with ⟨i, hi⟩
     intro hbbar0
     exact (IsUnit.map π hi).ne_zero <| by
-      simpa [bbar, Polynomial.coeff_map] using congrArg (fun p : (R ⧸ M)[X] => p.coeff i) hbbar0
+      simpa [bbar, Polynomial.coeff_map] using congrArg (fun p : (R ⧸ M)[X] ↦ p.coeff i) hbbar0
   have hmm : (Polynomial.map π a).Monic := ha.map π
   have hdmap : (Polynomial.map π a).natDegree = d := Polynomial.Monic.natDegree_map ha π
   let n := bbar.natDegree
@@ -210,7 +210,7 @@ end degree
 
 section localHorrocks
 
-private def basisVec (A : Type*) [CommRing A] (o : s) : s → A := fun i => if i = o then 1 else 0
+private def basisVec (A : Type*) [CommRing A] (o : s) : s → A := fun i ↦ if i = o then 1 else 0
 
 private noncomputable def permGL {A : Type*} [CommRing A] (σ : Equiv.Perm s) :
     GL s A :=
@@ -229,8 +229,8 @@ private lemma permGL_mulVec_basisVec {A : Type*} [CommRing A] (σ : Equiv.Perm s
 
 private theorem unimodularVectorEquiv_add_fixed {A : Type*} [CommRing A] (j : s)
     (c : s → A) (v : s → A) :
-    UnimodularVectorEquiv v (fun a => if a = j then v j else v a + c a * v j) := by
-  let vOf : Finset s → s → A := fun t a =>
+    UnimodularVectorEquiv v (fun a ↦ if a = j then v j else v a + c a * v j) := by
+  let vOf : Finset s → s → A := fun t a ↦
     if a = j then v j else if a ∈ t then v a + c a * v j else v a
   have hvOf (t : Finset s) : t ⊆ Finset.univ.erase j → UnimodularVectorEquiv v (vOf t) := by
     refine Finset.induction_on t ?_ ?_
@@ -259,7 +259,7 @@ private theorem unimodularVectorEquiv_add_fixed {A : Type*} [CommRing A] (j : s)
   · simp [vOf, ha, Finset.mem_erase, Finset.mem_univ]
 
 private def twoByTwoMatrix {A : Type*} [CommRing A] (o i : s) (a b α β : A) : Matrix s s A :=
-  fun r c =>
+  fun r c ↦
     if r = o then
       if c = o then α else if c = i then β else 0
     else if r = i then
@@ -267,7 +267,7 @@ private def twoByTwoMatrix {A : Type*} [CommRing A] (o i : s) (a b α β : A) : 
     else 0
 
 private def twoByTwoInv {A : Type*} [CommRing A] (o i : s) (a b α β : A) : Matrix s s A :=
-  fun r c =>
+  fun r c ↦
     if r = o then
       if c = o then a else if c = i then -β else 0
     else if r = i then
@@ -278,8 +278,8 @@ private theorem equiv_basis_of_eq_one {A : Type*} [CommRing A] (o j : s) (v : s 
     (hj : v j = 1) : UnimodularVectorEquiv v (basisVec A o) := by
   have hjbasis :
       UnimodularVectorEquiv v (basisVec A j) := by
-    change UnimodularVectorEquiv v (fun a => if a = j then 1 else 0)
-    simpa [hj] using unimodularVectorEquiv_add_fixed j (fun a => -v a) v
+    change UnimodularVectorEquiv v (fun a ↦ if a = j then 1 else 0)
+    simpa [hj] using unimodularVectorEquiv_add_fixed j (fun a ↦ -v a) v
   by_cases hjo : j = o
   · simpa [hjo] using hjbasis
   · have hswap : UnimodularVectorEquiv (basisVec A j) (basisVec A o) := by
@@ -322,7 +322,7 @@ private theorem equiv_basis_of_two {A : Type*} [CommRing A] (o i : s) (hoi : o �
 /-- Let `A = R[X]` for a local ring `R`. Then any unimodular vector in `A^s` with a monic
 component is equivalent to `e₁`. -/
 theorem horrocks_of_isLocalRing [IsLocalRing R] (o : s) (v : s → R[X]) (huv : IsUnimodular v)
-    (h : ∃ i : s, (v i).Monic) : UnimodularVectorEquiv v (fun i => if i = o then 1 else 0) := by
+    (h : ∃ i : s, (v i).Monic) : UnimodularVectorEquiv v (fun i ↦ if i = o then 1 else 0) := by
   let eo : s → R[X] := basisVec R[X] o
   have haux (d : ℕ) : ∀ w : s → R[X], IsUnimodular w →
       (∃ j : s, (w j).Monic ∧ (w j).natDegree = d) → UnimodularVectorEquiv w eo := by
@@ -335,11 +335,11 @@ theorem horrocks_of_isLocalRing [IsLocalRing R] (o : s) (v : s → R[X]) (huv : 
     · have hd_pos : 0 < d := Nat.pos_of_ne_zero hd0
       have hwj_ne_one : w j ≠ 1 := by
         exact (hjmonic.natDegree_pos).1 (by simpa [hjdeg] using hd_pos)
-      let wred : s → R[X] := fun a => if a = j then w j else w a %ₘ w j
+      let wred : s → R[X] := fun a ↦ if a = j then w j else w a %ₘ w j
       have hwred_eqv : UnimodularVectorEquiv w wred := by
         have hfixed :
-            UnimodularVectorEquiv w (fun a => if a = j then w j else w a + -(w a /ₘ w j) * w j) :=
-          unimodularVectorEquiv_add_fixed j (fun a => -(w a /ₘ w j)) w
+            UnimodularVectorEquiv w (fun a ↦ if a = j then w j else w a + -(w a /ₘ w j) * w j) :=
+          unimodularVectorEquiv_add_fixed j (fun a ↦ -(w a /ₘ w j)) w
         convert hfixed using 2 with a
         by_cases ha : a = j
         · simp [wred, ha]
@@ -355,7 +355,7 @@ theorem horrocks_of_isLocalRing [IsLocalRing R] (o : s) (v : s → R[X]) (huv : 
         by_contra hnone
         push Not at hnone
         let π : R →+* IsLocalRing.ResidueField R := IsLocalRing.residue R
-        let wbar : s → (IsLocalRing.ResidueField R)[X] := fun a => Polynomial.map π (wred a)
+        let wbar : s → (IsLocalRing.ResidueField R)[X] := fun a ↦ Polynomial.map π (wred a)
         have hwbar_unimod : IsUnimodular wbar :=
           isUnimodular_map_ringHom (Polynomial.mapRingHom π) wred hwred_unimod
         have hzero (a : s) (ha : a ≠ j) : wbar a = 0 := by
@@ -389,12 +389,12 @@ theorem horrocks_of_isLocalRing [IsLocalRing R] (o : s) (v : s → R[X]) (huv : 
           degree_lowering (wred j) (wred i) (by simpa [wred] using hjmonic) hwred_i_deg ⟨n, hin⟩
         let γr : R := 1 - (wred k).coeff (d - 1)
         let γ : R[X] := C γr
-        let wnew : s → R[X] := fun a =>
+        let wnew : s → R[X] := fun a ↦
           if a = k then wred a + (γ * e) * wred j + (γ * f) * wred i
           else wred a
         have hwnew_eqv : UnimodularVectorEquiv w wnew := by
           refine unimodularVectorEquiv_equivalence.trans hwred_eqv ?_
-          let coeff : s → R[X] := fun a =>
+          let coeff : s → R[X] := fun a ↦
             if a = j then γ * e else if a = i then γ * f else 0
           have hk_not_mem : k ∉ ({j, i} : Finset s) := by simp [hk_ne_j, hk_ne_i]
           convert unimodularVectorEquiv_update_add_sum k {j, i} hk_not_mem coeff wred using 1
@@ -454,12 +454,12 @@ end localHorrocks
   then $v(x) \sim v(0)$. -/
 theorem unimodularVectorEquiv_C_eval_zero_of_monic_of_isLocalRing [IsLocalRing R]
     (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic) :
-    UnimodularVectorEquiv v (fun i => C ((v i).eval 0)) := by
+    UnimodularVectorEquiv v (fun i ↦ C ((v i).eval 0)) := by
   rcases h with ⟨j, hj⟩
-  let ej : s → R[X] := fun i => if i = j then 1 else 0
+  let ej : s → R[X] := fun i ↦ if i = j then 1 else 0
   have hv_ej : UnimodularVectorEquiv v ej := horrocks_of_isLocalRing j v hv ⟨j, hj⟩
   let ev0 : R[X] →+* R := Polynomial.eval₂RingHom (RingHom.id R) 0
-  have hC : UnimodularVectorEquiv (fun i => C ((v i).coeff 0)) ej := by
+  have hC : UnimodularVectorEquiv (fun i ↦ C ((v i).coeff 0)) ej := by
     simpa [ev0, ej] using unimodularVectorEquiv_map C (unimodularVectorEquiv_map ev0 hv_ej)
   simpa [Polynomial.coeff_zero_eq_eval_zero] using
     unimodularVectorEquiv_equivalence.trans hv_ej (unimodularVectorEquiv_equivalence.symm hC)
@@ -495,24 +495,24 @@ private lemma generalLinearGroup_det_eq_one_of_eval_zero_eq_one (G : GL s (Polyn
   that $v(x) \sim v(x + cy)$ over $R[x, y]$. -/
 theorem exists_unimodularVectorEquiv_eval₂_shift_of_localization {S : Submonoid R}
     (hs : S ≤ nonZeroDivisors R) (v : s → R[X])
-    (h : UnimodularVectorEquiv (fun i => (v i).map (algebraMap R (Localization S)))
-      (fun i => C (algebraMap R (Localization S) ((v i).eval 0)))) :
-    ∃ c : S, UnimodularVectorEquiv (fun i => C (v i))
-      (fun i => (v i).eval₂ (C.comp C) (C X + (c : R) • Y)) := by
+    (h : UnimodularVectorEquiv (fun i ↦ (v i).map (algebraMap R (Localization S)))
+      (fun i ↦ C (algebraMap R (Localization S) ((v i).eval 0)))) :
+    ∃ c : S, UnimodularVectorEquiv (fun i ↦ C (v i))
+      (fun i ↦ (v i).eval₂ (C.comp C) (C X + (c : R) • Y)) := by
   let L := Localization S
   let f : R →+* L := algebraMap R L
   let fX : R[X] →+* L[X] := Polynomial.mapRingHom f
   let fXY : R[X][Y] →+* L[X][Y] := Polynomial.mapRingHom fX
-  let ccR : S → R[X][Y] := fun c => C (C (c : R))
-  let ccL : S → L[X][Y] := fun c => C (C (f c))
+  let ccR : S → R[X][Y] := fun c ↦ C (C (c : R))
+  let ccL : S → L[X][Y] := fun c ↦ C (C (f c))
   let ιR : R →+* R[X][Y] := C.comp C
   let ιL : L →+* L[X][Y] := C.comp C
-  let vL : s → L[X] := fun i => (v i).map f
-  let vx : s → R[X][Y] := fun i => C (v i)
-  let vxL : s → L[X][Y] := fun i => C (vL i)
-  let vxy1L : s → L[X][Y] := fun i => (vL i).eval₂ ιL (C X + Y)
-  let constL : s → L[X] := fun i => C (f ((v i).eval 0))
-  let const2L : s → L[X][Y] := fun i => C (constL i)
+  let vL : s → L[X] := fun i ↦ (v i).map f
+  let vx : s → R[X][Y] := fun i ↦ C (v i)
+  let vxL : s → L[X][Y] := fun i ↦ C (vL i)
+  let vxy1L : s → L[X][Y] := fun i ↦ (vL i).eval₂ ιL (C X + Y)
+  let constL : s → L[X] := fun i ↦ C (f ((v i).eval 0))
+  let const2L : s → L[X][Y] := fun i ↦ C (constL i)
   have : IsDomain L := IsLocalization.isDomain_of_le_nonZeroDivisors L hs
   have hfX_inj : Function.Injective fX := Polynomial.map_injective f (IsLocalization.injective L hs)
   have hfXY_inj : Function.Injective fXY := Polynomial.map_injective fX hfX_inj
@@ -550,11 +550,11 @@ theorem exists_unimodularVectorEquiv_eval₂_shift_of_localization {S : Submonoi
     simp [MC, lift, ev0Y]
   have hMshift0 : Matrix.GeneralLinearGroup.map ev0Y Mshift = M := by
     ext i j n
-    exact congrArg (fun p : (Localization S)[X] => p.coeff n) (h_ev0_shift1 (M.1 i j))
+    exact congrArg (fun p : (Localization S)[X] ↦ p.coeff n) (h_ev0_shift1 (M.1 i j))
   have hP0_gl : Matrix.GeneralLinearGroup.map ev0Y (Mshift⁻¹ * MC) = 1 := by
     simp [MonoidHom.map_mul, MonoidHom.map_inv, hMshift0, hMC0, L]
   have hP0 : ev0Y.mapMatrix (Mshift⁻¹ * MC).1 = 1 :=
-    congrArg (fun g : GL s L[X] => (g : Matrix s s L[X])) hP0_gl
+    congrArg (fun g : GL s L[X] ↦ (g : Matrix s s L[X])) hP0_gl
   let P : GL s L[X][Y] := Mshift⁻¹ * MC
   have hdiv (i j : s) :
       ∃ w : L[X][Y], P.1 i j - (if i = j then (1 : L[X][Y]) else 0) = Y * w := by
@@ -563,7 +563,7 @@ theorem exists_unimodularVectorEquiv_eval₂_shift_of_localization {S : Submonoi
       by_cases hij : i = j <;> simpa [ev0Y, hij, sub_eq_zero] using hentry
     rcases (Polynomial.X_dvd_iff).2 hcoeff0 with ⟨w, hw⟩
     exact ⟨w, hw⟩
-  let W : Matrix s s L[X][Y] := fun i j => Classical.choose (hdiv i j)
+  let W : Matrix s s L[X][Y] := fun i j ↦ Classical.choose (hdiv i j)
   have hW (i j : s) : P.1 i j = (if i = j then 1 else 0) + Y * W i j := by
     simpa [W, add_comm] using (sub_eq_iff_eq_add).1 (Classical.choose_spec (hdiv i j))
   have hclearW :
@@ -572,13 +572,13 @@ theorem exists_unimodularVectorEquiv_eval₂_shift_of_localization {S : Submonoi
       ∃ W0 : Matrix s s R[X][Y], ∀ ij ∈ t, Polynomial.map fX (W0 ij.1 ij.2) = W ij.1 ij.2 * ccL c
     have hPidx (t : Finset (s × s)) : Pidx t := by
       refine Finset.induction_on t ?_ ?_
-      · exact ⟨1, fun _ _ => 0, by simp⟩
+      · exact ⟨1, fun _ _ ↦ 0, by simp⟩
       · intro a t ha ht
         rcases ht with ⟨c0, W0, hW0⟩
         rcases clearXY (W a.1 a.2) with ⟨c1, qa, hqa⟩
         have hmapc0 : fX (C (c0 : R)) = C (f c0) := by simp [fX]
         have hmapc1 : fX (C (c1 : R)) = C (f c1) := by simp [fX]
-        refine ⟨c0 * c1, fun i j => if (i, j) = a then qa * ccR c0 else W0 i j * ccR c1, ?_⟩
+        refine ⟨c0 * c1, fun i j ↦ if (i, j) = a then qa * ccR c0 else W0 i j * ccR c1, ?_⟩
         intro ij hij
         by_cases hEq : ij = a
         · subst hEq
@@ -592,9 +592,9 @@ theorem exists_unimodularVectorEquiv_eval₂_shift_of_localization {S : Submonoi
   rcases hclearW with ⟨c, W0, hW0fun⟩
   let substR : R[X][Y] →+* R[X][Y] := Polynomial.eval₂RingHom C (ccR c * Y)
   let substL : L[X][Y] →+* L[X][Y] := Polynomial.eval₂RingHom C (ccL c * Y)
-  let B : Matrix s s R[X][Y] := fun i j => (if i = j then 1 else 0) + Y * substR (W0 i j)
-  let vxy : s → R[X][Y] := fun i => (v i).eval₂ ιR (C X + ccR c * Y)
-  let vxyL : s → L[X][Y] := fun i => (vL i).eval₂ ιL (C X + ccL c * Y)
+  let B : Matrix s s R[X][Y] := fun i j ↦ (if i = j then 1 else 0) + Y * substR (W0 i j)
+  let vxy : s → R[X][Y] := fun i ↦ (v i).eval₂ ιR (C X + ccR c * Y)
+  let vxyL : s → L[X][Y] := fun i ↦ (vL i).eval₂ ιL (C X + ccL c * Y)
   have hcompC : fXY.comp C = C.comp fX := by
     apply Polynomial.ringHom_ext
     · intro p
@@ -648,11 +648,11 @@ theorem exists_unimodularVectorEquiv_eval₂_shift_of_localization {S : Submonoi
     have hX : substL (C X + Y) = C X + ccL c * Y := by simp [substL, ccL]
     change substL (vxy1L i) = vxyL i
     rw [(vL i).hom_eval₂ ιL substL (C X + Y), hcomp, hX]
-  have hvxL_fixed : (fun i => substL (vxL i)) = vxL := by
+  have hvxL_fixed : (fun i ↦ substL (vxL i)) = vxL := by
     funext i
     simp [vxL, substL]
   have hPsubvxL_map :
-      (substL.mapMatrix P.1).mulVec (fun i => substL (vxL i)) = fun i => substL (vxy1L i) := by
+      (substL.mapMatrix P.1).mulVec (fun i ↦ substL (vxL i)) = fun i ↦ substL (vxy1L i) := by
     funext i
     exact (RingHom.map_mulVec substL P.1 vxL i).symm.trans (congrArg substL (congrFun hPvxL i))
   have hPsubvxL : (substL.mapMatrix P.1).mulVec vxL = vxyL := by
@@ -667,10 +667,10 @@ theorem exists_unimodularVectorEquiv_eval₂_shift_of_localization {S : Submonoi
     have hX : fXY (C X + ccR c * Y) = C X + ccL c * Y := by simp [fXY, fX, ccR, ccL]
     rw [(v i).hom_eval₂ ιR fXY (C X + ccR c * Y), hcomp, hX]
     exact (Polynomial.eval₂_map f ιL (C X + ccL c * Y)).symm
-  have hBvx_map : (fun i => fXY (B.mulVec vx i)) = fun i => fXY (vxy i) := by
+  have hBvx_map : (fun i ↦ fXY (B.mulVec vx i)) = fun i ↦ fXY (vxy i) := by
     funext i
     rw [RingHom.map_mulVec fXY B vx i]
-    change (fXY.mapMatrix B).mulVec (fun j => fXY (vx j)) i = fXY (vxy i)
+    change (fXY.mapMatrix B).mulVec (fun j ↦ fXY (vx j)) i = fXY (vxy i)
     simpa [hBmap, hvx_map] using (congrFun hPsubvxL i).trans (hvxy_map i).symm
   have hBvx : B.mulVec vx = vxy := by
     funext i
@@ -685,9 +685,9 @@ end Bivariate
 /-- Suppose $R$ is any domain, and $v(x) \in R[x]^s$ is a unimodular vector one of whose
   leading coefficients is one. Then $v(x) \sim v(0)$. -/
 theorem horrocks (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Monic) :
-    UnimodularVectorEquiv v (fun i => C ((v i).eval 0)) := by
-  let base : s → R[X][Y] := fun i => C (v i)
-  let shift : R → s → R[X][Y] := fun q i => (v i).eval₂ (C.comp C) (C X + q • Y)
+    UnimodularVectorEquiv v (fun i ↦ C ((v i).eval 0)) := by
+  let base : s → R[X][Y] := fun i ↦ C (v i)
+  let shift : R → s → R[X][Y] := fun q i ↦ (v i).eval₂ (C.comp C) (C X + q • Y)
   let I : Ideal R :=
     { carrier := {q | UnimodularVectorEquiv base (shift q)}
       zero_mem' := by
@@ -699,9 +699,9 @@ theorem horrocks (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Mo
         intro a b ha hb
         let σ : R[X][Y] →+* R[X][Y] :=
           Polynomial.eval₂RingHom (Polynomial.eval₂RingHom (C.comp C) (C X + b • Y)) Y
-        have hσ : UnimodularVectorEquiv (fun i => σ (base i)) (fun i => σ (shift a i)) :=
+        have hσ : UnimodularVectorEquiv (fun i ↦ σ (base i)) (fun i ↦ σ (shift a i)) :=
           unimodularVectorEquiv_map σ ha
-        have hσ_left : (fun i => σ (base i)) = shift b := by
+        have hσ_left : (fun i ↦ σ (base i)) = shift b := by
           funext i
           simp [σ, base, shift]
         have hcomp : σ.comp (C.comp C) = C.comp C := by
@@ -709,7 +709,7 @@ theorem horrocks (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Mo
           simp [σ]
         have hX : σ (C X + a • Y) = C X + (a + b) • Y := by
           simp [σ, Algebra.smul_def, add_mul, add_comm, add_left_comm]
-        have hσ_right : (fun i => σ (shift a i)) = shift (a + b) := by
+        have hσ_right : (fun i ↦ σ (shift a i)) = shift (a + b) := by
           funext i
           rw [Polynomial.hom_eval₂ (v i) (C.comp C) σ (C X + a • Y), hcomp, hX]
         have hσ' : UnimodularVectorEquiv (shift b) (shift (a + b)) := by
@@ -718,9 +718,9 @@ theorem horrocks (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Mo
       smul_mem' := by
         intro r q hq
         let τ : R[X][Y] →+* R[X][Y] := Polynomial.eval₂RingHom C (C (C r) * Y)
-        have hτ : UnimodularVectorEquiv (fun i => τ (base i)) (fun i => τ (shift q i)) :=
+        have hτ : UnimodularVectorEquiv (fun i ↦ τ (base i)) (fun i ↦ τ (shift q i)) :=
           unimodularVectorEquiv_map τ hq
-        have hτ_left : (fun i => τ (base i)) = base := by
+        have hτ_left : (fun i ↦ τ (base i)) = base := by
           funext i
           simp [τ, base]
         have hcomp : τ.comp (C.comp C) = (C.comp C) := by
@@ -731,7 +731,7 @@ theorem horrocks (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Mo
           simp only [Algebra.smul_def, algebraMap_apply, algebraMap_eq, eval₂_add, eval₂_C,
             eval₂_mul, eval₂_X, map_mul, add_right_inj]
           ring
-        have hτ_right : (fun i => τ (shift q i)) = shift (r * q) := by
+        have hτ_right : (fun i ↦ τ (shift q i)) = shift (r * q) := by
           funext i
           rw [Polynomial.hom_eval₂ (v i) (C.comp C) τ (C X + q • Y), hcomp, hX]
         change UnimodularVectorEquiv base (shift (r • q))
@@ -745,19 +745,19 @@ theorem horrocks (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Mo
       rcases h with ⟨i, hi⟩
       exact ⟨i, hi.map f⟩
     have hloc : UnimodularVectorEquiv
-        (fun i => (v i).map (algebraMap R (Localization m.primeCompl)))
-        (fun i => C (algebraMap R (Localization m.primeCompl) ((v i).eval 0))) := by
+        (fun i ↦ (v i).map (algebraMap R (Localization m.primeCompl)))
+        (fun i ↦ C (algebraMap R (Localization m.primeCompl) ((v i).eval 0))) := by
       simpa [Polynomial.coeff_zero_eq_eval_zero, Polynomial.eval_map, Polynomial.eval₂_at_apply, f]
         using unimodularVectorEquiv_C_eval_zero_of_monic_of_isLocalRing
-          (fun i => (v i).map f) (isUnimodular_map_ringHom (Polynomial.mapRingHom f) v hv) h'
+          (fun i ↦ (v i).map f) (isUnimodular_map_ringHom (Polynomial.mapRingHom f) v hv) h'
     have hs : m.primeCompl ≤ nonZeroDivisors R := Ideal.primeCompl_le_nonZeroDivisors m
     obtain ⟨c, hc⟩ := exists_unimodularVectorEquiv_eval₂_shift_of_localization hs v hloc
     exact c.2 (hIm hc)
   have h1 : (1 : R) ∈ I := by simp [hI_top]
   let φ : R[X][Y] →+* R[X] := Polynomial.eval₂RingHom (Polynomial.eval₂RingHom C 0) X
-  have hφ : UnimodularVectorEquiv (fun i => φ (base i)) (fun i => φ (shift 1 i)) :=
+  have hφ : UnimodularVectorEquiv (fun i ↦ φ (base i)) (fun i ↦ φ (shift 1 i)) :=
     unimodularVectorEquiv_map φ h1
-  have hφ_left : (fun i => φ (base i)) = fun i => C ((v i).eval 0) := by
+  have hφ_left : (fun i ↦ φ (base i)) = fun i ↦ C ((v i).eval 0) := by
     funext i
     simp [φ, base, Polynomial.coeff_zero_eq_eval_zero]
   have hcomp : φ.comp (C.comp C) = C := by
@@ -765,7 +765,7 @@ theorem horrocks (v : s → R[X]) (hv : IsUnimodular v) (h : ∃ i : s, (v i).Mo
     simp [φ]
   have hX : φ (C X + (1 : R) • Y) = X := by
     simp [φ, Algebra.smul_def]
-  have hφ_right : (fun i => φ (shift 1 i)) = v := by
+  have hφ_right : (fun i ↦ φ (shift 1 i)) = v := by
     funext i
     rw [(v i).hom_eval₂ (C.comp C) φ (C X + (1 : R) • Y), hcomp, hX, Polynomial.eval₂_C_X]
   exact unimodularVectorEquiv_equivalence.symm (by rwa [← hφ_left, ← hφ_right])

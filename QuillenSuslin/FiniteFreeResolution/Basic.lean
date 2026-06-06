@@ -65,7 +65,7 @@ section compHom
 
 /-- Let `M` be a `R`-module. Viewing `M` as an `S`-module via `σ' : S →+* R`, then the identity map
 gives a semilinear equivalence over `σ: R →+* S`. -/
-def _root_.Module.compHom.self_equiv
+def _root_.Module.compHom.selfEquiv
   {R S : Type*} [Semiring R] [Semiring S] (σ : R →+* S) (σ' : S →+* R)
   [RingHomInvPair σ σ'] [RingHomInvPair σ' σ] (M : Type*) [AddCommMonoid M] [Module R M] :
   letI : Module S M := compHom M σ'; M ≃ₛₗ[σ] M :=
@@ -88,8 +88,8 @@ theorem of_semilinearEquiv {S : Type u'} [Ring S] [Small.{v'} S]
   | succ _ n F K f g hf hg he _ ih =>
       let : Module S F := compHom F σ'
       let : Module S K := compHom K σ'
-      let eF : F ≃ₛₗ[σ] F := compHom.self_equiv σ σ' F
-      let eK : K ≃ₛₗ[σ] K := compHom.self_equiv σ σ' K
+      let eF : F ≃ₛₗ[σ] F := compHom.selfEquiv σ σ' F
+      let eK : K ≃ₛₗ[σ] K := compHom.selfEquiv σ σ' K
       let fS : K →ₗ[S] F := (eF.toLinearMap ∘ₛₗ f) ∘ₛₗ eK.symm.toLinearMap
       let gS : F →ₗ[S] N := (e.toLinearMap ∘ₛₗ g) ∘ₛₗ eF.symm.toLinearMap
       have : Free S F := Free.of_equiv eF

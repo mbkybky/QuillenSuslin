@@ -20,7 +20,7 @@ namespace Module
 
 private lemma free_of_prod_free_of_unimodularVectorEquiv
     (hR : ∀ {σ : Type} [Fintype σ] [DecidableEq σ] (o : σ) {v : σ → R} (_ : IsUnimodular v),
-      UnimodularVectorEquiv v (fun i => if i = o then 1 else 0))
+      UnimodularVectorEquiv v (fun i ↦ if i = o then 1 else 0))
     (Q : Type*) [AddCommGroup Q] [Module R Q] [Free R (Q × R)] : Free R Q := by
   rcases subsingleton_or_nontrivial R with hsub | hnontriv
   · have : Subsingleton Q := Module.subsingleton R Q
@@ -39,18 +39,18 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
     let t : Finset I := c.support
     have ht : t.Nonempty := Finsupp.support_nonempty_iff.2 hc
     let o : t := ⟨ht.choose, ht.choose_spec⟩
-    let v : t → R := fun i => c i
+    let v : t → R := fun i ↦ c i
     have hv : IsUnimodular v := by
       refine (Ideal.eq_top_iff_one _).2 <|
-        Ideal.mem_span_range_iff_exists_fun.2 ⟨fun i => (b i).2, ?_⟩
-      have hsnd : (LinearMap.snd R Q R) x = t.sum fun i => c i * (b i).2 := by
+        Ideal.mem_span_range_iff_exists_fun.2 ⟨fun i ↦ (b i).2, ?_⟩
+      have hsnd : (LinearMap.snd R Q R) x = t.sum fun i ↦ c i * (b i).2 := by
         calc _ = (LinearMap.snd R Q R) (Finsupp.linearCombination R b c) := by simp [c]
-          _ = t.sum fun i => c i * (b i).2 := by
+          _ = t.sum fun i ↦ c i * (b i).2 := by
             simp [t, Finsupp.linearCombination_apply, Finsupp.sum, map_sum, smul_eq_mul]
       have hsum : (∑ i : t, (b i).2 * v i) = (1 : R) := by
-        calc _ = t.sum fun i => (b i).2 * c i := by
-              simpa [v] using Finset.sum_coe_sort t (fun i => (b i).2 * c i)
-          _ = t.sum fun i => c i * (b i).2 := by
+        calc _ = t.sum fun i ↦ (b i).2 * c i := by
+              simpa [v] using Finset.sum_coe_sort t (fun i ↦ (b i).2 * c i)
+          _ = t.sum fun i ↦ c i * (b i).2 := by
             refine Finset.sum_congr rfl ?_
             intro i _
             simp [mul_comm]
@@ -73,16 +73,16 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
           refine ⟨e i, ?_⟩
           simp [v']
       simpa [hrange] using hv
-    have hvo' : UnimodularVectorEquiv v' (fun i : Fin n => if i = o' then 1 else 0) := hR o' hv'
+    have hvo' : UnimodularVectorEquiv v' (fun i : Fin n ↦ if i = o' then 1 else 0) := hR o' hv'
     rcases hvo' with ⟨M, hM⟩
     let gM : LinearMap.GeneralLinearGroup R (Fin n → R) := Matrix.GeneralLinearGroup.toLin M
     let eM : (Fin n → R) ≃ₗ[R] (Fin n → R) := gM.toLinearEquiv
-    have heM : eM v' = (fun i : Fin n => if i = o' then 1 else 0) := by
-      have : (gM : (Fin n → R) →ₗ[R] Fin n → R) v' = fun i : Fin n => if i = o' then 1 else 0 := by
+    have heM : eM v' = (fun i : Fin n ↦ if i = o' then 1 else 0) := by
+      have : (gM : (Fin n → R) →ₗ[R] Fin n → R) v' = fun i : Fin n ↦ if i = o' then 1 else 0 := by
         simpa [gM, Matrix.GeneralLinearGroup.coe_toLin, Matrix.mulVecLin_apply] using hM
       simpa [eM] using this
     let I₂ := { i : I // i ∉ t }
-    let eI : (t ⊕ I₂) ≃ I := Equiv.sumCompl fun i : I => i ∈ t
+    let eI : (t ⊕ I₂) ≃ I := Equiv.sumCompl fun i : I ↦ i ∈ t
     let eF' : F ≃ₗ[R] (t ⊕ I₂) →₀ R := b.repr.trans (Finsupp.domLCongr eI).symm
     let eF'' : F ≃ₗ[R] (t →₀ R) × (I₂ →₀ R) :=
       eF'.trans (Finsupp.sumFinsuppLEquivProdFinsupp R : (_ →₀ R) ≃ₗ[R] _)
@@ -92,19 +92,19 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
       LinearEquiv.prodCongr (Finsupp.linearEquivFunOnFinite R R (Fin n)) (LinearEquiv.refl R _)
     have hxE : eF x = (v', (0 : I₂ →₀ R)) := by
       ext i
-      · exact congrArg (fun k => (b.repr x) k) <| Equiv.sumCompl_apply_inl (e.symm i)
+      · exact congrArg (fun k ↦ (b.repr x) k) <| Equiv.sumCompl_apply_inl (e.symm i)
       · have hi0 : c (i : I) = 0 := by
           by_contra hne
           exact i.property (by simpa [t] using Finsupp.mem_support_iff.2 hne)
         simp only [Finsupp.coe_zero, Pi.zero_apply]
-        calc _ = (b.repr x) (i : I) := congrArg (fun k => (b.repr x) k) (Equiv.sumCompl_apply_inr i)
+        calc _ = (b.repr x) (i : I) := congrArg (fun k ↦ (b.repr x) k) (Equiv.sumCompl_apply_inr i)
           _ = 0 := by simp [c, hi0]
     let U := (Fin n → R) × (I₂ →₀ R)
     let φ : U ≃ₗ[R] U := LinearEquiv.prodCongr eM (LinearEquiv.refl R _)
     let g : R →ₗ[R] U := (eF.toLinearMap).comp (LinearMap.inr R Q R)
-    let std : Fin n → R := fun i => if i = o' then 1 else 0
+    let std : Fin n → R := fun i ↦ if i = o' then 1 else 0
     let gstd : R →ₗ[R] U :=
-      { toFun := fun r => (r • std, 0)
+      { toFun := fun r ↦ (r • std, 0)
         map_add' := by
           intro a b
           refine Prod.ext ?_ ?_
@@ -126,7 +126,7 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
       have hgr : g r = (r • v', (0 : I₂ →₀ R)) := by
         calc g r = r • g 1 := by simpa using (g.map_smul r (1 : R))
           _ = (r • v', (0 : I₂ →₀ R)) := by
-            refine (by simpa using congrArg (fun u => r • u) hg1 : r • g 1 = r • (v', 0)).trans ?_
+            refine (by simpa using congrArg (fun u ↦ r • u) hg1 : r • g 1 = r • (v', 0)).trans ?_
             refine Prod.ext ?_ ?_
             · rfl
             · change r • (0 : I₂ →₀ R) = 0
@@ -145,16 +145,16 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
         _ = LinearMap.range gstd := by simp [hφ]
     let t' := { i : Fin n // i ≠ o' }
     let restrict : (Fin n → R) →ₗ[R] (t' → R) :=
-      { toFun := fun f i => f i.1
-        map_add' := fun _ _ => by congr
-        map_smul' := fun _ _ => by congr }
+      { toFun := fun f i ↦ f i.1
+        map_add' := fun _ _ ↦ by congr
+        map_smul' := fun _ _ ↦ by congr }
     let projU : U →ₗ[R] (t' → R) × (I₂ →₀ R) :=
-      { toFun := fun x => (restrict x.1, x.2)
-        map_add' := fun _ _ => by congr
-        map_smul' := fun _ _ => by congr }
+      { toFun := fun x ↦ (restrict x.1, x.2)
+        map_add' := fun _ _ ↦ by congr
+        map_smul' := fun _ _ ↦ by congr }
     have hprojU_surj : Function.Surjective projU := by
       rintro ⟨f, g⟩
-      refine ⟨(fun i => if h : i = o' then 0 else f ⟨i, h⟩, g), ?_⟩
+      refine ⟨(fun i ↦ if h : i = o' then 0 else f ⟨i, h⟩, g), ?_⟩
       ext i
       · cases i with | mk i hi => simp [projU, restrict, hi]
       · simp [projU]
@@ -166,7 +166,7 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
         have hx₁ : ∀ i : Fin n, i ≠ o' → x.1 i = 0 := by
           intro i hi
           have : restrict x.1 ⟨i, hi⟩ = 0 := by
-            simpa [projU] using congrArg (fun f : t' → R => f ⟨i, hi⟩) <| congrArg Prod.fst hx
+            simpa [projU] using congrArg (fun f : t' → R ↦ f ⟨i, hi⟩) <| congrArg Prod.fst hx
           simpa [restrict] using this
         refine ⟨x.1 o', Prod.ext ?_ ?_⟩
         · funext i
@@ -202,7 +202,7 @@ private lemma free_of_prod_free_of_unimodularVectorEquiv
 
 theorem free_of_isStablyFree_of_unimodularVectorEquiv
     (hR : ∀ {σ : Type} [Fintype σ] [DecidableEq σ] (o : σ) {v : σ → R} (_ : IsUnimodular v),
-      UnimodularVectorEquiv v (fun i => if i = o then 1 else 0))
+      UnimodularVectorEquiv v (fun i ↦ if i = o then 1 else 0))
     (P : Type*) [AddCommGroup P] [Module R P] (h : IsStablyFree R P) : Free R P := by
   rcases h with ⟨N, _, _, _, _, _⟩
   let ι := Free.ChooseBasisIndex R N
@@ -219,20 +219,20 @@ theorem free_of_isStablyFree_of_unimodularVectorEquiv
         intro h0
         let +nondep e0 : (P × (Fin 0 → R)) ≃ₗ[R] P :=
           { toFun := Prod.fst
-            invFun := fun p => (p, 0)
+            invFun := fun p ↦ (p, 0)
             left_inv := by
               rintro ⟨p, f⟩
               refine Prod.ext rfl ?_
               funext x
               exact Fin.elim0 x
-            right_inv := fun _ => rfl
-            map_add' := fun _ _ => rfl
-            map_smul' := fun _ _ => rfl }
+            right_inv := fun _ ↦ rfl
+            map_add' := fun _ _ ↦ rfl
+            map_smul' := fun _ _ ↦ rfl }
         exact Free.of_equiv e0
     | succ n ih =>
         intro hsn
         let ePi : (Fin (n + 1) → R) ≃ₗ[R] (Fin n ⊕ Fin 1 → R) :=
-          (LinearEquiv.piCongrLeft R (fun _ : Fin (n + 1) => R) finSumFinEquiv).symm
+          (LinearEquiv.piCongrLeft R (fun _ : Fin (n + 1) ↦ R) finSumFinEquiv).symm
         let eSum : (Fin n ⊕ Fin 1 → R) ≃ₗ[R] (Fin n → R) × (Fin 1 → R) :=
           LinearEquiv.sumArrowLequivProdArrow (Fin n) (Fin 1) R R
         let e1 : (Fin 1 → R) ≃ₗ[R] R := LinearEquiv.funUnique (Fin 1) R R
