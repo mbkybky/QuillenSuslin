@@ -169,8 +169,7 @@ theorem exists_nonzero_C_mul_mem_span_singleton [IsDomain R] {P : Ideal (R[X])}
     exact this (by simp [hf0])
   have hgen : ∀ a : s, C (d * d) * (a : R[X]) ∈ Ideal.span ({f} : Set (R[X])) := by
     intro a
-    refine Ideal.mem_span_singleton'.2 ?_
-    refine ⟨qR a, ?_⟩
+    refine Ideal.mem_span_singleton'.2 ⟨qR a, ?_⟩
     apply (Polynomial.map_injective i hi)
     rw [Polynomial.map_mul, hqR' a, hmap_f, Polynomial.map_mul, Polynomial.map_C]
     simp [map_mul, mul_left_comm, mul_comm, ← hq a, mul_assoc]
@@ -189,21 +188,19 @@ private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianR
       HasFiniteFreeResolution R P) : ∀ I : Ideal R, ∀ q : PrimeSpectrum R[X],
     Ideal.comap (C : R →+* R[X]) q.1 = I → HasFiniteFreeResolution (R[X]) (R[X] ⧸ q.1) := by
   -- Noetherian induction on the contraction `p.1 ∩ R`.
-  let A : Type u := R[X]
+  let A := R[X]
   refine IsNoetherian.induction ?_
   intro I ih q hqI
-  have hcomap : Ideal.comap (C : R →+* A) q.1 = I := hqI
-  have hIA_le_P : Ideal.map (C : R →+* A) I ≤ q.1 :=
-    (Ideal.map_le_iff_le_comap).2 <| by simp [hcomap]
+  have hIA_le_P : Ideal.map (C : R →+* A) I ≤ q.1 := (Ideal.map_le_iff_le_comap).2 (by simp [hqI])
   let IA : Ideal A := Ideal.map (C : R →+* A) I
-  let B : Type u := A ⧸ IA
+  let B := A ⧸ IA
   have hI_res : HasFiniteFreeResolution R I := hR I inferInstance
   by_cases hPIA : q.1 = IA
   · exact of_linearEquiv (Submodule.quotEquivOfEq IA q.1 hPIA.symm)
   · have hIprime : Ideal.IsPrime I := by
-      simpa [hcomap] using show (Ideal.comap (C : R →+* A) q.1).IsPrime from inferInstance
-    let R₀ : Type u := R ⧸ I
-    let A₀ : Type u := R₀[X]
+      simpa [hqI] using show (Ideal.comap (C : R →+* A) q.1).IsPrime from inferInstance
+    let R₀ := R ⧸ I
+    let A₀ := R₀[X]
     let π : A →+* B := Ideal.Quotient.mk IA
     let Pbar : Ideal B := Ideal.map π q.1
     let e : A₀ ≃+* B := Ideal.polynomialQuotientEquivQuotientPolynomial I
@@ -225,15 +222,13 @@ private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianR
       exists_nonzero_C_mul_mem_span_singleton hP₀_ne (fg_of_isNoetherianRing P₀)
     rcases Ideal.Quotient.mk_surjective d₀ with ⟨d, rfl⟩
     have hd_not_mem : d ∉ I := fun hdI ↦ hd₀ ((Ideal.Quotient.eq_zero_iff_mem).2 hdI)
-    let fbar : B := e f₀
-    have hfbar_mem : fbar ∈ Pbar := by
-      have : f₀ ∈ P₀ := hf₀P₀
-      simpa [P₀, Ideal.mem_comap, fbar] using this
-    have hfbar_ne : fbar ≠ 0 := by
+    have hfbar_mem : e f₀ ∈ Pbar := by
+      simpa [P₀, Ideal.mem_comap] using hf₀P₀
+    have hfbar_ne : e f₀ ≠ 0 := by
       intro h0
       apply hf₀ne
-      exact e.injective (by simpa [fbar] using h0)
-    let Fbar : Ideal B := Ideal.span ({fbar} : Set B)
+      exact e.injective (by simpa using h0)
+    let Fbar : Ideal B := Ideal.span ({e f₀} : Set B)
     have hFbar_le : Fbar ≤ Pbar := by
       intro x hx
       rcases (Ideal.mem_span_singleton.1 hx) with ⟨y, rfl⟩
@@ -253,11 +248,9 @@ private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianR
           Ideal.map e.toRingHom (Ideal.span ({f₀} : Set A₀)) :=
         Ideal.mem_map_of_mem e.toRingHom h0
       have hspan :
-          Ideal.map (e : A₀ →+* B) (Ideal.span ({f₀} : Set A₀)) = Ideal.span ({fbar} : Set B) := by
-        simpa [fbar] using (Ideal.map_span e.toRingHom ({f₀} : Set A₀))
-      have : e (C (Ideal.Quotient.mk I d) : A₀) * e g₀ ∈ Fbar := by
-        simpa [Fbar, hspan, map_mul] using hmem
-      simpa [g₀, hCd] using this
+          Ideal.map (e : A₀ →+* B) (Ideal.span ({f₀} : Set A₀)) = Ideal.span ({e f₀} : Set B) := by
+        simpa using (Ideal.map_span e.toRingHom ({f₀} : Set A₀))
+      simpa [g₀, hCd, Fbar, hspan, map_mul] using hmem
     let Kbar : Submodule A Pbar :=
       Submodule.comap (Pbar.subtype.restrictScalars A) (Fbar.restrictScalars A)
     let N := Pbar ⧸ Kbar
@@ -267,9 +260,7 @@ private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianR
       change ((C d : A) • (y : B)) ∈ Fbar.restrictScalars A
       have hyFmul : (π (C d) : B) * (y : B) ∈ Fbar := by
         simpa [π] using hmul_bar (y : B) y.2
-      have hsmul : ((C d : A) • (y : B)) = (π (C d) : B) * (y : B) := by
-        have hAlgebraMap : (algebraMap A B) = π := rfl
-        simpa [hAlgebraMap] using! (Algebra.smul_def (C d : A) (y : B))
+      have hsmul : ((C d : A) • (y : B)) = (π (C d) : B) * (y : B) := Algebra.smul_def (C d) y.1
       exact hsmul ▸ hyFmul
     have hN : HasFiniteFreeResolution A N := by
       have hsmul_I_mem_Kbar : ∀ r : R, r ∈ I → ∀ y : Pbar, (C r : A) • y ∈ Kbar := by
@@ -338,16 +329,13 @@ private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianR
         (Submodule.mkQ_surjective Kbar) <| LinearMap.exact_subtype_mkQ Kbar
     let fIP : IA →ₗ[A] q.1 := Submodule.inclusion hIA_le_P
     let gPP : q.1 →ₗ[A] Pbar :=
-      { toFun := fun x ↦ ⟨π x.1, Ideal.mem_map_of_mem π x.2⟩
-        map_add' := fun _ _ ↦ by congr
-        map_smul' := by
-          intro m x
+      { toFun x := ⟨π x.1, Ideal.mem_map_of_mem π x.2⟩
+        map_add' _ _ := by congr
+        map_smul' m x := by
           ext
           change π (m • x.1) = m • π x.1
           rw [smul_eq_mul]
-          have hAlgebraMap : (algebraMap A B) = π := rfl
-          have hsmulB : m • π x.1 = (π m : B) * π x.1 := by
-            simpa [hAlgebraMap] using Algebra.smul_def m (π (x : A) : B)
+          have hsmulB : m • π x.1 = (π m : B) * π x.1 := Algebra.smul_def m (π (x : A) : B)
           rw [hsmulB]
           exact π.map_mul m x.1 }
     have hfIP : Function.Injective fIP := by
@@ -365,9 +353,7 @@ private theorem Module.HasFiniteFreeResolution.quotient_prime_aux [IsNoetherianR
       intro x
       constructor
       · intro hx0
-        refine ⟨⟨x.1, (Ideal.Quotient.eq_zero_iff_mem).1 <| congrArg (fun z : Pbar ↦ z.1) hx0⟩, ?_⟩
-        apply Subtype.ext
-        rfl
+        exact ⟨⟨x.1, (Ideal.Quotient.eq_zero_iff_mem).1 <| congrArg (fun z : Pbar ↦ z.1) hx0⟩, rfl⟩
       · rintro ⟨y, rfl⟩
         apply Subtype.ext
         simpa [gPP, fIP] using (Ideal.Quotient.eq_zero_iff_mem).2 y.2
@@ -416,7 +402,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       let : Module (MvPolynomial α R) M := Module.compHom M eσ.toRingHom
       have : RingHomInvPair eσ.toRingHom eσ.symm.toRingHom := RingHomInvPair.of_ringEquiv eσ
       have : RingHomInvPair eσ.symm.toRingHom eσ.toRingHom := RingHomInvPair.of_ringEquiv_symm eσ
-      let eM := Module.compHom.self_equiv eσ.symm.toRingHom eσ.toRingHom M
+      let eM := Module.compHom.selfEquiv eσ.symm.toRingHom eσ.toRingHom M
       have : Module.Finite (MvPolynomial α R) M := Module.Finite.of_surjective _ eM.surjective
       exact of_semilinearEquiv (MvPolynomial α R) M (MvPolynomial β R) M eM.symm
     · intro M _ _ _
@@ -424,7 +410,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       let : Module R M := Module.compHom M eσ.toRingHom
       have : RingHomInvPair eσ.toRingHom eσ.symm.toRingHom := RingHomInvPair.of_ringEquiv eσ
       have : RingHomInvPair eσ.symm.toRingHom eσ.toRingHom := RingHomInvPair.of_ringEquiv_symm eσ
-      let eM := Module.compHom.self_equiv eσ.symm.toRingHom eσ.toRingHom M
+      let eM := Module.compHom.selfEquiv eσ.symm.toRingHom eσ.toRingHom M
       have : Module.Finite R M := Module.Finite.of_surjective _ eM.surjective
       have : Small.{u} M := Module.Finite.small.{u} R M
       have : HasFiniteFreeResolution R (Shrink.{u} M) := hR (Shrink.{u} M) inferInstance
@@ -437,7 +423,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       let : Module A M := Module.compHom M eσ.toRingHom
       have : RingHomInvPair eσ.toRingHom eσ.symm.toRingHom := RingHomInvPair.of_ringEquiv eσ
       have : RingHomInvPair eσ.symm.toRingHom eσ.toRingHom := RingHomInvPair.of_ringEquiv_symm eσ
-      let eM := Module.compHom.self_equiv eσ.symm.toRingHom eσ.toRingHom M
+      let eM := Module.compHom.selfEquiv eσ.symm.toRingHom eσ.toRingHom M
       have : Module.Finite A M := Module.Finite.of_surjective _ eM.surjective
       have : HasFiniteFreeResolution A M := polynomial_of_isNoetherianRing
         (MvPolynomial α R) (fun N _ _ hN ↦ hα N) M
