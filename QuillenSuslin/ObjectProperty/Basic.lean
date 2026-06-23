@@ -40,7 +40,7 @@ resolutions when `P = CategoryTheory.isProjective A`.
 
 public section
 
-universe v u
+universe v u v' u'
 
 namespace CategoryTheory
 
@@ -114,8 +114,7 @@ theorem succ_of_zero_mem (h0 : P (0 : A)) (hX : P.HasFiniteResolutionOfLength X 
       have hS : S.ShortExact := by
         refine (ShortComplex.Splitting.ofIsZeroOfIsIso S ?_ ?_).shortExact
         · simpa [S] using isZero_zero A
-        · dsimp [S]
-          infer_instance
+        · infer_instance
       exact HasFiniteResolutionOfLength.succ S 0 hS hX
         (HasFiniteResolutionOfLength.zero (0 : A) h0)
   | succ S n hS h₂ _ ih =>
@@ -124,6 +123,17 @@ theorem succ_of_zero_mem (h0 : P (0 : A)) (hX : P.HasFiniteResolutionOfLength X 
 theorem of_ge {m : ℕ} (h0 : P (0 : A)) (hX : P.HasFiniteResolutionOfLength X n)
     (h : n ≤ m) : P.HasFiniteResolutionOfLength X m :=
   Nat.le.rec hX (fun _ ↦ succ_of_zero_mem h0) h
+
+theorem map_exactFunctor {B : Type u'} [Category.{v'} B] [Abelian B]
+    {Q : ObjectProperty B} (F : A ⥤ B) [F.Additive]
+    [PreservesFiniteLimits F] [PreservesFiniteColimits F]
+    (hF : ∀ X, P X → Q (F.obj X)) (hX : P.HasFiniteResolutionOfLength X n) :
+    Q.HasFiniteResolutionOfLength (F.obj X) n := by
+  induction hX with
+  | zero X hX =>
+      exact HasFiniteResolutionOfLength.zero (F.obj X) (hF X hX)
+  | succ S n hS h₂ _ ih =>
+      exact HasFiniteResolutionOfLength.succ (S.map F) n (hS.map_of_exact F) (hF S.X₂ h₂) ih
 
 theorem hasFiniteResolution (hX : P.HasFiniteResolutionOfLength X n) :
     P.HasFiniteResolution X :=
@@ -166,6 +176,14 @@ theorem of_shortExact {S : ShortComplex A} (hS : S.ShortExact) (h₂ : P S.X₂)
     [P.HasFiniteResolution S.X₁] : P.HasFiniteResolution S.X₃ := by
   obtain ⟨n, h₁⟩ := HasFiniteResolution.out (P := P) (X := S.X₁)
   exact ⟨n + 1, HasFiniteResolutionOfLength.succ S n hS h₂ h₁⟩
+
+theorem map_exactFunctor {B : Type u'} [Category.{v'} B] [Abelian B]
+    {Q : ObjectProperty B} (F : A ⥤ B) [F.Additive]
+    [PreservesFiniteLimits F] [PreservesFiniteColimits F]
+    (hF : ∀ X, P X → Q (F.obj X)) [P.HasFiniteResolution X] :
+    Q.HasFiniteResolution (F.obj X) := by
+  obtain ⟨n, hX⟩ := HasFiniteResolution.out P X
+  exact ⟨n, hX.map_exactFunctor F hF⟩
 
 end HasFiniteResolution
 

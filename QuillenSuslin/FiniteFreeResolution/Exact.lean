@@ -19,17 +19,17 @@ have a finite free resolution, then so does the third .
 
 public section
 
-universe u α β γ
+universe u v
 
-variable {R : Type u} [CommRing R] [Small.{α} R] [Small.{β} R] [Small.{γ} R]
-  {M₁ : Type α} {M₂ : Type β} {M₃ : Type γ} [AddCommGroup M₁] [Module R M₁]
+variable {R : Type u} [CommRing R] [Small.{v} R]
+  {M₁ : Type v} {M₂ : Type v} {M₃ : Type v} [AddCommGroup M₁] [Module R M₁]
   [AddCommGroup M₂] [Module R M₂] [AddCommGroup M₃] [Module R M₃]
-  {F : Type γ} [AddCommGroup F] [Module R F] {K : Type γ} [AddCommGroup K] [Module R K]
+  {F : Type v} [AddCommGroup F] [Module R F] {K : Type v} [AddCommGroup K] [Module R K]
   (f : M₁ →ₗ[R] M₂) (g : M₂ →ₗ[R] M₃)
 
 section Function.Exact
 
-omit [Small.{α} R] [Small.{β} R] [Small.{γ} R]
+omit [Small.{v} R]
 
 variable {A : Type*} {B : Type*} [AddCommGroup A] [Module R A] [AddCommGroup B] [Module R B]
    (u : A →ₗ[R] M₁) (v : B →ₗ[R] M₃) (l : B →ₗ[R] M₂)
@@ -59,7 +59,7 @@ resolutions, then so does `M₂`. -/
 theorem of_shortExact_of_left_of_right (hf : Function.Injective f) (hg : Function.Surjective g)
     (h : Function.Exact f g) [HasFiniteFreeResolution R M₁] [HasFiniteFreeResolution R M₃] :
     HasFiniteFreeResolution R M₂ := by
-  have : Small.{max α γ, u} R := small_lift R
+  have : Small.{max v v, u} R := small_lift R
   obtain ⟨n₁, h₁⟩ := HasFiniteFreeResolution.out R M₁
   induction h₁ generalizing M₂ M₃ with
   | zero M₁ =>
@@ -105,7 +105,7 @@ theorem of_shortExact_of_left_of_right (hf : Function.Injective f) (hg : Functio
               rcases (he₁ y.1).1 (hf <| by simpa [s, hy0] using hy) with ⟨x, hx⟩
               exact ⟨x, Prod.ext hx (by simp [hy0, i])⟩
       | succ M₃ n₃ F₃ K₃ f₃ g₃ hf₃ hg₃ he₃ hk₃ =>
-          have : Small.{β} (F₁ × F₃) := Module.Finite.small.{β} R (F₁ × F₃)
+          have : Small.{v} (F₁ × F₃) := Module.Finite.small.{v} R (F₁ × F₃)
           obtain ⟨l, hl⟩ := projective_lifting_property g g₃ hg
           let s : F₁ × F₃ →ₗ[R] M₂ := (f.comp g₁).coprod l
           let K : Submodule R (F₁ × F₃) := s.ker
@@ -136,11 +136,11 @@ theorem of_shortExact_of_left_of_right (hf : Function.Injective f) (hg : Functio
           have hK₃ : HasFiniteFreeResolution R g₃.ker :=
             of_linearEquiv (LinearEquiv.ofInjective f₃ hf₃ ≪≫ₗ
               (LinearEquiv.ofEq g₃.ker f₃.range he₃.linearMap_ker_eq).symm)
-          let +nondep eK : Shrink.{β} K ≃ₗ[R] K := Shrink.linearEquiv R K
-          have : HasFiniteFreeResolution R (Shrink.{β} K) :=
+          let +nondep eK : Shrink.{v} K ≃ₗ[R] K := Shrink.linearEquiv R K
+          have : HasFiniteFreeResolution R (Shrink.{v} K) :=
             ih _ _ (eK.symm.injective.comp hϕ) (hψ.comp eK.surjective)
               ((LinearEquiv.conj_exact_iff_exact ϕ ψ eK.symm).2 hKer)
-          have : HasFiniteFreeResolution R K := of_shrink.{β} R K
+          have : HasFiniteFreeResolution R K := of_shrink.{v} R K
           exact of_ker_hasFiniteFreeResolution K.subtype s (Submodule.subtype_injective K)
             (surjective_coprod_of_exact_lift f g g₁ g₃ l h hg₁ hg₃ hl)
               (LinearMap.exact_subtype_ker_map s)
@@ -183,7 +183,7 @@ private theorem of_split [Module.Finite R M₃] [Free R M₃]
     [HasFiniteFreeResolution R M₂] : HasFiniteFreeResolution R M₁ := by
   obtain ⟨s, hs⟩ := projective_lifting_property g LinearMap.id hg
   let e : M₂ ≃ₗ[R] M₁ × M₃ := ((Function.Exact.splitSurjectiveEquiv h hf) ⟨s, hs⟩).1
-  have : Small.{max α γ, u} R := small_lift R
+  have : Small.{max v v, u} R := small_lift R
   have : HasFiniteFreeResolution R (M₁ × M₃) := of_linearEquiv e
   exact of_shortExact_of_left_of_middle (LinearMap.inr R M₁ M₃) (LinearMap.fst R M₁ M₃)
     LinearMap.inr_injective LinearMap.fst_surjective Function.Exact.inr_fst
@@ -198,7 +198,7 @@ theorem of_shortExact_of_middle_of_right (hf : Function.Injective f) (hg : Funct
   | zero M₃ =>
       obtain ⟨s, hs⟩ := projective_lifting_property g LinearMap.id hg
       let e : M₂ ≃ₗ[R] M₁ × M₃ := ((Function.Exact.splitSurjectiveEquiv h hf) ⟨s, hs⟩).1
-      have : Small.{max α γ, u} R := small_lift R
+      have : Small.{max v v, u} R := small_lift R
       have : HasFiniteFreeResolution R (M₁ × M₃) := of_linearEquiv e
       exact of_shortExact_of_left_of_middle (LinearMap.inr R M₁ M₃) (LinearMap.fst R M₁ M₃)
         LinearMap.inr_injective LinearMap.fst_surjective Function.Exact.inr_fst
@@ -223,7 +223,7 @@ theorem of_shortExact_of_middle_of_right (hf : Function.Injective f) (hg : Funct
           have hy₂ : g₃ y.1.2 = 0 := by simpa [hy₁] using show g y.1.1 + (-g₃) y.1.2 = 0 from y.2
           rcases (he₃ y.1.2).1 hy₂ with ⟨x, hx⟩
           exact ⟨x, by ext <;> simp [ϕ₁, i₁, hy₁, hx]⟩
-      have : Small.{max β γ, u} R := small_lift R
+      have : Small.{max v v, u} R := small_lift R
       let i₂ : M₁ →ₗ[R] M₂ × F₃ := (LinearMap.inl R M₂ F₃).comp f
       let ϕ₂ : M₁ →ₗ[R] N := LinearMap.codRestrict N i₂ <| fun x ↦ by
         simp [N, s, i₂, h.apply_apply_eq_zero x]

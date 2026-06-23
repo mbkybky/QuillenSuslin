@@ -18,7 +18,7 @@ universe u v
 
 namespace Module
 
-variable {R : Type u} [CommRing R] [Small.{v, u} R]
+variable {R : Type u} [CommRing R] [Small.{v} R]
 
 theorem HasFiniteFreeResolutionOfLength.isStablyFree_of_projective {P : Type v} [AddCommGroup P]
     [Module R P] {n : ℕ} (hn : HasFiniteFreeResolutionOfLength R P n) :
@@ -55,7 +55,12 @@ theorem HasFiniteFreeResolution.iff_isStablyFree (P : Type v) [AddCommGroup P] [
     HasFiniteFreeResolution R P ↔ IsStablyFree R P := by
   refine ⟨fun _ ↦ HasFiniteFreeResolution.isStablyFree R P, fun _ ↦ ?_⟩
   obtain ⟨N, _, _, _, _, _⟩ := IsStablyFree.exist_free_prod R P
-  exact of_shortExact_of_left_of_middle (LinearMap.inr R P N)
-    (LinearMap.fst R P N) LinearMap.inr_injective LinearMap.fst_surjective Function.Exact.inr_fst
+  have : Small.{v} N := Module.Finite.small.{v} R N
+  let +nondep eN : N ≃ₗ[R] Shrink.{v} N := (Shrink.linearEquiv R N).symm
+  have : Module.Free R (P × Shrink.{v} N) :=
+    Module.Free.of_equiv ((LinearEquiv.refl R P).prodCongr eN)
+  exact of_shortExact_of_left_of_middle (LinearMap.inr R P (Shrink.{v} N))
+    (LinearMap.fst R P (Shrink.{v} N)) LinearMap.inr_injective LinearMap.fst_surjective
+      Function.Exact.inr_fst
 
 end Module
