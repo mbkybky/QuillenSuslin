@@ -61,7 +61,7 @@ inductive HasFiniteResolutionOfLength (P : ObjectProperty A) : A → ℕ → Pro
 
 /-- An object has a finite `P`-resolution if it has one of some finite length. -/
 class HasFiniteResolution (P : ObjectProperty A) (X : A) : Prop where
-  out : ∃ n : ℕ, P.HasFiniteResolutionOfLength X n
+  out (P X) : ∃ n : ℕ, P.HasFiniteResolutionOfLength X n
 
 namespace HasFiniteResolutionOfLength
 
