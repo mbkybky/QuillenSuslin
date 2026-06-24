@@ -32,7 +32,7 @@ private noncomputable def pairCone (F : Discrete WalkingPair ⥤ ModuleCat.{v} R
     Cone F where
   pt := ModuleCat.of R (F.obj ⟨WalkingPair.left⟩ × F.obj ⟨WalkingPair.right⟩)
   π :=
-    { app := fun j => by
+    { app := fun j ↦ by
         rcases j with ⟨j⟩
         cases j with
         | left =>
@@ -57,52 +57,30 @@ private noncomputable def pairConeIsLimit (F : Discrete WalkingPair ⥤ ModuleCa
   · intro s j
     rcases j with ⟨j⟩
     cases j
-    · ext x
+    · ext
       rfl
-    · ext x
+    · ext
       rfl
   · intro s m hm
     ext x
     apply Prod.ext
-    · change (m.hom x).1 = (s.π.app ⟨WalkingPair.left⟩).hom x
-      exact ConcreteCategory.congr_hom (hm ⟨WalkingPair.left⟩) x
-    · change (m.hom x).2 = (s.π.app ⟨WalkingPair.right⟩).hom x
-      exact ConcreteCategory.congr_hom (hm ⟨WalkingPair.right⟩) x
+    · exact ConcreteCategory.congr_hom (hm ⟨WalkingPair.left⟩) x
+    · exact ConcreteCategory.congr_hom (hm ⟨WalkingPair.right⟩) x
 
 instance finiteFree_isClosedUnderBinaryProducts :
     (finiteFree R : ObjectProperty (ModuleCat.{v} R)).IsClosedUnderBinaryProducts where
   limitsOfShape_le := by
     rintro X ⟨p⟩
-    let F := p.diag
-    let e : (pairCone R F).pt ≅ X :=
-      IsLimit.conePointUniqueUpToIso (pairConeIsLimit R F) p.isLimit
-    apply (finiteFree R).prop_of_iso e
-    have hleft := p.prop_diag_obj ⟨WalkingPair.left⟩
-    have hleft' : Module.Finite R (F.obj ⟨WalkingPair.left⟩) ∧
-        Module.Free R (F.obj ⟨WalkingPair.left⟩) :=
-      (ModuleCat.finiteFree_iff R (F.obj ⟨WalkingPair.left⟩)).1 hleft
-    have hright := p.prop_diag_obj ⟨WalkingPair.right⟩
-    have hright' : Module.Finite R (F.obj ⟨WalkingPair.right⟩) ∧
-        Module.Free R (F.obj ⟨WalkingPair.right⟩) :=
-      (ModuleCat.finiteFree_iff R (F.obj ⟨WalkingPair.right⟩)).1 hright
-    letI : Module.Finite R (F.obj ⟨WalkingPair.left⟩) :=
-      hleft'.1
-    letI : Module.Free R (F.obj ⟨WalkingPair.left⟩) :=
-      hleft'.2
-    letI : Module.Finite R (F.obj ⟨WalkingPair.right⟩) :=
-      hright'.1
-    letI : Module.Free R (F.obj ⟨WalkingPair.right⟩) :=
-      hright'.2
-    exact finiteFree_of R (F.obj ⟨WalkingPair.left⟩ × F.obj ⟨WalkingPair.right⟩)
+    apply (finiteFree R).prop_of_iso
+      (IsLimit.conePointUniqueUpToIso (pairConeIsLimit R p.diag) p.isLimit)
+    obtain ⟨⟨_, _⟩, ⟨_, _⟩⟩ :=
+      p.prop_diag_obj ⟨WalkingPair.left⟩, p.prop_diag_obj ⟨WalkingPair.right⟩
+    exact finiteFree_of R (p.diag.obj ⟨WalkingPair.left⟩ × p.diag.obj ⟨WalkingPair.right⟩)
 
 theorem finiteFree_le_projective :
     (finiteFree R : ObjectProperty (ModuleCat.{v} R)) ≤
       CategoryTheory.isProjective (ModuleCat.{v} R) := by
-  intro X hX
-  have hX' : Module.Finite R X ∧ Module.Free R X :=
-    (ModuleCat.finiteFree_iff R X).1 hX
-  letI : Module.Free R X := hX'.2
-  haveI : Module.Projective R X := Module.Projective.of_free
+  intro X ⟨_, _⟩
   exact ModuleCat.projective_of_categoryTheory_projective X
 
 end ModuleCat

@@ -260,8 +260,8 @@ theorem mvPolynomial_isStablyFree_of_isPrincipalIdealRing [IsDomain R] [IsPrinci
     obtain ⟨m, bK⟩ := Submodule.basisOfPid (Pi.basisFun R (Fin n)) (LinearMap.ker f)
     have : Free R (LinearMap.ker f) := Free.of_basis bK
     have : Module.Finite R (LinearMap.ker f) := Module.Finite.of_basis bK
-    exact HasFiniteFreeResolution.of_ker_hasFiniteFreeResolution (LinearMap.ker f).subtype f
-      Subtype.val_injective hf (LinearMap.exact_subtype_ker_map f)
+    exact HasFiniteFreeResolution.of_shortExact_of_left_of_middle
+      (LinearMap.ker f).subtype f Subtype.val_injective hf (LinearMap.exact_subtype_ker_map f)
   IsStablyFree.of_ulift (MvPolynomial σ R) P
 
 /-- **Quillen-Suslin Theorem**: Any finite flat module module over $k[x_1, \dots, x_n]$

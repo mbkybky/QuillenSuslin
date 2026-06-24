@@ -32,15 +32,11 @@ variable (R : Type u) [Ring R]
 
 /-- The object property of finite free modules. -/
 def finiteFree : ObjectProperty (ModuleCat.{v} R) :=
-  fun M => Module.Finite R M ∧ Module.Free R M
+  fun M ↦ Module.Finite R M ∧ Module.Free R M
 
 theorem finiteFree_of (M : Type v) [AddCommGroup M] [Module R M] [Module.Finite R M]
     [Module.Free R M] : finiteFree R (ModuleCat.of R M) := by
   exact ⟨inferInstance, inferInstance⟩
-
-theorem finiteFree_iff (M : ModuleCat.{v} R) :
-    finiteFree R M ↔ Module.Finite R M ∧ Module.Free R M :=
-  Iff.rfl
 
 instance finiteFree_isClosedUnderIsomorphisms : (finiteFree R).IsClosedUnderIsomorphisms := by
   constructor
@@ -55,8 +51,8 @@ namespace Module
 
 variable (R : Type u) [Ring R]
 
-/-- We say that an `R`-module `M` has a finite free resolution of length `n` if
-`ModuleCat.of R M` has a finite resolution of length `n` by finite free modules. -/
+/-- We say that an `R`-module `M` has a finite free resolution of length `n` if there exists an
+exact sequence `0 ⟶ Eₙ ⟶ ⋯ ⟶ E₀ ⟶ M ⟶ 0` such that `Eᵢ` are finite free `R`-modules. -/
 def HasFiniteFreeResolutionOfLength (R : Type u) [Ring R] (M : Type v)
     [AddCommGroup M] [Module R M] (n : ℕ) : Prop :=
   (ModuleCat.finiteFree R).HasFiniteResolutionOfLength (ModuleCat.of R M) n
@@ -73,8 +69,8 @@ protected theorem zero [Module.Finite R M] [Module.Free R M] :
 protected theorem succ {K F M : Type v} [AddCommGroup K] [Module R K]
     [AddCommGroup F] [Module R F] [AddCommGroup M] [Module R M]
     [Module.Finite R F] [Module.Free R F] {n : ℕ}
-    (f : K →ₗ[R] F) (g : F →ₗ[R] M) (h : Function.Exact f g)
-    (hf : Function.Injective f) (hg : Function.Surjective g)
+    (f : K →ₗ[R] F) (g : F →ₗ[R] M)
+    (hf : Function.Injective f) (hg : Function.Surjective g) (h : Function.Exact f g)
     (hK : HasFiniteFreeResolutionOfLength R K n) :
     HasFiniteFreeResolutionOfLength R M (n + 1) := by
   let S : ShortComplex (ModuleCat.{v} R) :=
@@ -91,10 +87,10 @@ theorem induction_on
     (succ : ∀ (K F M : Type v) [AddCommGroup K] [Module R K]
       [AddCommGroup F] [Module R F] [Module.Finite R F] [Module.Free R F]
       [AddCommGroup M] [Module R M]
-      (n : ℕ) (f : K →ₗ[R] F) (g : F →ₗ[R] M) (h : Function.Exact f g)
-      (hf : Function.Injective f) (hg : Function.Surjective g)
+      (n : ℕ) (f : K →ₗ[R] F) (g : F →ₗ[R] M)
+      (hf : Function.Injective f) (hg : Function.Surjective g) (h : Function.Exact f g)
       (hK : HasFiniteFreeResolutionOfLength R K n), motive hK →
-      motive (Module.HasFiniteFreeResolutionOfLength.succ f g h hf hg hK)) :
+      motive (Module.HasFiniteFreeResolutionOfLength.succ f g hf hg h hK)) :
     motive hM := by
   suffices ∀ {X : ModuleCat.{v} R} {n : ℕ}
     (hX : (ModuleCat.finiteFree R).HasFiniteResolutionOfLength X n), motive hX from this hM
@@ -108,13 +104,13 @@ theorem induction_on
       letI : Module.Finite R S.X₂ := h₂.1
       letI : Module.Free R S.X₂ := h₂.2
       exact succ S.X₁ S.X₂ S.X₃ n S.f.hom S.g.hom
-        ((ShortComplex.ShortExact.moduleCat_exact_iff_function_exact S).1 hS.exact)
-          hS.moduleCat_injective_f hS.moduleCat_surjective_g h₁ ih
+        hS.moduleCat_injective_f hS.moduleCat_surjective_g
+          ((ShortComplex.ShortExact.moduleCat_exact_iff_function_exact S).1 hS.exact) h₁ ih
 
 theorem module_finite (hM : HasFiniteFreeResolutionOfLength R M n) : Module.Finite R M := by
   induction hM using induction_on with
   | zero X => infer_instance
-  | succ _ F _ _ _ g _ _ hg _ _ => exact Module.Finite.of_surjective g hg
+  | succ _ _ _ _ _ g _ hg => exact Module.Finite.of_surjective g hg
 
 variable [Small.{w} R]
 
@@ -128,7 +124,7 @@ theorem of_linearEquiv {M : Type v} {N : Type w} [AddCommGroup M] [Module R M]
       have : Module.Finite R N := Module.Finite.of_surjective e.toLinearMap e.surjective
       have : Module.Free R N := Module.Free.of_equiv e
       exact Module.HasFiniteFreeResolutionOfLength.zero R N
-  | succ K F _ n f g h hf hg hK ih =>
+  | succ K F _ n f g hf hg h hK ih =>
       intro N _ _ e
       haveI : Module.Finite R K := module_finite hK
       have : Small.{w} K := Module.Finite.small R K

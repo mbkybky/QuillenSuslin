@@ -12,6 +12,7 @@ public import Mathlib.RingTheory.PicardGroup
 public import Mathlib.RingTheory.Polynomial.Quotient
 public import QuillenSuslin.FiniteFreeResolution.BaseChange
 public import QuillenSuslin.FiniteFreeResolution.Exact
+public import QuillenSuslin.FiniteFreeResolution.SemiLinearEquiv
 
 public section
 
@@ -404,7 +405,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       have : RingHomInvPair eσ.symm.toRingHom eσ.toRingHom := RingHomInvPair.of_ringEquiv_symm eσ
       let eM := Module.compHom.selfEquiv eσ.symm.toRingHom eσ.toRingHom M
       have : Module.Finite (MvPolynomial α R) M := Module.Finite.of_surjective _ eM.surjective
-      exact of_semilinearEquiv (MvPolynomial α R) M (MvPolynomial β R) M eM.symm
+      exact of_semilinearEquiv eM.symm
     · intro M _ _ _
       let eσ : R ≃+* MvPolynomial PEmpty R := (MvPolynomial.isEmptyAlgEquiv.{u, w} R PEmpty).symm
       let : Module R M := Module.compHom M eσ.toRingHom
@@ -415,7 +416,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       have : Small.{u} M := Module.Finite.small.{u} R M
       have : HasFiniteFreeResolution R (Shrink.{u} M) := hR (Shrink.{u} M) inferInstance
       have : HasFiniteFreeResolution R M := of_shrink.{u} R M
-      exact of_semilinearEquiv R M (MvPolynomial PEmpty R) M eM.symm
+      exact of_semilinearEquiv eM.symm
     · intro α _ hα M _ _ _
       let A := Polynomial (MvPolynomial α R)
       let B := MvPolynomial (Option α) R
@@ -427,7 +428,7 @@ theorem Module.HasFiniteFreeResolution.mvPolynomial_of_isNoetherianRing
       have : Module.Finite A M := Module.Finite.of_surjective _ eM.surjective
       have : HasFiniteFreeResolution A M := polynomial_of_isNoetherianRing
         (MvPolynomial α R) (fun N _ _ hN ↦ hα N) M
-      exact of_semilinearEquiv A M B M eM.symm
+      exact of_semilinearEquiv eM.symm
   have : Small.{max u w, v} P := Module.Finite.small (MvPolynomial σ R) P
   have : HasFiniteFreeResolution (MvPolynomial σ R) (Shrink.{max u w} P) := hm (Shrink.{max u w} P)
   exact of_shrink.{max u w} (MvPolynomial σ R) P

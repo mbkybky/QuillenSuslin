@@ -8,23 +8,14 @@ module
 public import Mathlib.CategoryTheory.ObjectProperty.EpiMono
 
 /-!
-# Objects admitting finite resolutions by an object property
-
-Let `P : ObjectProperty A` be a property of objects in an abelian category `A`.
-We say that `X : A` has a finite `P`-resolution of length `n` if it can be built by
-iterating short exact sequences
-`0 ⟶ K ⟶ F ⟶ X ⟶ 0`
-where the middle object `F` satisfies `P`, and the left object `K` has a finite
-`P`-resolution of the previous length.
-
-This specializes to finite free resolutions for
-`A = ModuleCat R` and `P = ModuleCat.finiteFree R`, and to bounded projective
-resolutions when `P = CategoryTheory.isProjective A`.
+# Finite resolutions by objects satisfying `P : ObjectProperty A`
 
 ## Main definitions
 
 * `CategoryTheory.ObjectProperty.HasFiniteResolutionOfLength`:
-  finite resolutions of a specified length by objects satisfying `P`.
+  Let `A` be an abelian category and `P : ObjectProperty A` be a property of objects in `A`.
+  We say that `X : A` has a `P`-resolution of length `n` if there exists an
+  exact sequence `0 ⟶ Eₙ ⟶ ⋯ ⟶ E₀ ⟶ M ⟶ 0` such that each `Eᵢ : A` satisfies `P`.
 * `CategoryTheory.ObjectProperty.HasFiniteResolution`:
   finite resolutions of some length by objects satisfying `P`.
 * `CategoryTheory.HasFiniteProjectiveResolutionOfLength` and
@@ -46,9 +37,9 @@ namespace ObjectProperty
 
 variable {A : Type u} [Category.{v} A] [Abelian A]
 
-/-- An object `X` has a finite `P`-resolution of length `n` if either `n = 0` and `P X`,
-or `X` sits at the end of a short exact sequence `0 ⟶ K ⟶ F ⟶ X ⟶ 0` with `P F`
-and `K` admitting a finite `P`-resolution of length `n - 1`. -/
+/-- Let `A` be an abelian category and `P : ObjectProperty A` be a property of objects in `A`.
+We say that `X : A` has a `P`-resolution of length `n` if there exists an
+exact sequence `0 ⟶ Eₙ ⟶ ⋯ ⟶ E₀ ⟶ M ⟶ 0` such that each `Eᵢ : A` satisfies `P`. -/
 inductive HasFiniteResolutionOfLength (P : ObjectProperty A) : A → ℕ → Prop
   | zero (X : A) (hX : P X) : HasFiniteResolutionOfLength P X 0
   | succ (S : ShortComplex A) (n : ℕ) (hS : S.ShortExact) (h₂ : P S.X₂)
@@ -82,13 +73,6 @@ theorem property_of_le_closedUnderQuotients [Q.IsClosedUnderQuotients] (hPQ : P 
 theorem property [P.IsClosedUnderQuotients] (hX : P.HasFiniteResolutionOfLength X n) : P X :=
   property_of_le_closedUnderQuotients (le_refl P) hX
 
-/-- A short exact sequence whose middle object satisfies `P` extends a finite `P`-resolution
-of the left object to one of the right object. -/
-theorem succ' {S : ShortComplex A} (hS : S.ShortExact) (h₂ : P S.X₂)
-    (h₁ : P.HasFiniteResolutionOfLength S.X₁ n) :
-    P.HasFiniteResolutionOfLength S.X₃ (n + 1) :=
-  HasFiniteResolutionOfLength.succ S n hS h₂ h₁
-
 /-- Finite `P`-resolutions are invariant under isomorphism when `P` is. -/
 theorem of_iso [P.IsClosedUnderIsomorphisms] {Y : A} (e : X ≅ Y)
     (hX : P.HasFiniteResolutionOfLength X n) : P.HasFiniteResolutionOfLength Y n := by
@@ -102,22 +86,18 @@ theorem of_iso [P.IsClosedUnderIsomorphisms] {Y : A} (e : X ≅ Y)
       exact HasFiniteResolutionOfLength.succ S' n hS' h₂ h₁
 
 /-- If the zero object satisfies `P`, a finite `P`-resolution can be padded by one step. -/
-theorem succ_of_zero_mem (h0 : P (0 : A)) (hX : P.HasFiniteResolutionOfLength X n) :
+theorem succ_of_zero_mem (h0 : P 0) (hX : P.HasFiniteResolutionOfLength X n) :
     P.HasFiniteResolutionOfLength X (n + 1) := by
   induction hX with
   | zero X hX =>
-      let S : ShortComplex A := ShortComplex.mk (0 : (0 : A) ⟶ X) (𝟙 X) (by simp)
-      have hS : S.ShortExact := by
-        refine (ShortComplex.Splitting.ofIsZeroOfIsIso S ?_ ?_).shortExact
-        · simpa [S] using isZero_zero A
-        · infer_instance
-      exact HasFiniteResolutionOfLength.succ S 0 hS hX
-        (HasFiniteResolutionOfLength.zero (0 : A) h0)
-  | succ S n hS h₂ _ ih =>
-      exact HasFiniteResolutionOfLength.succ S (n + 1) hS h₂ ih
+      let S : ShortComplex A := ShortComplex.mk (0 : 0 ⟶ X) (𝟙 X) (by simp)
+      exact HasFiniteResolutionOfLength.succ S 0
+        ((ShortComplex.Splitting.ofIsZeroOfIsIso S (isZero_zero A) inferInstance).shortExact)
+          hX (HasFiniteResolutionOfLength.zero 0 h0)
+  | succ S n hS h₂ _ ih => exact HasFiniteResolutionOfLength.succ S (n + 1) hS h₂ ih
 
-theorem of_ge {m : ℕ} (h0 : P (0 : A)) (hX : P.HasFiniteResolutionOfLength X n)
-    (h : n ≤ m) : P.HasFiniteResolutionOfLength X m :=
+theorem of_ge {m : ℕ} (h0 : P 0) (hX : P.HasFiniteResolutionOfLength X n) (h : n ≤ m) :
+    P.HasFiniteResolutionOfLength X m :=
   Nat.le.rec hX (fun _ ↦ succ_of_zero_mem h0) h
 
 theorem map_exactFunctor {B : Type u'} [Category.{v'} B] [Abelian B]
@@ -131,8 +111,7 @@ theorem map_exactFunctor {B : Type u'} [Category.{v'} B] [Abelian B]
   | succ S n hS h₂ _ ih =>
       exact HasFiniteResolutionOfLength.succ (S.map F) n (hS.map_of_exact F) (hF S.X₂ h₂) ih
 
-theorem hasFiniteResolution (hX : P.HasFiniteResolutionOfLength X n) :
-    P.HasFiniteResolution X :=
+theorem hasFiniteResolution (hX : P.HasFiniteResolutionOfLength X n) : P.HasFiniteResolution X :=
   ⟨n, hX⟩
 
 end HasFiniteResolutionOfLength
@@ -144,7 +123,7 @@ variable {P Q : ObjectProperty A} {X : A}
 theorem of_property (hX : P X) : P.HasFiniteResolution X :=
   ⟨0, HasFiniteResolutionOfLength.zero X hX⟩
 
-instance of_is [P.Is X] : P.HasFiniteResolution X :=
+instance [P.Is X] : P.HasFiniteResolution X :=
   of_property (P.prop_of_is X)
 
 theorem mono (hPQ : P ≤ Q) [P.HasFiniteResolution X] : Q.HasFiniteResolution X := by
@@ -159,12 +138,11 @@ theorem property_of_le_closedUnderQuotients [Q.IsClosedUnderQuotients] (hPQ : P 
 theorem property [P.IsClosedUnderQuotients] [P.HasFiniteResolution X] : P X :=
   property_of_le_closedUnderQuotients (le_refl P)
 
-theorem of_length {n : ℕ} (hX : P.HasFiniteResolutionOfLength X n) :
-    P.HasFiniteResolution X :=
+theorem of_length {n : ℕ} (hX : P.HasFiniteResolutionOfLength X n) : P.HasFiniteResolution X :=
   hX.hasFiniteResolution
 
-theorem of_iso [P.IsClosedUnderIsomorphisms] {Y : A} (e : X ≅ Y)
-    [P.HasFiniteResolution X] : P.HasFiniteResolution Y := by
+theorem of_iso [P.IsClosedUnderIsomorphisms] [P.HasFiniteResolution X] {Y : A} (e : X ≅ Y) :
+    P.HasFiniteResolution Y := by
   obtain ⟨n, hX⟩ := HasFiniteResolution.out (P := P) (X := X)
   exact ⟨n, hX.of_iso e⟩
 

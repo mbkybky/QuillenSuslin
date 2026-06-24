@@ -53,17 +53,17 @@ private theorem rightPresentation_shortExact {X₁ X₂ X₃ K F : A}
     apply mono_of_cancel_zero
     intro W a ha
     apply (cancel_mono i).1
-    have h := congrArg (fun e => e ≫ biprod.snd) ha
+    have h := congrArg (fun e ↦ e ≫ biprod.snd) ha
     simpa [Category.assoc] using h
   have hepi : Epi U.g := by
     apply epi_of_cancel_zero
     intro Z q hq
     have hSf_q : f ≫ q = 0 := by
-      simpa [U, Category.assoc] using congrArg (fun e => biprod.inl ≫ e) hq
+      simpa [U, Category.assoc] using congrArg (fun e ↦ biprod.inl ≫ e) hq
     obtain ⟨d, hd⟩ := hS.exact.desc' q hSf_q
     have hd0 : d = 0 := by
       have hlq : l ≫ q = 0 := by
-        simpa [U, Category.assoc] using congrArg (fun e => biprod.inr ≫ e) hq
+        simpa [U, Category.assoc] using congrArg (fun e ↦ biprod.inr ≫ e) hq
       have hpd : p ≫ d = 0 := by
         simpa [← hl, Category.assoc, hd] using hlq
       exact (cancel_epi p).1 (by simpa using hpd)
@@ -96,7 +96,7 @@ private theorem rightPresentation_shortExact {X₁ X₂ X₃ K F : A}
         (hker a ha)
       apply (cancel_mono i).1
       have hb_snd : b ≫ i = a ≫ biprod.snd := by
-        simpa [U, Category.assoc] using congrArg (fun e => e ≫ biprod.snd) hb
+        simpa [U, Category.assoc] using congrArg (fun e ↦ e ≫ biprod.snd) hb
       rw [hb_snd, hm]
   exact ShortComplex.ShortExact.mk' hexact hmono hepi
 
@@ -113,25 +113,25 @@ private theorem biprodRight_shortExact {K F X Y : A}
     apply mono_of_cancel_zero
     intro W a ha
     apply (cancel_mono i).1
-    simpa [U, Category.assoc] using congrArg (fun e => e ≫ biprod.fst) ha
+    simpa [U, Category.assoc] using congrArg (fun e ↦ e ≫ biprod.fst) ha
   have hexact : U.Exact := by
     apply ShortComplex.exact_of_f_is_kernel
     refine KernelFork.IsLimit.ofι U.f U.zero ?lift ?fac ?uniq
     · intro W a ha
       dsimp [U] at ha
       have ha₁ : (a ≫ biprod.fst) ≫ p = 0 := by
-        have h := congrArg (fun e => e ≫ biprod.fst) ha
+        have h := congrArg (fun e ↦ e ≫ biprod.fst) ha
         simpa [Category.assoc] using h
       exact hT.exact.lift (a ≫ biprod.fst) ha₁
     · intro W a ha
       dsimp [U] at ha
       have ha₁ : (a ≫ biprod.fst) ≫ p = 0 := by
-        have h := congrArg (fun e => e ≫ biprod.fst) ha
+        have h := congrArg (fun e ↦ e ≫ biprod.fst) ha
         simpa [Category.assoc] using h
       let m : W ⟶ K := hT.exact.lift (a ≫ biprod.fst) ha₁
       have hm : m ≫ i = a ≫ biprod.fst := hT.exact.lift_f (a ≫ biprod.fst) ha₁
       have ha₂ : a ≫ biprod.snd = 0 := by
-        have h := congrArg (fun e => e ≫ biprod.snd) ha
+        have h := congrArg (fun e ↦ e ≫ biprod.snd) ha
         simpa [Category.assoc] using h
       change m ≫ biprod.lift i 0 = a
       apply biprod.hom_ext
@@ -140,13 +140,13 @@ private theorem biprodRight_shortExact {K F X Y : A}
     · intro W a ha b hb
       dsimp [U] at ha hb
       have ha₁ : (a ≫ biprod.fst) ≫ p = 0 := by
-        have h := congrArg (fun e => e ≫ biprod.fst) ha
+        have h := congrArg (fun e ↦ e ≫ biprod.fst) ha
         simpa [Category.assoc] using h
       let m : W ⟶ K := hT.exact.lift (a ≫ biprod.fst) ha₁
       have hm : m ≫ i = a ≫ biprod.fst := hT.exact.lift_f (a ≫ biprod.fst) ha₁
       apply (cancel_mono i).1
       have hb₁ : b ≫ i = a ≫ biprod.fst := by
-        have h := congrArg (fun e => e ≫ biprod.fst) hb
+        have h := congrArg (fun e ↦ e ≫ biprod.fst) hb
         simpa [Category.assoc] using h
       exact hb₁.trans hm.symm
   exact ShortComplex.ShortExact.mk' hexact hmono inferInstance
@@ -177,7 +177,7 @@ private theorem pullback_shortExact {K F X Y : A}
     apply mono_of_cancel_zero
     intro W a ha
     apply (cancel_mono i).1
-    have h := congrArg (fun e => e ≫ pullback.fst p t) ha
+    have h := congrArg (fun e ↦ e ≫ pullback.fst p t) ha
     simpa [Category.assoc, pullback.lift_fst] using h
   have hker {W : A} (a : W ⟶ pullback p t) (ha : a ≫ pullback.snd p t = 0) :
       (a ≫ pullback.fst p t) ≫ p = 0 := by
@@ -200,7 +200,7 @@ private theorem pullback_shortExact {K F X Y : A}
       have hm : m ≫ i = a ≫ pullback.fst p t := hT.exact.lift_f _ _
       apply (cancel_mono i).1
       have hb₁ : b ≫ i = a ≫ pullback.fst p t := by
-        have h := congrArg (fun e => e ≫ pullback.fst p t) hb
+        have h := congrArg (fun e ↦ e ≫ pullback.fst p t) hb
         simpa [Category.assoc, pullback.lift_fst] using h
       exact hb₁.trans hm.symm
   exact ShortComplex.ShortExact.mk' hexact hmono inferInstance
@@ -235,21 +235,21 @@ private theorem horseshoe_middle_shortExact {X₁ X₂ X₃ K₁ F₁ K₃ F₃ 
     apply mono_of_cancel_zero
     intro W a ha
     apply pullback.hom_ext
-    · have h := congrArg (fun e => e ≫ biprod.fst) ha
+    · have h := congrArg (fun e ↦ e ≫ biprod.fst) ha
       simpa [Category.assoc] using h
     · apply (cancel_mono i₃).1
-      have h := congrArg (fun e => e ≫ biprod.snd) ha
+      have h := congrArg (fun e ↦ e ≫ biprod.snd) ha
       simpa [Category.assoc] using h
   have hepi : Epi U.g := by
     apply epi_of_cancel_zero
     intro Z q hq
     have hpq : (p₁ ≫ f) ≫ q = 0 := by
-      simpa [U, m, Category.assoc] using congrArg (fun e => biprod.inl ≫ e) hq
+      simpa [U, m, Category.assoc] using congrArg (fun e ↦ biprod.inl ≫ e) hq
     have hfq : f ≫ q = 0 := (cancel_epi p₁).1 (by simpa [Category.assoc] using hpq)
     obtain ⟨d, hd⟩ := hS.exact.desc' q hfq
     have hd0 : d = 0 := by
       have hlq : l ≫ q = 0 := by
-        simpa [U, m, Category.assoc] using congrArg (fun e => biprod.inr ≫ e) hq
+        simpa [U, m, Category.assoc] using congrArg (fun e ↦ biprod.inr ≫ e) hq
       have hpd : p₃ ≫ d = 0 := by
         simpa [← hl, Category.assoc, hd] using hlq
       exact (cancel_epi p₃).1 (by simpa using hpd)
@@ -269,7 +269,7 @@ private theorem horseshoe_middle_shortExact {X₁ X₂ X₃ K₁ F₁ K₃ F₃ 
     have hsum : (a ≫ biprod.fst) ≫ p₁ ≫ f + (a ≫ biprod.snd) ≫ l = 0 := by
       simpa [m, biprod.desc_eq, comp_add, Category.assoc] using ha
     have ht' : (k₃ ≫ i₃) ≫ l = (k₃ ≫ t) ≫ f := by
-      simpa [Category.assoc] using congrArg (fun e => k₃ ≫ e) ht.symm
+      simpa [Category.assoc] using congrArg (fun e ↦ k₃ ≫ e) ht.symm
     apply (cancel_mono f).1
     trans - (a ≫ biprod.snd) ≫ l
     · simpa [eq_neg_iff_add_eq_zero, Category.assoc, add_comm] using hsum
@@ -292,10 +292,10 @@ private theorem horseshoe_middle_shortExact {X₁ X₂ X₃ K₁ F₁ K₃ F₃ 
       have hk₃ : k₃ ≫ i₃ = a ≫ biprod.snd := hT₃.exact.lift_f _ _
       let n : W ⟶ pullback p₁ (-t) := pullback.lift (a ≫ biprod.fst) k₃ (mk_hpb a ha k₃ hk₃)
       apply pullback.hom_ext
-      · simpa [pullback.lift_fst, U, j, Category.assoc] using congrArg (fun e => e ≫ biprod.fst) hb
+      · simpa [pullback.lift_fst, U, j, Category.assoc] using congrArg (fun e ↦ e ≫ biprod.fst) hb
       · apply (cancel_mono i₃).1
         have hb_snd : (b ≫ pullback.snd p₁ (-t)) ≫ i₃ = a ≫ biprod.snd := by
-          simpa [U, j, Category.assoc] using congrArg (fun e => e ≫ biprod.snd) hb
+          simpa [U, j, Category.assoc] using congrArg (fun e ↦ e ≫ biprod.snd) hb
         rw [pullback.lift_snd, hb_snd, hk₃]
   exact ShortComplex.ShortExact.mk' hexact hmono hepi
 
@@ -331,7 +331,7 @@ private theorem pullbackKernelComp_shortExact {X₁ X₂ X₃ K F : A}
         have hm : hS.exact.lift (a ≫ p) (hker a ha) ≫ f = a ≫ p :=
           hS.exact.lift_f (a ≫ p) (hker a ha)
         have hcond : (b ≫ pullback.snd p f) ≫ f = (b ≫ pullback.fst p f) ≫ p := by
-          simpa [Category.assoc] using congrArg (fun e => b ≫ e)
+          simpa [Category.assoc] using congrArg (fun e ↦ b ≫ e)
             (pullback.condition : pullback.fst p f ≫ p = pullback.snd p f ≫ f).symm
         rw [hcond, hb, pullback.lift_snd, hm]
   exact ShortComplex.ShortExact.mk' hexact inferInstance inferInstance
@@ -349,11 +349,11 @@ private theorem pullbackLeft_shortExact {X₁ X₂ X₃ F : A}
     apply mono_of_cancel_zero
     intro W a ha
     apply (cancel_mono f).1
-    simpa [U, Category.assoc, pullback.lift_snd] using congrArg (fun e => e ≫ pullback.snd p g) ha
+    simpa [U, Category.assoc, pullback.lift_snd] using congrArg (fun e ↦ e ≫ pullback.snd p g) ha
   have hker {W : A} (a : W ⟶ pullback p g) (ha : a ≫ pullback.fst p g = 0) :
       (a ≫ pullback.snd p g) ≫ g = 0 := by
     have hcond : (a ≫ pullback.snd p g) ≫ g = (a ≫ pullback.fst p g) ≫ p := by
-      simpa [Category.assoc] using congrArg (fun e => a ≫ e)
+      simpa [Category.assoc] using congrArg (fun e ↦ a ≫ e)
         (pullback.condition : pullback.fst p g ≫ p = pullback.snd p g ≫ g).symm
     rw [hcond, ha, zero_comp]
   have hexact : U.Exact := by
@@ -374,7 +374,7 @@ private theorem pullbackLeft_shortExact {X₁ X₂ X₃ F : A}
       apply (cancel_mono f).1
       have hb_snd : b ≫ f = a ≫ pullback.snd p g := by
         simpa [U, Category.assoc, pullback.lift_snd] using
-          congrArg (fun e => e ≫ pullback.snd p g) hb
+          congrArg (fun e ↦ e ≫ pullback.snd p g) hb
       rw [hb_snd, hm]
   exact ShortComplex.ShortExact.mk' hexact hmono inferInstance
 

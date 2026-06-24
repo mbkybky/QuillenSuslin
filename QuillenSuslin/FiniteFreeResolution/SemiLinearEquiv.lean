@@ -12,57 +12,58 @@ public section
 
 universe v v' u u'
 
-namespace Module.HasFiniteFreeResolutionOfLength
-
 open CategoryTheory Category Limits
 
-variable {R : Type u} [Ring R]
+section compHom
 
-theorem of_semilinearEquiv {S : Type u'} [Ring S] [Small.{v'} S]
-    {σ : R →+* S} {σ' : S →+* R} [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
-    {M : Type v} [AddCommGroup M] [Module R M] {n : ℕ}
-    (hn : HasFiniteFreeResolutionOfLength R M n)
-    {N : Type v'} [AddCommGroup N] [Module S N] (e : M ≃ₛₗ[σ] N) :
+/-- Let `M` be a `R`-module. Viewing `M` as an `S`-module via `σ' : S →+* R`, then the identity map
+gives a semilinear equivalence over `σ: R →+* S`. -/
+def Module.compHom.selfEquiv
+  {R S : Type*} [Semiring R] [Semiring S] (σ : R →+* S) (σ' : S →+* R)
+  [RingHomInvPair σ σ'] [RingHomInvPair σ' σ] (M : Type*) [AddCommMonoid M] [Module R M] :
+  letI : Module S M := compHom M σ'; M ≃ₛₗ[σ] M :=
+  letI : Module S M := compHom M σ'
+{ __ := AddEquiv.refl M
+  map_smul' a x : a • x = (σ' (σ a)) • x := by simp }
+
+end compHom
+
+namespace ModuleCat
+
+variable {R S : Type*} [Ring R] [Ring S] (f : R →+* S)
+
+instance : PreservesFiniteLimits (ModuleCat.restrictScalars.{v} f) where
+  preservesFiniteLimits _ _ _ := ⟨fun {K} ↦ preservesLimit_restrictScalars f K⟩
+
+instance : PreservesFiniteColimits (ModuleCat.restrictScalars.{v} f) where
+  preservesFiniteColimits _ _ _ := ⟨fun {K} ↦ preservesColimit_restrictScalars f K⟩
+
+end ModuleCat
+
+namespace Module
+
+variable {R : Type u} [Ring R] {S : Type u'} [Ring S] [Small.{v'} S]
+  {σ : R →+* S} {σ' : S →+* R} [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
+  {M : Type v} [AddCommGroup M] [Module R M]
+  {N : Type v'} [AddCommGroup N] [Module S N]
+
+theorem HasFiniteFreeResolutionOfLength.of_semilinearEquiv
+    {n : ℕ} (hn : HasFiniteFreeResolutionOfLength R M n) (e : M ≃ₛₗ[σ] N) :
     HasFiniteFreeResolutionOfLength S N n := by
-  haveI : PreservesFiniteLimits (ModuleCat.restrictScalars.{v} σ') := by
-    constructor
-    intro J _ _
-    constructor
-    intro K
-    exact ModuleCat.preservesLimit_restrictScalars σ' K
-  haveI : PreservesFiniteColimits (ModuleCat.restrictScalars.{v} σ') := by
-    constructor
-    intro J _ _
-    constructor
-    intro K
-    exact ModuleCat.preservesColimit_restrictScalars σ' K
-  letI : Module S M := Module.compHom M σ'
+  let : Module S M := Module.compHom M σ'
   have hM : HasFiniteFreeResolutionOfLength S M n := by
     refine ObjectProperty.HasFiniteResolutionOfLength.map_exactFunctor
-      (ModuleCat.restrictScalars.{v} σ') (fun X hX => ?_) hn
-    rw [ModuleCat.finiteFree_iff] at hX ⊢
-    rcases hX with ⟨hfinite, hfree⟩
-    letI : Module.Finite R X := hfinite
-    letI : Module.Free R X := hfree
-    let fX : X →ₛₗ[σ] (ModuleCat.restrictScalars.{v} σ').obj X :=
-      { toFun := fun x => x
-        map_add' _ _ := rfl
-        map_smul' := by
-          intro r x
-          change r • x = σ' (σ r) • x
-          rw [← RingHom.comp_apply σ' σ r, RingHomInvPair.comp_eq]
-          rfl }
+      (ModuleCat.restrictScalars.{v} σ') (fun X hX ↦ ?_) hn
+    obtain ⟨_, _⟩ := hX
+    let : Module S X := Module.compHom X σ'
     let eX : X ≃ₛₗ[σ] (ModuleCat.restrictScalars.{v} σ').obj X :=
-      LinearEquiv.mk fX id (by intro x; rfl) (by intro x; rfl)
-    exact ⟨Module.Finite.of_surjective
-      (eX : X →ₛₗ[σ] (ModuleCat.restrictScalars.{v} σ').obj X) eX.surjective,
-      Module.Free.of_equiv eX⟩
-  let eS : M ≃ₗ[S] N :=
-    e.toAddEquiv.toLinearEquiv (by
-      intro s x
-      change e (σ' s • x) = s • e x
-      rw [e.map_smulₛₗ, ← RingHom.comp_apply σ σ' s, RingHomInvPair.comp_eq]
-      rfl)
-  exact hM.of_linearEquiv eS
+      Module.compHom.selfEquiv σ σ' X
+    exact ⟨Module.Finite.of_surjective eX.toLinearMap eX.surjective, Module.Free.of_equiv eX⟩
+  exact hM.of_linearEquiv ((Module.compHom.selfEquiv σ σ' M).symm.trans e)
 
-end Module.HasFiniteFreeResolutionOfLength
+theorem HasFiniteFreeResolution.of_semilinearEquiv [HasFiniteFreeResolution R M] (e : M ≃ₛₗ[σ] N) :
+    HasFiniteFreeResolution S N := by
+  obtain ⟨n, hn⟩ := HasFiniteFreeResolution.out R M
+  exact ⟨n, hn.of_semilinearEquiv e⟩
+
+end Module
