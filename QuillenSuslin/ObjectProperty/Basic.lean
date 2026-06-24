@@ -5,11 +5,7 @@ Authors: Yongle Hu
 -/
 module
 
-public import Mathlib.Algebra.Category.ModuleCat.Abelian
-public import Mathlib.Algebra.Homology.ShortComplex.ModuleCat
-public import Mathlib.Algebra.Homology.ShortComplex.ShortExact
 public import Mathlib.CategoryTheory.ObjectProperty.EpiMono
-public import Mathlib.RingTheory.Finiteness.Small
 
 /-!
 # Objects admitting finite resolutions by an object property
