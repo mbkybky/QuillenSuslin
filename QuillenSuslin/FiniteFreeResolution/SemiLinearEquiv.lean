@@ -18,8 +18,7 @@ section compHom
 
 /-- Let `M` be a `R`-module. Viewing `M` as an `S`-module via `σ' : S →+* R`, then the identity map
 gives a semilinear equivalence over `σ: R →+* S`. -/
-def Module.compHom.selfEquiv
-  {R S : Type*} [Semiring R] [Semiring S] (σ : R →+* S) (σ' : S →+* R)
+def Module.compHom.selfEquiv {R S : Type*} [Semiring R] [Semiring S] (σ : R →+* S) (σ' : S →+* R)
   [RingHomInvPair σ σ'] [RingHomInvPair σ' σ] (M : Type*) [AddCommMonoid M] [Module R M] :
   letI : Module S M := compHom M σ'; M ≃ₛₗ[σ] M :=
   letI : Module S M := compHom M σ'
@@ -44,22 +43,18 @@ namespace Module
 
 variable {R : Type u} [Ring R] {S : Type u'} [Ring S] [Small.{v'} S]
   {σ : R →+* S} {σ' : S →+* R} [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
-  {M : Type v} [AddCommGroup M] [Module R M]
-  {N : Type v'} [AddCommGroup N] [Module S N]
+  {M : Type v} [AddCommGroup M] [Module R M] {N : Type v'} [AddCommGroup N] [Module S N]
 
 theorem HasFiniteFreeResolutionOfLength.of_semilinearEquiv
     {n : ℕ} (hn : HasFiniteFreeResolutionOfLength R M n) (e : M ≃ₛₗ[σ] N) :
     HasFiniteFreeResolutionOfLength S N n := by
   let : Module S M := Module.compHom M σ'
-  have hM : HasFiniteFreeResolutionOfLength S M n := by
-    refine ObjectProperty.HasFiniteResolutionOfLength.map_exactFunctor
-      (ModuleCat.restrictScalars.{v} σ') (fun X hX ↦ ?_) hn
-    obtain ⟨_, _⟩ := hX
-    let : Module S X := Module.compHom X σ'
-    let eX : X ≃ₛₗ[σ] (ModuleCat.restrictScalars.{v} σ').obj X :=
-      Module.compHom.selfEquiv σ σ' X
-    exact ⟨Module.Finite.of_surjective eX.toLinearMap eX.surjective, Module.Free.of_equiv eX⟩
-  exact hM.of_linearEquiv ((Module.compHom.selfEquiv σ σ' M).symm.trans e)
+  refine HasFiniteFreeResolutionOfLength.of_linearEquiv
+    ((Module.compHom.selfEquiv σ σ' M).symm.trans e)
+      (hn.map_exactFunctor (ModuleCat.restrictScalars.{v} σ') fun X ⟨_, _⟩ ↦ ?_)
+  let : Module S X := Module.compHom X σ'
+  let eX : X ≃ₛₗ[σ] (ModuleCat.restrictScalars.{v} σ').obj X := Module.compHom.selfEquiv σ σ' X
+  exact ⟨Module.Finite.of_surjective eX.toLinearMap eX.surjective, Module.Free.of_equiv eX⟩
 
 theorem HasFiniteFreeResolution.of_semilinearEquiv [HasFiniteFreeResolution R M] (e : M ≃ₛₗ[σ] N) :
     HasFiniteFreeResolution S N := by

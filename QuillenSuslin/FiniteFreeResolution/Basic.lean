@@ -38,12 +38,9 @@ theorem finiteFree_of (M : Type v) [AddCommGroup M] [Module R M] [Module.Finite 
     [Module.Free R M] : finiteFree R (ModuleCat.of R M) := by
   exact ⟨inferInstance, inferInstance⟩
 
-instance finiteFree_isClosedUnderIsomorphisms : (finiteFree R).IsClosedUnderIsomorphisms := by
-  constructor
-  intro X Y e ⟨_, _⟩
-  constructor
-  · exact Module.Finite.of_surjective e.toLinearEquiv.toLinearMap e.toLinearEquiv.surjective
-  · exact Module.Free.of_equiv e.toLinearEquiv
+instance finiteFree_isClosedUnderIsomorphisms : (finiteFree R).IsClosedUnderIsomorphisms where
+  of_iso :=
+    fun e ⟨_, _⟩ ↦ ⟨Module.Finite.equiv e.toLinearEquiv, Module.Free.of_equiv e.toLinearEquiv⟩
 
 end ModuleCat
 
@@ -68,15 +65,13 @@ protected theorem zero [Module.Finite R M] [Module.Free R M] :
 
 protected theorem succ {K F M : Type v} [AddCommGroup K] [Module R K]
     [AddCommGroup F] [Module R F] [AddCommGroup M] [Module R M]
-    [Module.Finite R F] [Module.Free R F] {n : ℕ}
-    (f : K →ₗ[R] F) (g : F →ₗ[R] M)
+    [Module.Finite R F] [Module.Free R F] {n : ℕ} (f : K →ₗ[R] F) (g : F →ₗ[R] M)
     (hf : Function.Injective f) (hg : Function.Surjective g) (h : Function.Exact f g)
     (hK : HasFiniteFreeResolutionOfLength R K n) :
-    HasFiniteFreeResolutionOfLength R M (n + 1) := by
-  let S : ShortComplex (ModuleCat.{v} R) :=
-    ModuleCat.shortComplexOfCompEqZero f g h.linearMap_comp_eq_zero
-  exact ObjectProperty.HasFiniteResolutionOfLength.succ S n
-    (ModuleCat.shortComplex_shortExact S h hf hg) (ModuleCat.finiteFree_of R F) hK
+    HasFiniteFreeResolutionOfLength R M (n + 1) :=
+  ObjectProperty.HasFiniteResolutionOfLength.succ
+    (ModuleCat.shortComplexOfCompEqZero f g h.linearMap_comp_eq_zero) n
+      (ModuleCat.shortComplex_shortExact _ h hf hg) (ModuleCat.finiteFree_of R F) hK
 
 theorem induction_on
     {motive : ∀ {M : Type v} [AddCommGroup M] [Module R M] {n : ℕ},
@@ -97,43 +92,33 @@ theorem induction_on
   intro X n hX
   induction hX with
   | zero X hX =>
-      letI : Module.Finite R X := hX.1
-      letI : Module.Free R X := hX.2
+      obtain ⟨_, _⟩ := hX
       exact zero X
-  | succ S n hS h₂ h₁ ih =>
-      letI : Module.Finite R S.X₂ := h₂.1
-      letI : Module.Free R S.X₂ := h₂.2
+  | succ S n hS hF hK ih =>
+      obtain ⟨_, _⟩ := hF
       exact succ S.X₁ S.X₂ S.X₃ n S.f.hom S.g.hom
         hS.moduleCat_injective_f hS.moduleCat_surjective_g
-          ((ShortComplex.ShortExact.moduleCat_exact_iff_function_exact S).1 hS.exact) h₁ ih
+          ((ShortComplex.ShortExact.moduleCat_exact_iff_function_exact S).1 hS.exact) hK ih
 
 theorem module_finite (hM : HasFiniteFreeResolutionOfLength R M n) : Module.Finite R M := by
   induction hM using induction_on with
   | zero X => infer_instance
   | succ _ _ _ _ _ g _ hg => exact Module.Finite.of_surjective g hg
 
-variable [Small.{w} R]
-
-theorem of_linearEquiv {M : Type v} {N : Type w} [AddCommGroup M] [Module R M]
+theorem of_linearEquiv [Small.{w} R] {M : Type v} {N : Type w} [AddCommGroup M] [Module R M]
     [AddCommGroup N] [Module R N] (e : M ≃ₗ[R] N) {n : ℕ}
     (hn : HasFiniteFreeResolutionOfLength R M n) : HasFiniteFreeResolutionOfLength R N n := by
-  revert N
-  induction hn using induction_on with
+  induction hn using induction_on generalizing N with
   | zero M =>
-      intro N _ _ e
-      have : Module.Finite R N := Module.Finite.of_surjective e.toLinearMap e.surjective
+      have : Module.Finite R N := Module.Finite.equiv e
       have : Module.Free R N := Module.Free.of_equiv e
       exact Module.HasFiniteFreeResolutionOfLength.zero R N
   | succ K F _ n f g hf hg h hK ih =>
-      intro N _ _ e
-      haveI : Module.Finite R K := module_finite hK
+      have : Module.Finite R K := hK.module_finite
       have : Small.{w} K := Module.Finite.small R K
       have : Small.{w} F := Module.Finite.small R F
-      let e₁ : Shrink.{w} K ≃ₗ[R] K := Shrink.linearEquiv R K
-      let e₂ : Shrink.{w} F ≃ₗ[R] F := Shrink.linearEquiv R F
-      haveI : Module.Finite R (Shrink.{w} F) :=
-        Module.Finite.of_surjective e₂.symm.toLinearMap e₂.symm.surjective
-      haveI : Module.Free R (Shrink.{w} F) := Module.Free.of_equiv e₂.symm
+      let +nondep e₁ : Shrink.{w} K ≃ₗ[R] K := Shrink.linearEquiv R K
+      let +nondep e₂ : Shrink.{w} F ≃ₗ[R] F := Shrink.linearEquiv R F
       let S' : ShortComplex (ModuleCat.{w} R) :=
         ModuleCat.shortComplexOfConj e₁ e₂ e.symm f g h.linearMap_comp_eq_zero
       have hS' : S'.ShortExact :=
@@ -175,7 +160,7 @@ instance [Small.{max w v} R] [HasFiniteFreeResolution R M] :
     HasFiniteFreeResolution R (ULift.{w} M) :=
   of_linearEquiv ULift.moduleEquiv.symm
 
-theorem of_ulift [Small.{v} R] [Small.{max w v} R] [HasFiniteFreeResolution R (ULift.{w} M)] :
+theorem of_ulift [Small.{v} R] [HasFiniteFreeResolution R (ULift.{w} M)] :
     HasFiniteFreeResolution R M :=
   of_linearEquiv ULift.moduleEquiv
 

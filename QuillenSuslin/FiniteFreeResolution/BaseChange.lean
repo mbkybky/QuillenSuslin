@@ -16,76 +16,48 @@ This file proves that finite free resolutions are preserved by flat base change 
 
 public section
 
-universe u v w
+universe v v' u u'
 
 open TensorProduct CategoryTheory Limits
 
 namespace Module
 
-variable {R : Type u} [CommRing R] {A : Type u} [CommRing A] [Algebra R A] [Flat R A]
+variable {R : Type u} [CommRing R] {A : Type u'} [CommRing A] [Algebra R A] [Flat R A]
   {M : Type v} [AddCommGroup M] [Module R M]
-  {N : Type w} [AddCommGroup N] [Module R N] [Module A N] [IsScalarTower R A N] {f : M →ₗ[R] N}
+  {N : Type v'} [AddCommGroup N] [Module R N] [Module A N] [IsScalarTower R A N] {f : M →ₗ[R] N}
 
 theorem HasFiniteFreeResolutionOfLength.of_flat_baseChange {n : ℕ}
     (hM : HasFiniteFreeResolutionOfLength R M n) :
     HasFiniteFreeResolutionOfLength A (A ⊗[R] M) n := by
-  have hM' : HasFiniteFreeResolutionOfLength R (ULift.{u} M) n :=
-    hM.of_linearEquiv ULift.moduleEquiv.symm
-  have hULift : HasFiniteFreeResolutionOfLength A (A ⊗[R] ULift.{u} M) n := by
-    let F : ModuleCat.{max u v} R ⥤ ModuleCat.{max u v} A :=
-      { obj := fun X ↦ ModuleCat.of A (A ⊗[R] X)
-        map := fun {X Y} f ↦ ModuleCat.ofHom (AlgebraTensorModule.lTensor A A f.hom)
-        map_id := fun X ↦ by
-          apply ModuleCat.hom_ext
-          apply LinearMap.ext
-          intro x
-          induction x using TensorProduct.induction_on with
-          | zero => simp
-          | tmul a m => simp
-          | add x y hx hy => rw [map_add, map_add, hx, hy]
-        map_comp := fun {X Y Z} f g ↦ by
-          apply ModuleCat.hom_ext
-          apply LinearMap.ext
-          intro x
-          induction x using TensorProduct.induction_on with
-          | zero => simp
-          | tmul a m => simp
-          | add x y hx hy => rw [map_add, map_add, hx, hy] }
-    have : F.Additive :=
-      { map_add := fun {X Y} f g ↦ by
-          apply ModuleCat.hom_ext
-          apply LinearMap.ext
-          intro x
-          induction x using TensorProduct.induction_on with
-          | zero => simp [F]
-          | tmul a m => simp [F]
-          | add x y hx hy => rw [map_add, map_add, hx, hy] }
-    obtain ⟨_, _⟩ : PreservesFiniteLimits F ∧ PreservesFiniteColimits F := by
-      refine ((Functor.exact_tfae F).out 0 3).1 <|
-        (fun S hS ↦ ModuleCat.shortComplex_shortExact _ ?_ ?_ ?_)
-      · exact Flat.lTensor_exact A
-          ((ShortComplex.ShortExact.moduleCat_exact_iff_function_exact S).1 hS.exact)
-      · exact Flat.lTensor_preserves_injective_linearMap S.f.hom hS.moduleCat_injective_f
-      · exact LinearMap.lTensor_surjective A hS.moduleCat_surjective_g
-    exact hM'.map_exactFunctor F (fun X ⟨_, _⟩ ↦ ModuleCat.finiteFree_of A (F.obj X))
-  exact hULift.of_linearEquiv (LinearEquiv.baseChange R A (ULift.{u} M) M ULift.moduleEquiv)
+  let F : ModuleCat.{v} R ⥤ ModuleCat.{max u' v} A :=
+    { obj X := ModuleCat.of A (A ⊗[R] X)
+      map f := ModuleCat.ofHom (AlgebraTensorModule.lTensor A A f.hom)
+      map_id _ := by simp
+      map_comp _ _ := by
+        ext
+        simp }
+  have : F.Additive := ⟨fun {_} _ _ ↦ by simp [F]⟩
+  obtain ⟨_, _⟩ : PreservesFiniteLimits F ∧ PreservesFiniteColimits F :=
+    ((Functor.exact_tfae F).out 1 3).1 fun S hS ↦ by
+      rw [ShortComplex.ShortExact.moduleCat_exact_iff_function_exact] at hS ⊢
+      exact Flat.lTensor_exact A hS
+  exact hM.map_exactFunctor F (fun X ⟨_, _⟩ ↦ ModuleCat.finiteFree_of A (F.obj X))
 
 instance HasFiniteFreeResolution.of_flat_baseChange [HasFiniteFreeResolution R M] :
     HasFiniteFreeResolution A (A ⊗[R] M) :=
   let ⟨n, hn⟩ := HasFiniteFreeResolution.out R M
   ⟨n, hn.of_flat_baseChange⟩
 
-variable [Small.{w, u} A] (S : Submonoid R)
-
-theorem HasFiniteFreeResolutionOfLength.of_isBaseChange_of_flat
+theorem HasFiniteFreeResolutionOfLength.of_isBaseChange_of_flat [Small.{v', u'} A]
     (hf : IsBaseChange A f) {n : ℕ} (hM : HasFiniteFreeResolutionOfLength R M n) :
     HasFiniteFreeResolutionOfLength A N n :=
   hM.of_flat_baseChange.of_linearEquiv hf.equiv
 
-theorem HasFiniteFreeResolution.of_isBaseChange_of_flat
+theorem HasFiniteFreeResolution.of_isBaseChange_of_flat [Small.{v', u'} A]
     (hf : IsBaseChange A f) [HasFiniteFreeResolution R M] : HasFiniteFreeResolution A N :=
-  let ⟨n, hn⟩ := HasFiniteFreeResolution.out R M
-  ⟨n, hn.of_isBaseChange_of_flat hf⟩
+  HasFiniteFreeResolution.of_linearEquiv hf.equiv
+
+variable (S : Submonoid R)
 
 theorem HasFiniteFreeResolutionOfLength.localizedModule
     {n : ℕ} (h : HasFiniteFreeResolutionOfLength R M n) :
