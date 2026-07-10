@@ -16,7 +16,7 @@ Let `A` be an abelian category and `P : ObjectProperty A` be a property of objec
 
 * `CategoryTheory.ObjectProperty.HasFiniteResolutionOfLength`:
   We say that `X : A` has a `P`-resolution of length `n` if there exists an
-  exact sequence `0 ⟶ Eₙ ⟶ ⋯ ⟶ E₀ ⟶ M ⟶ 0` such that each `Eᵢ : A` satisfies `P`.
+  exact sequence `0 ⟶ Eₙ ⟶ ⋯ ⟶ E₀ ⟶ X ⟶ 0` such that each `Eᵢ : A` satisfies `P`.
 * `CategoryTheory.ObjectProperty.HasFiniteResolution`:
   We say that `X : A` has a finite `P`-resolution if it has a `P`-resolution of some finite length.
 -/
@@ -35,7 +35,7 @@ variable {A : Type u} [Category.{v} A] [Abelian A]
 
 /-- Let `A` be an abelian category and `P : ObjectProperty A` be a property of objects in `A`.
 We say that `X : A` has a `P`-resolution of length `n` if there exists an
-exact sequence `0 ⟶ Eₙ ⟶ ⋯ ⟶ E₀ ⟶ M ⟶ 0` such that each `Eᵢ : A` satisfies `P`. -/
+exact sequence `0 ⟶ Eₙ ⟶ ⋯ ⟶ E₀ ⟶ X ⟶ 0` such that each `Eᵢ : A` satisfies `P`. -/
 inductive HasFiniteResolutionOfLength (P : ObjectProperty A) : A → ℕ → Prop
   | zero (X : A) (hX : P X) : HasFiniteResolutionOfLength P X 0
   | succ (S : ShortComplex A) (n : ℕ) (hS : S.ShortExact) (h₂ : P S.X₂)
@@ -66,7 +66,7 @@ theorem property [P.IsClosedUnderQuotients] (hX : P.HasFiniteResolutionOfLength 
   | zero _ hX => exact hX
   | succ S _ hS h₂ _ => exact P.prop_X₃_of_shortExact hS h₂
 
-theorem property_of_le_closedUnderQuotients [Q.IsClosedUnderQuotients] (hPQ : P ≤ Q)
+theorem property_of_le [Q.IsClosedUnderQuotients] (hPQ : P ≤ Q)
     (hX : P.HasFiniteResolutionOfLength X n) : Q X :=
   (hX.mono hPQ).property
 
@@ -86,8 +86,8 @@ theorem succ_of_zero_satisfies (h0 : P 0) (hX : P.HasFiniteResolutionOfLength X 
   | zero X hX =>
       let S : ShortComplex A := ShortComplex.mk (0 : 0 ⟶ X) (𝟙 X) (comp_id 0)
       exact HasFiniteResolutionOfLength.succ S 0
-        ((ShortComplex.Splitting.ofIsZeroOfIsIso S (isZero_zero A) inferInstance).shortExact)
-          hX (HasFiniteResolutionOfLength.zero 0 h0)
+        ((ShortComplex.Splitting.ofIsZeroOfIsIso S (isZero_zero A) inferInstance).shortExact) hX
+          (HasFiniteResolutionOfLength.zero 0 h0)
   | succ S n hS h₂ _ ih => exact HasFiniteResolutionOfLength.succ S (n + 1) hS h₂ ih
 
 theorem of_ge {m : ℕ} (h0 : P 0) (hX : P.HasFiniteResolutionOfLength X n) (h : n ≤ m) :
@@ -126,12 +126,11 @@ protected theorem elim [P.HasFiniteResolution X] {Q : Prop}
 theorem mono (hPQ : P ≤ Q) [P.HasFiniteResolution X] : Q.HasFiniteResolution X :=
   HasFiniteResolution.elim fun _ hX ↦ (hX.mono hPQ).hasFiniteResolution
 
-theorem property_of_le_closedUnderQuotients [Q.IsClosedUnderQuotients] (hPQ : P ≤ Q)
-    [P.HasFiniteResolution X] : Q X :=
-  HasFiniteResolution.elim fun _ hX ↦ hX.property_of_le_closedUnderQuotients hPQ
+theorem property_of_le [Q.IsClosedUnderQuotients] (hPQ : P ≤ Q) [P.HasFiniteResolution X] : Q X :=
+  HasFiniteResolution.elim fun _ hX ↦ hX.property_of_le hPQ
 
 theorem property [P.IsClosedUnderQuotients] [P.HasFiniteResolution X] : P X :=
-  property_of_le_closedUnderQuotients (le_refl P)
+  property_of_le (le_refl P)
 
 theorem of_iso [P.IsClosedUnderIsomorphisms] [P.HasFiniteResolution X] {Y : A} (e : X ≅ Y) :
     P.HasFiniteResolution Y :=

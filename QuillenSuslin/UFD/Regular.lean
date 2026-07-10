@@ -6,13 +6,13 @@ Authors: Yongle Hu
 module
 
 public import Mathlib.Algebra.Module.StablyFree.FreeOfInvertible
+public import Mathlib.RingTheory.Ideal.UFD
 public import Mathlib.RingTheory.LocalRing.MaximalIdeal.Square
 public import Mathlib.RingTheory.RegularLocalRing.Localization
 public import QuillenSuslin.FiniteFreeResolution.HasProjectiveDimensionLE
 public import QuillenSuslin.FiniteFreeResolution.BaseChange
 public import QuillenSuslin.Invertible
 public import QuillenSuslin.StablyFree.HasFiniteFreeResolution
-public import QuillenSuslin.UFD.Lemmas
 
 /-!
 # Any regular local ring is a UFD
@@ -117,6 +117,6 @@ instance (priority := low) uniqueFactorizationMonoid [IsRegularLocalRing R] :
         refine ih k ?_ _ hk
         rw [← Nat.cast_lt (α := WithBot ℕ∞), ← hk, ← hn]
         exact IsLocalization.AtPrime.ringKrullDim_lt_of_lt_maximalIdeal hPl
-      rwa [UniqueFactorizationMonoid.iff_localization_away_of_prime hxp]
+      rwa [UniqueFactorizationMonoid.iff_localizationAway_of_prime hxp]
 
 end IsRegularLocalRing

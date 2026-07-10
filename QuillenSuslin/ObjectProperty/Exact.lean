@@ -39,11 +39,9 @@ theorem HasFiniteResolutionOfLength.biprod_right {P : ObjectProperty A}
       have := hS.epi_g
       refine ⟨ShortComplex.exact_of_f_is_kernel _ (KernelFork.IsLimit.ofι' _ _ fun {W} a ha ↦ ?_)⟩
       have hker : (a ≫ biprod.fst) ≫ S.g = 0 := by simpa using congrArg (fun e ↦ e ≫ biprod.fst) ha
-      let m : W ⟶ S.X₁ := hS.exact.lift (a ≫ biprod.fst) hker
-      have hsnd : a ≫ biprod.snd = 0 := by simpa using congrArg (fun e ↦ e ≫ biprod.snd) ha
-      refine ⟨m, biprod.hom_ext _ _ ?_ (by simp [hsnd])⟩
-      rw [Category.assoc, biprod.lift_fst]
-      exact hS.exact.lift_f (a ≫ biprod.fst) hker
+      refine ⟨hS.exact.lift (a ≫ biprod.fst) hker, biprod.hom_ext _ _ ?_ ?_⟩
+      · simpa only [Category.assoc, biprod.lift_fst] using hS.exact.lift_f (a ≫ biprod.fst) hker
+      · simpa using congrArg (fun e ↦ e ≫ biprod.snd) ha.symm
 
 theorem _root_.CategoryTheory.ShortComplex.ShortExact.pullback
     {S : ShortComplex A} (hS : S.ShortExact) {Y : A} (t : Y ⟶ S.X₃) :
@@ -51,18 +49,14 @@ theorem _root_.CategoryTheory.ShortComplex.ShortExact.pullback
       (by rw [pullback.lift_snd])).ShortExact := by
   have := hS.mono_f
   have := hS.epi_g
-  have : Mono (pullback.lift (g := t) S.f (0 : S.X₁ ⟶ Y) (by rw [S.zero, zero_comp])) := by
-    apply mono_of_cancel_zero
-    intro W a ha
-    simpa [← cancel_mono S.f, pullback.lift_fst] using congrArg (fun e ↦ e ≫ pullback.fst S.g t) ha
+  have : Mono (pullback.lift (g := t) S.f (0 : S.X₁ ⟶ Y) (by rw [S.zero, zero_comp])) :=
+    mono_of_mono_fac (pullback.lift_fst S.f 0 _)
   have hker {W : A} (a : W ⟶ Limits.pullback S.g t) (ha : a ≫ pullback.snd S.g t = 0) :
       (a ≫ pullback.fst S.g t) ≫ S.g = 0 := by
     rw [Category.assoc, pullback.condition, ← Category.assoc, ha, zero_comp]
   refine ⟨ShortComplex.exact_of_f_is_kernel _ (KernelFork.IsLimit.ofι' _ _ fun {W} a ha ↦ ?_)⟩
-  let m : W ⟶ S.X₁ := hS.exact.lift (a ≫ pullback.fst S.g t) (hker a ha)
-  refine ⟨m, ?_⟩
-  apply pullback.hom_ext
-  · simpa [pullback.lift_fst] using hS.exact.lift_f _ _
+  refine ⟨hS.exact.lift (a ≫ pullback.fst S.g t) (hker a ha), pullback.hom_ext ?_ ?_⟩
+  · simp [pullback.lift_fst]
   · simpa [pullback.lift_snd] using ha.symm
 
 theorem _root_.CategoryTheory.ShortComplex.ShortExact.pullback_symm
@@ -88,29 +82,22 @@ theorem horseshoe_middle_shortExact {X₁ X₂ X₃ F₁ K₃ F₃ : A}
   have := hS.epi_g
   have := hS₃.mono_f
   have := hS₃.epi_g
-  let j : pullback p₁ (- t) ⟶ F₁ ⊞ F₃ :=
-    biprod.lift (pullback.fst p₁ (- t)) (pullback.snd p₁ (- t) ≫ i₃)
   let m : F₁ ⊞ F₃ ⟶ X₂ := biprod.desc (p₁ ≫ f) l
-  let S : ShortComplex A := ShortComplex.mk j m (by
-    rw [biprod.lift_desc, pullback.condition_assoc, neg_comp, ht, comp_neg, assoc, neg_add_cancel])
+  let S : ShortComplex A := ShortComplex.mk
+    (biprod.lift (pullback.fst p₁ (- t)) (pullback.snd p₁ (- t) ≫ i₃)) m
+      (by simp [m, biprod.lift_desc, pullback.condition_assoc, ht])
   have hker₃ {W : A} (a : W ⟶ F₁ ⊞ F₃) (ha : a ≫ m = 0) : (a ≫ biprod.snd) ≫ p₃ = 0 := by
-    have hqg : (a ≫ biprod.snd) ≫ l ≫ g = 0 := by
-      simpa [m, biprod.desc_eq, comp_add, add_comp, Category.assoc, wS] using
-        congrArg (fun e ↦ e ≫ g) ha
-    simpa [hl, Category.assoc] using hqg
+    simpa [m, biprod.desc_eq, comp_add, add_comp,wS, hl] using congrArg (fun e ↦ e ≫ g) ha
   have mk_hpb {W : A} (a : W ⟶ F₁ ⊞ F₃) (ha : a ≫ m = 0)
       (k₃ : W ⟶ K₃) (hk₃ : k₃ ≫ i₃ = a ≫ biprod.snd) :
       (a ≫ biprod.fst) ≫ p₁ = k₃ ≫ (- t) := by
-    have ht' : (k₃ ≫ i₃) ≫ l = (k₃ ≫ t) ≫ f := by
-      simpa [Category.assoc] using congrArg (fun e ↦ k₃ ≫ e) ht.symm
     apply (cancel_mono f).1
     trans - (a ≫ biprod.snd) ≫ l
-    · simpa [m, biprod.desc_eq, comp_add, eq_neg_iff_add_eq_zero, Category.assoc, add_comm] using ha
-    · simp [← hk₃, ht']
+    · simpa [m, biprod.desc_eq, comp_add, eq_neg_iff_add_eq_zero, add_comm] using ha
+    · simp [← hk₃, ht]
   have : Mono S.f := by
-    dsimp [S, j]
-    apply mono_of_cancel_zero
-    intro W a ha
+    dsimp [S]
+    refine mono_of_cancel_zero _ fun {W} a ha ↦ ?_
     apply pullback.hom_ext
     · simpa using congrArg (fun e ↦ e ≫ biprod.fst) ha
     · simpa [← cancel_mono i₃] using congrArg (fun e ↦ e ≫ biprod.snd) ha
@@ -152,13 +139,11 @@ theorem of_shortExact_of_left_of_right {P : ObjectProperty A}
   intro X₀ n₁ h₁
   induction h₁ with
   | zero X₁ hX₁ =>
-      intro X₂ X₃ f g w hS hX₃fin
+      intro X₂ X₃ f g w hS ⟨_, h₃⟩
       have := hS.mono_f
       have := hS.epi_g
-      obtain ⟨_, h₃⟩ := hX₃fin.out
       cases h₃ with
-      | zero X₃ hX₃ =>
-          exact middle_of_right hP hS (.zero X₁ hX₁) hX₃
+      | zero X₃ hX₃ => exact middle_of_right hP hS (HasFiniteResolutionOfLength.zero X₁ hX₁) hX₃
       | succ T₃ n hS₃ hF₃ hK₃ =>
           have : Projective T₃.X₂ := hP T₃.X₂ hF₃
           let l : T₃.X₂ ⟶ X₂ := Projective.factorThru T₃.g g
@@ -166,20 +151,14 @@ theorem of_shortExact_of_left_of_right {P : ObjectProperty A}
           let t : T₃.X₁ ⟶ X₁ := hS.exact.lift (T₃.f ≫ l) (by rw [Category.assoc, hl, T₃.zero])
           have ht : t ≫ f = T₃.f ≫ l := hS.exact.lift_f _ _
           have : P.HasFiniteResolution T₃.X₁ := ⟨n, hK₃⟩
-          let U : ShortComplex A := ShortComplex.mk (biprod.lift (- t) T₃.f)
-            (biprod.desc f l) (by simp [biprod.lift_desc, ht])
-          have h : U.ShortExact := by
-            refine ShortComplex.shortExact_of_iso ?_
-              (horseshoe_middle_shortExact (𝟙 X₁) hS hS₃ l t hl ht)
-            refine ShortComplex.isoMk (asIso (pullback.snd (𝟙 X₁) (- t))) (Iso.refl _) (Iso.refl _)
-              (biprod.hom_ext _ _ ?_ (by simp [U])) (by simp [U])
-            simpa [U] using (pullback.condition (f := 𝟙 X₁) (g := - t)).symm
-          exact HasFiniteResolution.of_shortExact h (prop_biprod hX₁ hF₃)
+          have : P.HasFiniteResolution (pullback (𝟙 X₁) (- t)) :=
+            HasFiniteResolution.of_iso (asIso (pullback.snd (𝟙 X₁) (- t))).symm
+          exact HasFiniteResolution.of_shortExact
+            (horseshoe_middle_shortExact (𝟙 X₁) hS hS₃ l t hl ht) (prop_biprod hX₁ hF₃)
   | succ T₁ n hS₁ hF₁ hK₁ ih =>
-      intro X₂ X₃ f g w hS hX₃fin
+      intro X₂ X₃ f g w hS ⟨_, h₃⟩
       have := hS.mono_f
       have := hS.epi_g
-      obtain ⟨_, h₃⟩ := hX₃fin.out
       cases h₃ with
       | zero X₃ hX₃ => exact middle_of_right hP hS (hK₁.succ T₁ n hS₁ hF₁) hX₃
       | succ T₃ n₃ hS₃ hF₃ hK₃ =>
@@ -211,9 +190,9 @@ theorem of_shortExact_of_left_of_middle {P : ObjectProperty A}
   intro X₀ n₂ h₂
   cases h₂ with
   | zero X₂ hX₂ =>
-    exact fun {X₁ X₃} f g w hS hX₁fin ↦ HasFiniteResolution.of_shortExact hS hX₂
+    exact fun f g w hS _ ↦ HasFiniteResolution.of_shortExact hS hX₂
   | succ T₂ n hS₂ hF₂ hK₂ =>
-    intro X₁ X₃ f g w hS hX₁fin
+    intro X₁ X₃ f g w hS _
     have : P.HasFiniteResolution (pullback T₂.g f) := by
       have : P.HasFiniteResolution T₂.X₁ := ⟨n, hK₂⟩
       exact of_shortExact_of_left_of_right hP (hS₂.pullback f)
@@ -224,9 +203,8 @@ theorem of_shortExact_of_left_of_middle {P : ObjectProperty A}
       have := hS.epi_g
       refine ⟨ShortComplex.exact_of_f_is_kernel _ (KernelFork.IsLimit.ofι' _ _ fun {W} a ha ↦ ?_)⟩
       have hker : (a ≫ T₂.g) ≫ g = 0 := by simpa [Category.assoc] using ha
-      refine ⟨pullback.lift a (hS.exact.lift (a ≫ T₂.g) hker) ?_, ?_⟩
-      · exact (hS.exact.lift_f (a ≫ T₂.g) hker).symm
-      · rw [pullback.lift_fst]
+      exact ⟨pullback.lift a (hS.exact.lift (a ≫ T₂.g) hker) (hS.exact.lift_f _ _).symm,
+        pullback.lift_fst a _ _⟩
     exact HasFiniteResolution.of_shortExact h hF₂
 
 private theorem left_of_right {P : ObjectProperty A} [P.IsClosedUnderBinaryProducts]
@@ -255,9 +233,9 @@ theorem of_shortExact_of_middle_of_right {P : ObjectProperty A}
     this h₃ S.f S.g S.zero hS inferInstance
   intro X₀ n₃ h₃
   cases h₃ with
-  | zero _ hX₃ => exact fun f g w hS hX₂fin ↦ left_of_right hP hS hX₃
+  | zero _ hX₃ => exact fun f g w hS _ ↦ left_of_right hP hS hX₃
   | succ T₃ n hS₃ hF₃ hK₃ =>
-    intro X₁ X₂ f g w hS hX₂fin
+    intro X₁ X₂ f g w hS _
     have : P.HasFiniteResolution (pullback T₃.g g) := by
       have : P.HasFiniteResolution T₃.X₁ := ⟨n, hK₃⟩
       exact of_shortExact_of_left_of_right hP (hS₃.pullback g)
