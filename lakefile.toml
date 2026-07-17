@@ -8,6 +8,7 @@ pp.unicode.fun = true                 # pretty-prints `fun a ↦ b`
 autoImplicit = false
 relaxedAutoImplicit = false
 weak.linter.mathlibStandardSet = true
+weak.linter.style.haveILetI = true
 weak.linter.style.header = false
 linter.style.maxHeartbeats = false
 # linter.unusedVariables.analyzeTactics = true

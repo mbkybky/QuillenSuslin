@@ -9,7 +9,6 @@ public import QuillenSuslin.Invertible
 public import QuillenSuslin.MainTheorem
 public import QuillenSuslin.PicardGroup
 public import QuillenSuslin.StablyFree.HasFiniteFreeResolution
-public import QuillenSuslin.UFD.Lemmas
 public import QuillenSuslin.UFD.Regular
 public import QuillenSuslin.UnimodularVector.Basic
 public import QuillenSuslin.UnimodularVector.PID

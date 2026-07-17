@@ -5,6 +5,7 @@ Authors: Yongle Hu
 -/
 module
 
+public import QuillenSuslin.Linter.HaveLetI
 public import Mathlib.Algebra.Polynomial.Bivariate
 public import Mathlib.LinearAlgebra.Matrix.Permutation
 public import Mathlib.RingTheory.Localization.AtPrime.Basic

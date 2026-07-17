@@ -5,6 +5,7 @@ Authors: Yongle Hu
 -/
 module
 
+public import QuillenSuslin.Linter.HaveLetI
 public import Mathlib.RingTheory.Flat.Localization
 public import Mathlib.RingTheory.LocalProperties.FinitePresentation
 public import Mathlib.RingTheory.PicardGroup

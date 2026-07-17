@@ -613,16 +613,14 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
                 ∑ i ∈ (Finset.univ.erase o : Finset s), g i := by
               refine Finset.sum_congr rfl ?_
               intro i hi
-              have : i ≠ o := by simpa only [ne_eq, mem_erase, mem_univ, and_true] using hi
-              simp only [mul_ite, mul_zero, this, reduceIte, h, g]
-            have ho0 : h o = 0 := by simp [h]
-            have hs' : (∑ i ∈ (Finset.univ.erase o : Finset s), h i) =
+              have hio : i ≠ o := by simpa only [ne_eq, mem_erase, mem_univ, and_true] using hi
+              simp only [mul_ite, mul_zero, hio, reduceIte, h, g]
+            have hs : (∑ i ∈ (Finset.univ.erase o : Finset s), g i) =
                   ∑ i ∈ (Finset.univ : Finset s), h i := by
-              simp only [mem_univ, sum_erase_eq_sub, ho0, sub_zero]
-            have : (∑ i ∈ (Finset.univ.erase o : Finset s), g i) =
-                  ∑ i ∈ (Finset.univ : Finset s), h i := by
-              simpa only [mem_univ, sum_erase_eq_sub, h_erase] using hs'
-            simpa [h, g, t] using this.symm
+              apply h_erase.symm.trans
+              rw [Finset.sum_erase_eq_sub (Finset.mem_univ o)]
+              simp [h, sub_zero]
+            simpa [h, g, t] using hs.symm
           have hwPoly_o : wPoly o = uPoly o + X ^ N * fPoly := by
             have hwPoly_o' : wPoly o = uPoly o + ∑ i ∈ t, (X ^ N * φ (α (c i))) * uPoly i := by
               simp [wPoly, wPolyOf]
@@ -665,7 +663,7 @@ theorem exists_algEquiv_exists_equiv_exists_monic_finSuccEquiv (n : ℕ)
 theorem unimodularVectorEquiv_std_of_mvPolynomial {σ : Type*} [Finite σ] (o : s)
     (v : s → MvPolynomial σ R) (hv : IsUnimodular v) :
     UnimodularVectorEquiv v (fun i ↦ if i = o then 1 else 0) := by
-  letI := Fintype.ofFinite σ
+  have : Fintype σ := Fintype.ofFinite σ
   let n : ℕ := Fintype.card σ
   let eσ : σ ≃ Fin n := Fintype.equivFin σ
   let ρ : MvPolynomial σ R ≃ₐ[R] MvPolynomial (Fin n) R := MvPolynomial.renameEquiv R eσ

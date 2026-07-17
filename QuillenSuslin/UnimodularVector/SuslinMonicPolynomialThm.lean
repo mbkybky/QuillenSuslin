@@ -5,6 +5,7 @@ Authors: Yongle Hu
 -/
 module
 
+public import QuillenSuslin.Linter.HaveLetI
 public import Mathlib.Algebra.Polynomial.Bivariate
 public import Mathlib.RingTheory.KrullDimension.Field
 public import Mathlib.RingTheory.KrullDimension.Polynomial

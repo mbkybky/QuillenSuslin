@@ -5,6 +5,7 @@ Authors: Yongle Hu
 -/
 module
 
+public import QuillenSuslin.Linter.HaveLetI
 public import Mathlib.CategoryTheory.ObjectProperty.EpiMono
 
 /-!
@@ -12,7 +13,8 @@ public import Mathlib.CategoryTheory.ObjectProperty.EpiMono
 
 ## Main definitions
 
-Let `A` be an abelian category and `P : ObjectProperty A` be a property of objects in `A`.
+Let `A` be a category with zero morphisms.
+Let `P : ObjectProperty A` be a property of objects in `A`.
 
 * `CategoryTheory.ObjectProperty.HasFiniteResolutionOfLength`:
   We say that `X : A` has a `P`-resolution of length `n` if there exists an
@@ -27,13 +29,14 @@ universe v u v' u'
 
 namespace CategoryTheory
 
-open Category Limits ZeroObject
+open Category Limits
 
 namespace ObjectProperty
 
-variable {A : Type u} [Category.{v} A] [Abelian A]
+variable {A : Type u} [Category.{v} A] [HasZeroMorphisms A]
 
-/-- Let `A` be an abelian category and `P : ObjectProperty A` be a property of objects in `A`.
+/-- Let `A` be a category with zero morphisms.
+Let `P : ObjectProperty A` be a property of objects in `A`.
 We say that `X : A` has a `P`-resolution of length `n` if there exists an
 exact sequence `0 ⟶ Eₙ ⟶ ⋯ ⟶ E₀ ⟶ X ⟶ 0` such that each `Eᵢ : A` satisfies `P`. -/
 inductive HasFiniteResolutionOfLength (P : ObjectProperty A) : A → ℕ → Prop
@@ -42,7 +45,8 @@ inductive HasFiniteResolutionOfLength (P : ObjectProperty A) : A → ℕ → Pro
       (h₁ : HasFiniteResolutionOfLength P S.X₁ n) :
       HasFiniteResolutionOfLength P S.X₃ (n + 1)
 
-/-- Let `A` be an abelian category and `P : ObjectProperty A` be a property of objects in `A`.
+/-- Let `A` be a category with zero morphisms.
+Let `P : ObjectProperty A` be a property of objects in `A`.
 We say that `X : A` has a finite `P`-resolution if it has a `P`-resolution of some finite length. -/
 class HasFiniteResolution (P : ObjectProperty A) (X : A) : Prop where
   out (P X) : ∃ n : ℕ, P.HasFiniteResolutionOfLength X n
@@ -80,23 +84,10 @@ theorem of_iso [P.IsClosedUnderIsomorphisms] {Y : A} (e : X ≅ Y)
       let eS : S ≅ T := ShortComplex.isoMk (Iso.refl _) (Iso.refl _) e (by simp [T]) (by simp [T])
       exact HasFiniteResolutionOfLength.succ T n (ShortComplex.shortExact_of_iso eS hS) h₂ h₁
 
-theorem succ_of_zero_satisfies (h0 : P 0) (hX : P.HasFiniteResolutionOfLength X n) :
-    P.HasFiniteResolutionOfLength X (n + 1) := by
-  induction hX with
-  | zero X hX =>
-      let S : ShortComplex A := ShortComplex.mk (0 : 0 ⟶ X) (𝟙 X) (comp_id 0)
-      exact HasFiniteResolutionOfLength.succ S 0
-        ((ShortComplex.Splitting.ofIsZeroOfIsIso S (isZero_zero A) inferInstance).shortExact) hX
-          (HasFiniteResolutionOfLength.zero 0 h0)
-  | succ S n hS h₂ _ ih => exact HasFiniteResolutionOfLength.succ S (n + 1) hS h₂ ih
-
-theorem of_ge {m : ℕ} (h0 : P 0) (hX : P.HasFiniteResolutionOfLength X n) (h : n ≤ m) :
-    P.HasFiniteResolutionOfLength X m :=
-  h.rec hX (fun _ hX ↦ hX.succ_of_zero_satisfies h0)
-
-theorem map_exactFunctor {B : Type u'} [Category.{v'} B] [Abelian B]
-    {Q : ObjectProperty B} (F : A ⥤ B) [PreservesFiniteLimits F] [PreservesFiniteColimits F]
-    (hF : ∀ X, P X → Q (F.obj X)) (hX : P.HasFiniteResolutionOfLength X n) :
+theorem map_exactFunctor {B : Type u'} [Category.{v'} B] [HasZeroMorphisms B]
+    {Q : ObjectProperty B} (F : A ⥤ B) [F.PreservesZeroMorphisms]
+    [PreservesFiniteLimits F] [PreservesFiniteColimits F]
+    (hF : P ≤ Q.inverseImage F) (hX : P.HasFiniteResolutionOfLength X n) :
     Q.HasFiniteResolutionOfLength (F.obj X) n := by
   induction hX with
   | zero X hX =>
@@ -141,9 +132,10 @@ theorem of_shortExact {S : ShortComplex A} (hS : S.ShortExact) (h₂ : P S.X₂)
   HasFiniteResolution.elim fun n h₁ ↦
     (HasFiniteResolutionOfLength.succ S n hS h₂ h₁).hasFiniteResolution
 
-theorem map_exactFunctor {B : Type u'} [Category.{v'} B] [Abelian B]
-    {Q : ObjectProperty B} (F : A ⥤ B) [PreservesFiniteLimits F] [PreservesFiniteColimits F]
-    (hF : ∀ X, P X → Q (F.obj X)) [P.HasFiniteResolution X] :
+theorem map_exactFunctor {B : Type u'} [Category.{v'} B] [HasZeroMorphisms B]
+    {Q : ObjectProperty B} (F : A ⥤ B) [F.PreservesZeroMorphisms]
+    [PreservesFiniteLimits F] [PreservesFiniteColimits F]
+    (hF : P ≤ Q.inverseImage F) [P.HasFiniteResolution X] :
     Q.HasFiniteResolution (F.obj X) :=
   HasFiniteResolution.elim fun _ hX ↦ (hX.map_exactFunctor F hF).hasFiniteResolution
 
