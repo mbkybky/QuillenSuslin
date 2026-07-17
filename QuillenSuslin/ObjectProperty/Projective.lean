@@ -35,9 +35,7 @@ theorem hasProjectiveDimensionLE (hX : (isProjective A).HasFiniteResolutionOfLen
     HasProjectiveDimensionLE X n := by
   induction hX with
   | zero X hX => infer_instance
-  | succ S n hS h₂ _ ih =>
-      refine hS.hasProjectiveDimensionLT_X₃ (n + 1) ih <|
-        hasProjectiveDimensionLT_of_ge S.X₂ 1 ((n + 1) + 1) (by simp)
+  | succ S n hS h₂ _ ih => exact (hS.hasProjectiveDimensionLT_X₃_iff n h₂).2 ih
 
 /-- If the category has enough projectives, projective dimension at most `n` gives a finite
 projective resolution of length `n`. -/
@@ -51,10 +49,8 @@ theorem of_hasProjectiveDimensionLE [EnoughProjectives A] (hX : HasProjectiveDim
       let f : Projective.over X ⟶ X := Projective.π X
       let S : ShortComplex A := ShortComplex.mk (kernel.ι f) f (kernel.condition f)
       have hS : S.ShortExact := ShortComplex.ShortExact.mk (ShortComplex.exact_kernel f)
-      have hker : HasProjectiveDimensionLE (kernel f) n :=
-        hS.hasProjectiveDimensionLT_X₁ (n + 1)
-          (hasProjectiveDimensionLT_of_ge S.X₂ 1 (n + 1) (by simp)) (by simp [S, hX])
-      exact HasFiniteResolutionOfLength.succ S n hS inferInstance (ih hker)
+      exact HasFiniteResolutionOfLength.succ S n hS inferInstance <| ih <|
+        (hS.hasProjectiveDimensionLT_X₃_iff n inferInstance).1 hX
 
 end HasFiniteResolutionOfLength
 
